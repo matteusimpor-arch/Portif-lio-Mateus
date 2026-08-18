@@ -28,7 +28,7 @@ export const ParticleTextCanvas: React.FC<ParticleTextCanvasProps> = ({
   reduceMotion = false
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const mouseRef = useRef<{ x: number; y: number; radius: number }>({ x: -1000, y: -1000, radius: 130 });
+  const mouseRef = useRef<{ x: number; y: number; radius: number }>({ x: -1000, y: -1000, radius: 140 });
   const animationFrameRef = useRef<number | null>(null);
   const particlesRef = useRef<TextParticle[]>([]);
   const glitchRef = useRef<{ active: boolean; offsetY: number; height: number; shiftX: number; endTime: number }>({
@@ -75,7 +75,7 @@ export const ParticleTextCanvas: React.FC<ParticleTextCanvasProps> = ({
         offCtx.font = `900 ${fontSize}px 'VT323', monospace, sans-serif`;
         offCtx.fillText('MATEUS ARAUJO', width / 2, height / 2);
       } else {
-        // Grand 2-line Hero: MATEUS \n ARAUJO (Significantly larger)
+        // Grand 2-line Hero: MATEUS \n ARAUJO
         const fontSize = Math.min(width / 6.2, Math.min(height * 0.44, 135));
         offCtx.font = `900 ${fontSize}px 'VT323', monospace, sans-serif`;
         const lineSpacing = fontSize * 0.88;
@@ -89,21 +89,21 @@ export const ParticleTextCanvas: React.FC<ParticleTextCanvasProps> = ({
 
       const step = width < 640 ? 3 : 2; // high-density dot matrix sampling
 
-      // Color interpolation: EMERALD -> TEAL -> DIGITAL GREEN -> LIME
+      // BLUE SPACE PALETTE: ELECTRIC CYAN -> VIBRANT BLUE -> ROYAL BLUE -> WHITE-BLUE
       const getDotMatrixColor = (yPos: number, xPos: number) => {
         const factor = Math.max(0, Math.min(1, yPos / height + (xPos / width) * 0.2 - 0.1));
         const jitter = (Math.random() - 0.5) * 0.15;
         const adjustedFactor = Math.max(0, Math.min(1, factor + jitter));
 
         if (adjustedFactor < 0.35) {
-          const tealPalette = ['#2dd4bf', '#14b8a6', '#06b6d4', '#5eead4', '#38bdf8'];
-          return tealPalette[Math.floor(Math.random() * tealPalette.length)];
+          const cyanPalette = ['#38bdf8', '#22d3ee', '#06b6d4', '#7dd3fc', '#e0f2fe'];
+          return cyanPalette[Math.floor(Math.random() * cyanPalette.length)];
         } else if (adjustedFactor < 0.7) {
-          const greenPalette = ['#10b981', '#34d399', '#22c55e', '#4ade80', '#059669'];
-          return greenPalette[Math.floor(Math.random() * greenPalette.length)];
+          const electricPalette = ['#60a5fa', '#3b82f6', '#2563eb', '#93c5fd', '#1d4ed8'];
+          return electricPalette[Math.floor(Math.random() * electricPalette.length)];
         } else {
-          const limePalette = ['#a3e635', '#84cc16', '#bef264', '#d9f99d', '#65a30d'];
-          return limePalette[Math.floor(Math.random() * limePalette.length)];
+          const royalPalette = ['#1e40af', '#1d4ed8', '#3b82f6', '#0284c7', '#60a5fa'];
+          return royalPalette[Math.floor(Math.random() * royalPalette.length)];
         }
       };
 
@@ -260,10 +260,10 @@ export const ParticleTextCanvas: React.FC<ParticleTextCanvasProps> = ({
         ctx.globalAlpha = currentAlpha;
 
         if (p.isSquare) {
-          ctx.fillRect(drawX - p.size / 2, drawY - p.size / 2, p.size, p.size);
+          ctx.fillRect(drawX - p.size / 2, drawY - p.size / 2, Math.max(1, p.size), Math.max(1, p.size));
         } else {
           ctx.beginPath();
-          ctx.arc(drawX, drawY, p.size / 2, 0, Math.PI * 2);
+          ctx.arc(drawX, drawY, Math.max(0.1, p.size / 2), 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -310,7 +310,7 @@ export const ParticleTextCanvas: React.FC<ParticleTextCanvasProps> = ({
         onMouseLeave={handleMouseLeave}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleMouseLeave}
-        className="cursor-pointer max-w-full touch-none filter drop-shadow-[0_0_45px_rgba(20,184,166,0.55)]"
+        className="cursor-pointer max-w-full touch-none filter drop-shadow-[0_0_50px_rgba(56,189,248,0.65)]"
       />
     </div>
   );

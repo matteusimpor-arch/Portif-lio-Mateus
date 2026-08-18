@@ -75,6 +75,41 @@ export const ContactApp: React.FC = () => {
           </h2>
 
           <div className="space-y-2">
+            {/* WhatsApp (Número Principal) */}
+            <a
+              href={PROFILE_DATA.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-400 rounded flex items-center justify-between group transition cursor-pointer shadow-xs"
+            >
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-emerald-700" />
+                <div>
+                  <div className="font-bold text-emerald-950 text-xs flex items-center gap-1.5">
+                    <span>WhatsApp</span>
+                    <span className="text-[9px] bg-emerald-200 text-emerald-900 px-1.5 py-0.2 rounded font-bold">Principal</span>
+                  </div>
+                  <div className="text-[10px] text-emerald-800 font-mono font-bold">{PROFILE_DATA.phone}</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+
+            {/* Telefone Direto */}
+            <a
+              href={`tel:+5561983180345`}
+              className="p-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded flex items-center justify-between group transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-amber-700" />
+                <div>
+                  <div className="font-bold text-amber-950 text-xs">Telefone Principal</div>
+                  <div className="text-[10px] text-amber-800 font-mono font-bold">{PROFILE_DATA.phone}</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-amber-700 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+
             {/* LinkedIn */}
             <a
               href={PROFILE_DATA.linkedin}
@@ -86,10 +121,25 @@ export const ContactApp: React.FC = () => {
                 <Linkedin className="w-4 h-4 text-blue-700" />
                 <div>
                   <div className="font-bold text-blue-950 text-xs">LinkedIn Oficial</div>
-                  <div className="text-[10px] text-gray-600 truncate max-w-[130px]">mateus-araujo-santos</div>
+                  <div className="text-[10px] text-blue-800 font-mono font-bold truncate max-w-[130px]">mateus-araujo077</div>
                 </div>
               </div>
               <ExternalLink className="w-3.5 h-3.5 text-blue-600 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+
+            {/* Email */}
+            <a
+              href={`mailto:${PROFILE_DATA.email}`}
+              className="p-2.5 bg-green-50 hover:bg-green-100 border border-green-300 rounded flex items-center justify-between group transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-green-800" />
+                <div>
+                  <div className="font-bold text-green-950 text-xs">E-mail Direto</div>
+                  <div className="text-[10px] text-gray-700 truncate max-w-[130px]">{PROFILE_DATA.email}</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-green-700 group-hover:translate-x-0.5 transition-transform" />
             </a>
 
             {/* GitHub */}
@@ -107,38 +157,6 @@ export const ContactApp: React.FC = () => {
                 </div>
               </div>
               <ExternalLink className="w-3.5 h-3.5 text-gray-600 group-hover:translate-x-0.5 transition-transform" />
-            </a>
-
-            {/* Email */}
-            <a
-              href={`mailto:${PROFILE_DATA.email}`}
-              className="p-2.5 bg-green-50 hover:bg-green-100 border border-green-300 rounded flex items-center justify-between group transition cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-green-800" />
-                <div>
-                  <div className="font-bold text-green-950 text-xs">E-mail Direto</div>
-                  <div className="text-[10px] text-gray-600 truncate max-w-[130px]">{PROFILE_DATA.email}</div>
-                </div>
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 text-green-700 group-hover:translate-x-0.5 transition-transform" />
-            </a>
-
-            {/* WhatsApp */}
-            <a
-              href={PROFILE_DATA.whatsapp}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded flex items-center justify-between group transition cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4 text-emerald-700" />
-                <div>
-                  <div className="font-bold text-emerald-950 text-xs">WhatsApp / Mensagem</div>
-                  <div className="text-[10px] text-gray-600">Contato Ágil</div>
-                </div>
-              </div>
-              <ExternalLink className="w-3.5 h-3.5 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
             </a>
           </div>
 

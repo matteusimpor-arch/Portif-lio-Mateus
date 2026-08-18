@@ -63,7 +63,7 @@ export const AimsMessengerApp: React.FC = () => {
       } else if (query.includes('2026') || query.includes('space') || query.includes('futuro') || query.includes('tempo')) {
         reply = 'Experimente clicar no botão "Viagem no tempo" na área de trabalho! Ele te transporta do ano 2000 até 2026 no ambiente interativo MATEUS SPACE com partículas!';
       } else if (query.includes('contato') || query.includes('email') || query.includes('whatsapp') || query.includes('telefone')) {
-        reply = 'Você pode me contatar diretamente por WhatsApp (11 96085-7977) ou por email (matteus.impor@gmail.com). Ficarei honrado em conversar!';
+        reply = 'Você pode me contatar diretamente pelo WhatsApp (61) 983180345, LinkedIn (/in/mateus-araujo077) ou email (matteus.impor@gmail.com). Ficarei honrado em conversar!';
       }
 
       const botMsg: ChatMessage = {

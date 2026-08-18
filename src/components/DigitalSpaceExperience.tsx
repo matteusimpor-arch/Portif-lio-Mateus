@@ -11,12 +11,13 @@ import {
   ChevronRight,
   Search,
   FileText,
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from 'lucide-react';
 import { soundFx } from '../utils/soundEffects';
 import { ParticleTextCanvas } from './ParticleTextCanvas';
-import { SpaceGreenBackgroundCanvas } from './SpaceGreenBackgroundCanvas';
-import { AppMorphingCanvas, MorphAppItem } from './AppMorphingCanvas';
+import { SpaceBlueBackgroundCanvas } from './SpaceBlueBackgroundCanvas';
+import { RollingSpaceCoreCanvas } from './RollingSpaceCoreCanvas';
 import { ScreensaverCanvas } from './ScreensaverCanvas';
 
 // Sub-apps (Strictly 8 apps)
@@ -44,30 +45,24 @@ interface SpaceNode {
   accentHex: string;
   badge?: string;
   description: string;
+  revealThreshold: number; // scroll progress where this app activates
 }
-
-type SpaceMode = 'hero' | 'morphing_sequence' | 'apps';
 
 export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
   onBackToRetro,
 }) => {
-  // Current Mode:
-  // 'hero' -> Displays MATEUS ARAUJO Hero.
-  // 'morphing_sequence' -> Automated cinematic progression:
-  //    1. Names appear ONE BY ONE in space cloud
-  //    2. Short visual pause
-  //    3. Names disintegrate into microparticles
-  //    4. Particles converge into 8 App icons
-  // 'apps' -> The 8 materialized apps in zero-gravity space
-  const [mode, setMode] = useState<SpaceMode>('hero');
-
-  // Automated Timeline State (0ms to 4800ms)
-  const [seqTime, setSeqTime] = useState<number>(0);
+  // Continuous Scroll Progress (0.0 = Hero, 1.0 = All 8 Apps Materialized)
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const [scrollVelocity, setScrollVelocity] = useState<number>(0);
+  const targetScrollRef = useRef<number>(0);
+  const currentScrollRef = useRef<number>(0);
+  const velocityRef = useRef<number>(0);
   const animFrameRef = useRef<number | null>(null);
-  const seqStartTimeRef = useRef<number | null>(null);
 
   // Selected node expanded to center modal
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isOpeningApp, setIsOpeningApp] = useState<boolean>(false);
+  const [isClosingApp, setIsClosingApp] = useState<boolean>(false);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [reduceMotion, setReduceMotion] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -106,70 +101,55 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
     };
   }, [resetIdleTimer]);
 
-  // Start Automated Cinematic Transition from Hero to Apps
-  const triggerAutoSequence = useCallback(() => {
-    if (mode !== 'hero') return;
-    try { soundFx.playClick(); } catch (e) {}
-    setMode('morphing_sequence');
-    setSeqTime(0);
-    seqStartTimeRef.current = performance.now();
-  }, [mode]);
-
-  // Reset back to Hero from Apps (Scroll Up)
-  const triggerResetToHero = useCallback(() => {
-    if (mode === 'hero') return;
-    try { soundFx.playClick(); } catch (e) {}
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    setMode('hero');
-    setSeqTime(0);
-  }, [mode]);
-
-  // Automated Timeline Loop when in 'morphing_sequence'
+  // Smooth Spring / Lerp Animation Loop for Scroll Progress
   useEffect(() => {
-    if (mode !== 'morphing_sequence') {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      return;
-    }
+    let lastTime = performance.now();
 
-    const TOTAL_SEQUENCE_MS = 4600;
-    seqStartTimeRef.current = performance.now();
+    const animateScroll = (time: number) => {
+      const dt = Math.min(32, time - lastTime) / 1000;
+      lastTime = time;
 
-    const updateTimeline = (now: number) => {
-      if (!seqStartTimeRef.current) seqStartTimeRef.current = now;
-      const elapsed = now - seqStartTimeRef.current;
-      setSeqTime(elapsed);
+      const target = targetScrollRef.current;
+      const current = currentScrollRef.current;
+      const diff = target - current;
 
-      if (elapsed < TOTAL_SEQUENCE_MS) {
-        animFrameRef.current = requestAnimationFrame(updateTimeline);
+      if (Math.abs(diff) > 0.0005 || Math.abs(velocityRef.current) > 0.001) {
+        const ease = reduceMotion ? 0.25 : 0.085;
+        const newCurrent = current + diff * ease;
+        const vel = (newCurrent - current) / Math.max(0.001, dt);
+
+        currentScrollRef.current = Math.max(0, Math.min(1, newCurrent));
+        velocityRef.current = vel;
+
+        setScrollProgress(currentScrollRef.current);
+        setScrollVelocity(vel);
       } else {
-        // Automatically finalize into materialized apps!
-        try { soundFx.playWindowOpen(); } catch (e) {}
-        setMode('apps');
+        currentScrollRef.current = target;
+        velocityRef.current = 0;
+        setScrollProgress(target);
+        setScrollVelocity(0);
       }
+
+      animFrameRef.current = requestAnimationFrame(animateScroll);
     };
 
-    animFrameRef.current = requestAnimationFrame(updateTimeline);
+    animFrameRef.current = requestAnimationFrame(animateScroll);
 
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [mode]);
+  }, [reduceMotion]);
 
-  // Unified Scroll / Wheel Handler:
-  // Scroll Down in 'hero' -> Triggers automatic discovery & transformation
-  // Scroll Up in 'apps' -> Returns to 'hero'
+  // Unified Scroll / Wheel Handler
   const handleWheel = (e: React.WheelEvent) => {
     if (selectedNodeId !== null) return;
     resetIdleTimer();
 
-    if (e.deltaY > 15 && mode === 'hero') {
-      triggerAutoSequence();
-    } else if (e.deltaY < -15 && mode === 'apps') {
-      triggerResetToHero();
-    }
+    const delta = e.deltaY * 0.00095;
+    targetScrollRef.current = Math.max(0, Math.min(1, targetScrollRef.current + delta));
   };
 
-  // Touch Gestures for Mobile (Swipe Down to explore, Swipe Up to return)
+  // Touch Gestures for Mobile
   const touchStartYRef = useRef<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -177,41 +157,61 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
     touchStartYRef.current = e.touches[0].clientY;
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     if (selectedNodeId !== null || touchStartYRef.current === null) return;
     resetIdleTimer();
-    const touchEndY = e.changedTouches[0].clientY;
-    const deltaY = touchStartYRef.current - touchEndY;
+    const currentY = e.touches[0].clientY;
+    const deltaY = (touchStartYRef.current - currentY) * 0.0028;
+    touchStartYRef.current = currentY;
 
-    if (deltaY > 30 && mode === 'hero') {
-      // Swiped Upwards / Scrolled Downwards
-      triggerAutoSequence();
-    } else if (deltaY < -30 && mode === 'apps') {
-      // Swiped Downwards / Scrolled Upwards
-      triggerResetToHero();
-    }
+    targetScrollRef.current = Math.max(0, Math.min(1, targetScrollRef.current + deltaY));
+  };
+
+  const handleTouchEnd = () => {
     touchStartYRef.current = null;
   };
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (selectedNodeId !== null) return;
+      if (selectedNodeId !== null) {
+        if (e.key === 'Escape') {
+          handleCloseApp();
+        }
+        return;
+      }
 
-      if ((e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') && mode === 'hero') {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
         resetIdleTimer();
-        triggerAutoSequence();
-      } else if ((e.key === 'ArrowUp' || e.key === 'PageUp') && mode === 'apps') {
+        targetScrollRef.current = Math.min(1, targetScrollRef.current + 0.25);
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         resetIdleTimer();
-        triggerResetToHero();
+        targetScrollRef.current = Math.max(0, targetScrollRef.current - 0.25);
+      } else if (e.key === 'Home') {
+        resetIdleTimer();
+        targetScrollRef.current = 0;
+      } else if (e.key === 'End') {
+        resetIdleTimer();
+        targetScrollRef.current = 1;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeId, mode, triggerAutoSequence, triggerResetToHero, resetIdleTimer]);
+  }, [selectedNodeId, resetIdleTimer]);
 
-  // EXACTLY 8 APPS IN MATEUS SPACE 2026
+  // Jump to Apps / Jump to Hero buttons
+  const scrollToApps = () => {
+    try { soundFx.playClick(); } catch (e) {}
+    targetScrollRef.current = 1;
+  };
+
+  const scrollToHero = () => {
+    try { soundFx.playClick(); } catch (e) {}
+    targetScrollRef.current = 0;
+  };
+
+  // EXACTLY 8 APPS IN MATEUS SPACE 2026 WITH REVEAL THRESHOLDS
   const spaceNodes: SpaceNode[] = useMemo(() => [
     {
       id: 'about',
@@ -219,11 +219,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       subtitle: 'Biografia & Filosofia',
       category: 'core',
       icon: User,
-      color: 'from-teal-500 to-emerald-600',
-      glowColor: 'shadow-teal-500/50',
-      accentHex: '#14b8a6',
+      color: 'from-blue-600 to-cyan-500',
+      glowColor: 'shadow-cyan-500/50',
+      accentHex: '#06b6d4',
       badge: 'PERFIL',
-      description: 'Trajetória profissional, pilares de atuação, conexões multidisciplinares e visão de futuro.'
+      description: 'Trajetória profissional, pilares de atuação, conexões multidisciplinares e visão de futuro.',
+      revealThreshold: 0.25
     },
     {
       id: 'skills',
@@ -231,11 +232,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       subtitle: 'Competências & Serviços',
       category: 'core',
       icon: Cpu,
-      color: 'from-emerald-500 to-green-600',
-      glowColor: 'shadow-emerald-500/50',
-      accentHex: '#10b981',
+      color: 'from-blue-500 to-indigo-600',
+      glowColor: 'shadow-blue-500/50',
+      accentHex: '#3b82f6',
       badge: 'MATRIZ',
-      description: 'Logística, Supply Chain, Engenharia de Prompt, Modelagem e Inteligência Aplicada.'
+      description: 'Logística, Supply Chain, Engenharia de Prompt, Modelagem e Inteligência Aplicada.',
+      revealThreshold: 0.35
     },
     {
       id: 'projects',
@@ -243,11 +245,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       subtitle: 'Projetos & Dashboards',
       category: 'core',
       icon: Folder,
-      color: 'from-cyan-500 to-teal-600',
+      color: 'from-cyan-500 to-blue-600',
       glowColor: 'shadow-cyan-500/50',
-      accentHex: '#06b6d4',
+      accentHex: '#22d3ee',
       badge: 'DESTAQUE',
-      description: 'Estudos de caso completos em Logística, IA, Gestão Pública e Engenharia de Prompt.'
+      description: 'Estudos de caso completos em Logística, IA, Gestão Pública e Engenharia de Prompt.',
+      revealThreshold: 0.45
     },
     {
       id: 'resume',
@@ -255,11 +258,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       subtitle: 'Currículo Oficial',
       category: 'core',
       icon: FileText,
-      color: 'from-lime-500 to-emerald-600',
-      glowColor: 'shadow-lime-500/50',
-      accentHex: '#84cc16',
+      color: 'from-sky-500 to-blue-700',
+      glowColor: 'shadow-sky-500/50',
+      accentHex: '#38bdf8',
       badge: 'PDF',
-      description: 'Visualizador de currículo com download em PDF e histórico profissional consolidado.'
+      description: 'Visualizador de currículo com download em PDF e histórico profissional consolidado.',
+      revealThreshold: 0.55
     },
     {
       id: 'now',
@@ -267,11 +271,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       subtitle: 'Focos Atuais & Metas',
       category: 'core',
       icon: Clock,
-      color: 'from-green-500 to-emerald-600',
-      glowColor: 'shadow-green-500/50',
-      accentHex: '#22c55e',
+      color: 'from-indigo-500 to-blue-600',
+      glowColor: 'shadow-indigo-500/50',
+      accentHex: '#6366f1',
       badge: 'EM ANDAMENTO',
-      description: 'Projetos em construção, estudos ativos e objetivos traçados para 2026.'
+      description: 'Projetos em construção, estudos ativos e objetivos traçados para 2026.',
+      revealThreshold: 0.65
     },
     {
       id: 'aims',
@@ -279,11 +284,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       subtitle: 'Instant Messenger',
       category: 'interactive',
       icon: MessageSquare,
-      color: 'from-teal-600 to-cyan-700',
-      glowColor: 'shadow-teal-600/50',
-      accentHex: '#0d9488',
+      color: 'from-cyan-600 to-blue-800',
+      glowColor: 'shadow-cyan-600/50',
+      accentHex: '#0891b2',
       badge: 'CHAT',
-      description: 'Comunicador instantâneo interativo para conversar diretamente com Mateus Araujo.'
+      description: 'Comunicador instantâneo interativo para conversar diretamente com Mateus Araujo.',
+      revealThreshold: 0.75
     },
     {
       id: 'games',
@@ -291,11 +297,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       subtitle: 'Retro Arcade Hub 2000',
       category: 'interactive',
       icon: Gamepad2,
-      color: 'from-emerald-600 to-teal-700',
-      glowColor: 'shadow-emerald-600/50',
-      accentHex: '#059669',
+      color: 'from-blue-600 to-sky-600',
+      glowColor: 'shadow-blue-600/50',
+      accentHex: '#2563eb',
       badge: 'ARCADE',
-      description: 'Paciência 2000, Futebol 2000, Mario Kart 2000, Campo Minado, Pinball e Snake 3310.'
+      description: 'Paciência 2000, Futebol 2000, Mario Kart 2000, Campo Minado, Pinball e Snake 3310.',
+      revealThreshold: 0.85
     },
     {
       id: 'contact',
@@ -303,78 +310,46 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       subtitle: 'Canais Diretos',
       category: 'core',
       icon: Mail,
-      color: 'from-lime-600 to-green-700',
-      glowColor: 'shadow-lime-600/50',
-      accentHex: '#65a30d',
+      color: 'from-sky-600 to-cyan-600',
+      glowColor: 'shadow-sky-600/50',
+      accentHex: '#0284c7',
       badge: 'DIRETO',
-      description: 'Envie uma mensagem direta, acesse WhatsApp, LinkedIn e e-mail oficial.'
+      description: 'Envie uma mensagem direta, acesse WhatsApp, LinkedIn e e-mail oficial.',
+      revealThreshold: 0.92
     }
   ], []);
 
-  // Morph Items: connecting scattered starting positions directly to the in-place app card coordinates
-  const morphItems: MorphAppItem[] = useMemo(() => {
-    const scatteredCoords = [
-      { startX: 18, startY: 24, rot: -6, scale: 1.04 },
-      { startX: 78, startY: 22, rot: 7, scale: 0.96 },
-      { startX: 24, startY: 50, rot: 5, scale: 1.08 },
-      { startX: 82, startY: 48, rot: -7, scale: 0.95 },
-      { startX: 16, startY: 74, rot: 8, scale: 1.0 },
-      { startX: 50, startY: 28, rot: -5, scale: 1.1 },
-      { startX: 50, startY: 76, rot: 6, scale: 0.98 },
-      { startX: 84, startY: 74, rot: -7, scale: 1.02 }
-    ];
-
-    return spaceNodes.map((node, i) => {
-      const col = i % 4;
-      const row = Math.floor(i / 4);
-      const targetX = 18 + col * 21.3;
-      const targetY = 38 + row * 34;
-      const sc = scatteredCoords[i % scatteredCoords.length];
-
-      return {
-        id: node.id,
-        name: node.title,
-        startX: sc.startX,
-        startY: sc.startY,
-        targetX,
-        targetY,
-        rotation: sc.rot,
-        scale: sc.scale
-      };
-    });
-  }, [spaceNodes]);
-
-  // Automated Timeline Calculations:
-  // 1. MATEUS ARAUJO Hero: visible at 'hero' and fades out during first 500ms of sequence
-  const heroOpacity = mode === 'hero' ? 1 : Math.max(0, 1 - seqTime / 450);
-
-  // 2. Names Appearance (ONE BY ONE): between 300ms and 2100ms
-  // Each name has its own staggered entry timestamp
-  const isNamesCloudVisible = mode === 'morphing_sequence' && seqTime >= 250 && seqTime <= 2900;
-  const namesCloudGlobalOpacity = seqTime < 2400 ? 1 : Math.max(0, 1 - (seqTime - 2400) / 450);
-
-  // 3. Particle Morphing Disintegration & Convergence: between 2400ms and 4200ms
-  const isMorphActive = mode === 'morphing_sequence' && seqTime >= 2350;
-  const morphProgress = isMorphActive ? Math.min(1, Math.max(0, (seqTime - 2400) / 1700)) : 0;
-
-  // 4. In-Place Materialized Apps:
-  // Appears smoothly as morphProgress approaches 1 (seqTime >= 4000) or when mode === 'apps'
-  const isAppGridActive = mode === 'apps' || (mode === 'morphing_sequence' && seqTime >= 3900);
-  const appGridOpacity = mode === 'apps' ? 1 : Math.min(1, Math.max(0, (seqTime - 3900) / 500));
-  const appGridScale = mode === 'apps' ? 1 : 0.88 + appGridOpacity * 0.12;
-
-  // Node Selection -> Travel to Center Modal
-  const handleSelectNode = (nodeId: string) => {
-    try { soundFx.playClick(); } catch (e) {}
-    setSelectedNodeId(nodeId);
+  // =========================================================================
+  // SIMPLE, FAST & ELEGANT APP OPENING / CLOSING HANDLERS
+  // =========================================================================
+  const handleOpenApp = (node: SpaceNode) => {
     resetIdleTimer();
+    try { soundFx.playWindowOpen(); } catch (err) {}
+
+    setIsOpeningApp(true);
+    setSelectedNodeId(node.id);
+
+    setTimeout(() => {
+      setIsOpeningApp(false);
+    }, 380);
   };
 
-  // Close Center Modal -> Return Node to Orbit
-  const handleCloseCenter = () => {
-    try { soundFx.playClick(); } catch (e) {}
-    setSelectedNodeId(null);
+  const handleCloseApp = () => {
     resetIdleTimer();
+    try { soundFx.playWindowClose(); } catch (err) {}
+
+    setIsClosingApp(true);
+    setTimeout(() => {
+      setSelectedNodeId(null);
+      setIsClosingApp(false);
+    }, 280);
+  };
+
+  const handleDirectAppSwitch = (targetNode: SpaceNode) => {
+    if (targetNode.id === selectedNodeId) return;
+    resetIdleTimer();
+    try { soundFx.playClick(); } catch (err) {}
+    setSelectedNodeId(targetNode.id);
   };
 
   const filteredNodes = useMemo(() => {
@@ -404,29 +379,55 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
 
   const selectedNode = spaceNodes.find((n) => n.id === selectedNodeId);
 
+  // Progressive Visual Interpolations:
+  // 1. Hero Opacity: 1 at scrollProgress=0, fading out smoothly between 0.0 and 0.40
+  const heroOpacity = Math.max(0, 1 - scrollProgress * 2.5);
+  const heroScale = 1 + scrollProgress * 0.15;
+
+  // 2. Apps Arena Opacity & Parallax Depth: emerges as scrollProgress > 0.35, fully visible at 0.85
+  const appsOpacity = Math.min(1, Math.max(0, (scrollProgress - 0.25) / 0.65));
+  const appsScale = 0.92 + appsOpacity * 0.08;
+
   return (
     <div
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="fixed inset-0 z-50 bg-[#000402] text-white overflow-hidden select-none font-sans flex flex-col justify-between"
+      className="fixed inset-0 z-50 bg-[#000206] text-white overflow-hidden select-none font-sans flex flex-col justify-between"
     >
-      {/* 3-LAYER PARALLAX TECH-NOIR SPACE BACKGROUND CANVAS */}
-      <SpaceGreenBackgroundCanvas reduceMotion={reduceMotion} />
+      {/* 3-LAYER PARALLAX DEEP BLUE SPACE BACKGROUND CANVAS */}
+      <SpaceBlueBackgroundCanvas
+        reduceMotion={reduceMotion}
+        scrollProgress={scrollProgress}
+      />
+
+      {/* ROVER EFFECT: 3D ROLLING DIGITAL SPACE CORE CANVAS */}
+      <RollingSpaceCoreCanvas
+        scrollProgress={scrollProgress}
+        scrollVelocity={scrollVelocity}
+        reduceMotion={reduceMotion}
+      />
 
       {/* DISCREET TOP HUD */}
-      <header className="relative z-30 p-3 sm:p-4 flex items-center justify-between backdrop-blur-md bg-black/25 border-b border-teal-500/10">
+      <header className="relative z-30 p-3 sm:p-4 flex items-center justify-between backdrop-blur-md bg-black/35 border-b border-cyan-500/15">
         {/* Left: Button strictly "← Back OS 00" */}
         <button
           onClick={() => {
             try { soundFx.playClick(); } catch (e) {}
             onBackToRetro();
           }}
-          className="px-3 py-1.5 rounded bg-black/60 hover:bg-teal-950 border border-teal-900/80 hover:border-teal-400 text-teal-300 hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition backdrop-blur-md"
+          className="px-3 py-1.5 rounded bg-black/60 hover:bg-blue-950 border border-cyan-900/80 hover:border-cyan-400 text-cyan-300 hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition backdrop-blur-md"
         >
-          <ArrowLeft className="w-3.5 h-3.5 text-teal-400" />
+          <ArrowLeft className="w-3.5 h-3.5 text-cyan-400" />
           <span>← Back OS 00</span>
         </button>
+
+        {/* Center: System Indicator */}
+        <div className="hidden sm:flex items-center gap-2 font-mono text-[11px] text-cyan-400/80">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+          <span className="tracking-widest">MATEUS SPACE 2026 • BLUE SPACE</span>
+        </div>
 
         {/* Right: Motion Toggle */}
         <div className="flex items-center gap-2 font-mono text-xs">
@@ -434,8 +435,8 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
             onClick={() => setReduceMotion(!reduceMotion)}
             className={`px-2.5 py-1 rounded border text-[11px] cursor-pointer transition backdrop-blur-md ${
               reduceMotion
-                ? 'bg-teal-950/80 border-teal-400 text-teal-300 font-bold'
-                : 'bg-black/40 border-teal-950 text-slate-400 hover:text-teal-300'
+                ? 'bg-blue-950/80 border-cyan-400 text-cyan-300 font-bold'
+                : 'bg-black/40 border-cyan-950 text-slate-400 hover:text-cyan-300'
             }`}
           >
             {reduceMotion ? 'Movimento: Reduzido' : 'Movimento: Suave'}
@@ -444,18 +445,23 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       </header>
 
       {/* =========================================================================
-          MAIN IN-PLACE ARENA (PURE MYSTERY & DISCOVERY, NO STEP INDICATORS)
+          MAIN IN-PLACE ARENA (SEAMLESS ROVER SCROLL PROGRESSION)
       ========================================================================== */}
-      <main className="relative z-20 flex-1 w-full h-full flex items-center justify-center overflow-hidden p-4">
-        {/* 1. MATEUS ARAUJO GRAND DOT MATRIX HERO */}
+      <main
+        className={`relative z-20 flex-1 w-full h-full flex items-center justify-center overflow-hidden p-4 transition-all duration-300 ${
+          selectedNodeId ? 'filter blur-[3px] scale-95 opacity-50 pointer-events-none' : ''
+        }`}
+      >
+        {/* 1. MATEUS ARAUJO BLUE DOT MATRIX HERO */}
         {heroOpacity > 0.01 && (
           <div
-            onClick={triggerAutoSequence}
+            onClick={scrollToApps}
             style={{
               opacity: heroOpacity,
-              pointerEvents: mode === 'hero' ? 'auto' : 'none'
+              transform: `scale(${heroScale})`,
+              pointerEvents: heroOpacity > 0.6 ? 'auto' : 'none'
             }}
-            className="absolute inset-0 flex flex-col items-center justify-center transition-opacity duration-300 z-10 p-4 cursor-pointer"
+            className="absolute inset-0 flex flex-col items-center justify-center transition-all duration-150 z-10 p-4 cursor-pointer"
           >
             <div className="w-full max-w-6xl flex flex-col items-center justify-center">
               <ParticleTextCanvas
@@ -465,128 +471,90 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
             </div>
 
             {/* Subtle interactive prompt to guide the user naturally */}
-            {mode === 'hero' && (
-              <div className="absolute bottom-12 flex flex-col items-center gap-2 font-mono text-xs text-teal-400/80 animate-pulse pointer-events-none">
-                <span className="text-[11px] tracking-widest uppercase">Role para baixo ou clique para explorar</span>
-                <div className="w-4 h-7 rounded-full border border-teal-400/50 flex justify-center p-1">
-                  <div className="w-1 h-2 bg-teal-400 rounded-full animate-bounce" />
-                </div>
+            <div className="absolute bottom-10 flex flex-col items-center gap-2 font-mono text-xs text-cyan-400/80 animate-pulse pointer-events-none">
+              <span className="text-[11px] tracking-widest uppercase">Role para baixo ou clique para explorar o Space</span>
+              <div className="w-4 h-7 rounded-full border border-cyan-400/50 flex justify-center p-1">
+                <div className="w-1 h-2 bg-cyan-400 rounded-full animate-bounce" />
               </div>
-            )}
+            </div>
           </div>
         )}
 
-        {/* 2. STAGGERED ORGANIC WORD CLOUD (App names appear ONE BY ONE) */}
-        {isNamesCloudVisible && (
-          <div
-            style={{ opacity: namesCloudGlobalOpacity }}
-            className="absolute inset-0 pointer-events-none transition-opacity duration-300 z-12"
-          >
-            {morphItems.map((item, index) => {
-              // Exact Staggered entry for each name (one by one every 220ms)
-              const nameAppearTime = 300 + index * 220;
-              const isItemVisible = seqTime >= nameAppearTime;
-              const itemAlpha = isItemVisible ? Math.min(1, (seqTime - nameAppearTime) / 180) : 0;
-              const itemScale = isItemVisible ? Math.min(item.scale, 0.8 + (seqTime - nameAppearTime) / 400) : 0.6;
-
-              return (
-                <div
-                  key={item.id}
-                  style={{
-                    position: 'absolute',
-                    left: `${item.startX}%`,
-                    top: `${item.startY}%`,
-                    transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${itemScale})`,
-                    transformOrigin: 'center center',
-                    opacity: itemAlpha,
-                    transition: 'opacity 0.2s ease-out, transform 0.2s ease-out'
-                  }}
-                  className="px-4 py-2 rounded-lg bg-teal-950/85 border border-teal-400/60 text-teal-200 font-mono text-xs sm:text-sm font-bold shadow-[0_0_30px_rgba(20,184,166,0.45)] backdrop-blur-md select-none tracking-wider whitespace-nowrap animate-pulse"
-                >
-                  {item.name}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* 3. PARTICLE MORPHING STREAM CANVAS (Disperses & Converges directly into the Apps) */}
-        {isMorphActive && (
-          <AppMorphingCanvas
-            items={morphItems}
-            progress={morphProgress}
-            reduceMotion={reduceMotion}
-          />
-        )}
-
-        {/* 4. THE 8 APPS MATERIALIZED IN-PLACE WITH ZERO-GRAVITY SPACE FLOATING */}
-        {isAppGridActive && (
+        {/* 2. THE 8 APPS MATERIALIZED IN-PLACE WITH ORBITAL REVEAL & ZERO-GRAVITY SPACE FLOATING */}
+        {appsOpacity > 0.02 && (
           <div
             style={{
-              opacity: appGridOpacity,
-              transform: `scale(${appGridScale})`,
-              pointerEvents: appGridOpacity > 0.4 ? 'auto' : 'none'
+              opacity: appsOpacity,
+              transform: `scale(${appsScale})`,
+              pointerEvents: appsOpacity > 0.4 ? 'auto' : 'none'
             }}
-            className="w-full max-w-5xl flex flex-col items-center gap-3.5 z-20 transition-all duration-300"
+            className="w-full max-w-5xl flex flex-col items-center gap-3.5 z-20 transition-all duration-150"
           >
-            {/* Top Minimal Search Bar */}
+            {/* Top Navigation & Minimal Search Bar */}
             <div className="w-full flex items-center justify-between px-1">
               <button
-                onClick={triggerResetToHero}
-                className="text-[11px] font-mono text-teal-400/80 hover:text-teal-200 flex items-center gap-1 cursor-pointer transition hover:underline"
+                onClick={scrollToHero}
+                className="text-[11px] font-mono text-cyan-400/80 hover:text-cyan-200 flex items-center gap-1 cursor-pointer transition hover:underline"
               >
                 <span>↑ Retornar ao início</span>
               </button>
 
               <div className="relative w-44 sm:w-56">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-teal-400" />
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-cyan-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Buscar módulo..."
-                  className="w-full bg-black/70 text-white text-xs pl-8 pr-3 py-1.5 rounded-full border border-teal-900 focus:outline-hidden focus:border-teal-400 font-mono backdrop-blur-md"
+                  className="w-full bg-black/70 text-white text-xs pl-8 pr-3 py-1.5 rounded-full border border-cyan-900 focus:outline-hidden focus:border-cyan-400 font-mono backdrop-blur-md"
                 />
               </div>
             </div>
 
-            {/* Responsive 8-App Grid with Zero-Gravity Space Float Motion */}
+            {/* Responsive 8-App Grid with Rover Reveal & Smooth Simple Hover/Pulse */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full">
               {filteredNodes.map((node, index) => {
                 const Icon = node.icon;
                 const isHovered = hoveredNodeId === node.id;
+                // Check if the rolling rover sphere has passed near this node
+                const isRevealed = scrollProgress >= node.revealThreshold || appsOpacity > 0.8;
+                const nodeOpacity = isRevealed ? 1 : Math.max(0.2, (scrollProgress / node.revealThreshold));
                 const floatAnimationClass = reduceMotion || isHovered ? '' : `animate-space-float-${index % 8}`;
 
                 return (
                   <div
                     key={node.id}
-                    onClick={() => handleSelectNode(node.id)}
+                    onClick={() => handleOpenApp(node)}
                     onMouseEnter={() => {
                       setHoveredNodeId(node.id);
-                      try { soundFx.playClick(); } catch (e) {}
+                      try { soundFx.playClick(); } catch (err) {}
                     }}
                     onMouseLeave={() => setHoveredNodeId(null)}
+                    style={{
+                      opacity: nodeOpacity,
+                      transform: isHovered ? 'scale(1.04)' : undefined
+                    }}
                     className={`w-full p-3 sm:p-3.5 rounded-xl border transition-all duration-300 cursor-pointer flex flex-col items-center text-center gap-2 group relative backdrop-blur-md ${floatAnimationClass} ${
                       isHovered
-                        ? 'bg-teal-950/90 border-teal-400 shadow-[0_0_35px_rgba(20,184,166,0.6)] scale-105 z-30 !transform-none'
-                        : 'bg-black/75 border-teal-950/90 hover:border-teal-800 shadow-[0_0_15px_rgba(0,20,10,0.4)]'
+                        ? 'bg-blue-950/90 border-cyan-400 shadow-[0_0_35px_rgba(6,182,212,0.6)] z-30'
+                        : 'bg-black/75 border-cyan-950/90 hover:border-cyan-700 shadow-[0_0_15px_rgba(0,10,30,0.5)]'
                     }`}
                   >
                     {/* Badge */}
                     {node.badge && (
-                      <span className="absolute top-2 right-2 text-[9px] font-mono font-extrabold px-1.5 py-0.2 rounded bg-teal-950 text-teal-300 border border-teal-700/60">
+                      <span className="absolute top-2 right-2 text-[9px] font-mono font-extrabold px-1.5 py-0.2 rounded bg-blue-950 text-cyan-300 border border-cyan-700/60">
                         {node.badge}
                       </span>
                     )}
 
-                    {/* Glowing Tech-Noir Icon */}
+                    {/* Glowing Blue Space Icon */}
                     <div className={`w-11 h-11 rounded-xl bg-gradient-to-tr ${node.color} flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-110`}>
                       <Icon className="w-5 h-5" />
                     </div>
 
                     {/* Title & Subtitle */}
                     <div className="w-full">
-                      <div className="font-bold text-xs text-white truncate font-mono group-hover:text-teal-300">
+                      <div className="font-bold text-xs text-white truncate font-mono group-hover:text-cyan-300">
                         {node.title}
                       </div>
                       <div className="text-[10px] text-slate-400 truncate">
@@ -599,7 +567,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
                       {node.description}
                     </p>
 
-                    <div className="w-full pt-1 border-t border-teal-950/80 text-[10px] font-mono text-teal-400 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-full pt-1 border-t border-cyan-950/80 text-[10px] font-mono text-cyan-400 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span>Acessar Módulo</span>
                       <ChevronRight className="w-3 h-3" />
                     </div>
@@ -611,57 +579,120 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
         )}
       </main>
 
-      {/* DISCREET BOTTOM FOOTER (NO PROGRESS NUMBERS OR STEP COUNTERS) */}
-      <footer className="relative z-30 p-2 sm:p-2.5 flex items-center justify-between backdrop-blur-md bg-black/20 border-t border-teal-500/10 text-[10px] font-mono text-teal-500/50">
-        <span>MATEUS SPACE 2026</span>
-        <span>TECH-NOIR DIGITAL SPACE</span>
+      {/* DISCREET BOTTOM FOOTER WITH ROVER SCROLL INDICATOR */}
+      <footer className="relative z-30 p-2 sm:p-2.5 flex items-center justify-between backdrop-blur-md bg-black/30 border-t border-cyan-500/15 text-[10px] font-mono text-cyan-500/70">
+        <div className="flex items-center gap-2">
+          <span>MATEUS SPACE 2026</span>
+          <span className="hidden sm:inline text-slate-600">•</span>
+          <span className="hidden sm:inline text-slate-400">BLUE SPACE ENGINE</span>
+        </div>
+
+        {/* Scroll Progress Bar */}
+        <div className="flex items-center gap-2">
+          <div className="w-24 sm:w-36 h-1.5 rounded-full bg-slate-900 overflow-hidden border border-cyan-950">
+            <div
+              className="h-full bg-gradient-to-r from-blue-600 via-cyan-400 to-sky-300 rounded-full transition-all duration-100"
+              style={{ width: `${Math.max(5, scrollProgress * 100)}%` }}
+            />
+          </div>
+          <span className="text-[9px] text-cyan-400">{Math.round(scrollProgress * 100)}%</span>
+        </div>
       </footer>
 
       {/* =========================================================================
-          SELECTED NODE MODAL EXPANSION (FULL SCREEN FOCUS)
+          SELECTED NODE MODAL (SIMPLE, FAST & ELEGANT OPENING WITH DEPTH & FADE)
       ========================================================================== */}
       {selectedNodeId && selectedNode && (
-        <div className="fixed inset-3 sm:inset-6 z-50 bg-[#000804] border-2 border-teal-400/80 rounded-2xl shadow-[0_0_60px_rgba(20,184,166,0.35)] flex flex-col overflow-hidden animate-fadeIn">
+        <div
+          className={`fixed inset-2 sm:inset-5 z-40 bg-[#020817]/95 border-2 border-cyan-400/80 rounded-2xl shadow-[0_0_70px_rgba(6,182,212,0.35)] flex flex-col overflow-hidden backdrop-blur-xl transition-all duration-300 ${
+            isOpeningApp
+              ? 'scale-95 opacity-0'
+              : isClosingApp
+              ? 'scale-95 opacity-0'
+              : 'scale-100 opacity-100'
+          }`}
+        >
           {/* Modal Titlebar */}
-          <div className="bg-teal-950/80 p-3 sm:p-4 border-b border-teal-500/30 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-lg bg-gradient-to-tr ${selectedNode.color} flex items-center justify-center text-white shadow-md`}>
-                {React.createElement(selectedNode.icon, { className: "w-5 h-5" })}
+          <div className="bg-blue-950/90 p-2.5 sm:p-3.5 border-b border-cyan-500/30 flex flex-wrap items-center justify-between gap-2">
+            {/* Left: Active Module Identifier */}
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${selectedNode.color} flex items-center justify-center text-white shadow-md`}>
+                {React.createElement(selectedNode.icon, { className: "w-4 h-4" })}
               </div>
               <div>
-                <h3 className="font-bold text-sm sm:text-base font-mono text-white flex items-center gap-2">
+                <h3 className="font-bold text-xs sm:text-sm font-mono text-white flex items-center gap-1.5">
                   <span>{selectedNode.title}</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-700">
-                    MATEUS SPACE 2026
+                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-900 text-cyan-300 border border-blue-700">
+                    2026
                   </span>
                 </h3>
-                <p className="text-[11px] text-slate-300">{selectedNode.subtitle}</p>
+                <p className="text-[10px] text-slate-300">{selectedNode.subtitle}</p>
               </div>
             </div>
 
+            {/* Center: DIRECT APP-TO-APP QUICK SWITCHER */}
+            <div className="hidden lg:flex items-center gap-1 bg-black/60 p-1 rounded-lg border border-cyan-950/90">
+              {spaceNodes.map((n) => {
+                const isCurrent = n.id === selectedNodeId;
+                const NIcon = n.icon;
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => handleDirectAppSwitch(n)}
+                    title={`Navegar para ${n.title}`}
+                    className={`px-2 py-1 rounded text-[10px] font-mono flex items-center gap-1 transition cursor-pointer ${
+                      isCurrent
+                        ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                        : 'text-slate-400 hover:text-cyan-200 hover:bg-blue-950/50'
+                    }`}
+                  >
+                    <NIcon className="w-3 h-3" />
+                    <span>{n.title.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Right: Close Button */}
             <button
-              onClick={handleCloseCenter}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-300 hover:text-red-300 border border-slate-700 hover:border-red-600 transition cursor-pointer"
-              title="Retornar ao Space"
+              onClick={handleCloseApp}
+              className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-red-950 text-slate-300 hover:text-red-300 border border-cyan-900/80 hover:border-red-600 transition cursor-pointer flex items-center gap-1 text-xs font-mono"
+              title="Retornar ao Space (ESC)"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
+              <span className="hidden sm:inline text-[10px]">Fechar</span>
             </button>
           </div>
 
           {/* Modal Content */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 bg-[#000603] text-slate-200">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5 bg-[#010614] text-slate-200">
             {renderCenterApp(selectedNodeId)}
           </div>
 
-          {/* Modal Footer */}
-          <div className="bg-teal-950/90 p-3 border-t border-teal-900/60 flex items-center justify-between text-xs font-mono">
-            <span className="text-teal-400/80">Pressione Fechar para retornar ao MATEUS SPACE</span>
-            <button
-              onClick={handleCloseCenter}
-              className="btn-retro px-4 py-1 bg-[#c0c0c0] hover:bg-yellow-300 text-black font-bold cursor-pointer"
-            >
-              Voltar ao Space ✕
-            </button>
+          {/* Modal Footer with Module Quick Links */}
+          <div className="bg-blue-950/90 p-2.5 border-t border-cyan-900/60 flex items-center justify-between text-xs font-mono">
+            <span className="text-[11px] text-cyan-400/80 hidden sm:inline">
+              MATEUS SPACE • Navegue livremente pelos módulos
+            </span>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+              <div className="flex sm:hidden items-center gap-1 overflow-x-auto max-w-[200px] py-0.5">
+                {spaceNodes.map(n => (
+                  <button
+                    key={n.id}
+                    onClick={() => handleDirectAppSwitch(n)}
+                    className={`px-1.5 py-0.5 text-[9px] rounded ${n.id === selectedNodeId ? 'bg-cyan-700 text-white' : 'bg-black/50 text-slate-400'}`}
+                  >
+                    {n.title.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleCloseApp}
+                className="px-3 py-1 rounded bg-blue-900/80 hover:bg-blue-800 border border-cyan-400/50 text-cyan-200 text-[11px] font-bold cursor-pointer transition shadow-xs"
+              >
+                Voltar ao Space ✕
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -43,6 +43,7 @@ export const ResumeApp: React.FC = () => {
       `Nome: ${PROFILE_INFO.name}\n` +
       `Título: ${PROFILE_INFO.title}\n` +
       `Atuação: ${PROFILE_INFO.headline}\n` +
+      `Telefone/WhatsApp: ${PROFILE_INFO.phone} (Principal)\n` +
       `Email: ${PROFILE_INFO.email}\n` +
       `LinkedIn: ${PROFILE_INFO.linkedin}\n` +
       `GitHub: ${PROFILE_INFO.github}\n\n` +
@@ -149,8 +150,9 @@ export const ResumeApp: React.FC = () => {
             <p className="text-xs text-slate-400 mt-1 max-w-xl">{PROFILE_INFO.subtitle}</p>
           </div>
           <div className="text-xs font-mono-code text-slate-400 space-y-1 bg-slate-900/80 p-3 rounded-lg border border-slate-800/80">
+            <div>WhatsApp: <span className="text-emerald-300 font-bold">{PROFILE_INFO.phone} (Principal)</span></div>
             <div>Email: <span className="text-slate-200">{PROFILE_INFO.email}</span></div>
-            <div>LinkedIn: <span className="text-slate-200">{PROFILE_INFO.linkedin}</span></div>
+            <div>LinkedIn: <a href={PROFILE_INFO.linkedin} target="_blank" rel="noopener noreferrer" className="text-indigo-300 hover:underline">{PROFILE_INFO.linkedin}</a></div>
             <div>GitHub: <span className="text-slate-200">{PROFILE_INFO.github}</span></div>
             <div>Localização: <span className="text-slate-200">{PROFILE_INFO.location}</span></div>
           </div>

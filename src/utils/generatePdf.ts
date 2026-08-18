@@ -81,9 +81,9 @@ export function generateCurriculumPdf(): void {
   // Contact Info Line
   y += 4.8;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8.2);
   doc.setTextColor(71, 85, 105); // Slate-600
-  const contactText = `Email: ${PROFILE_INFO.email}   |   LinkedIn: ${PROFILE_INFO.linkedin}   |   GitHub: ${PROFILE_INFO.github}   |   Localização: ${PROFILE_INFO.location}`;
+  const contactText = `WhatsApp: ${PROFILE_INFO.phone} (Principal)   |   Email: ${PROFILE_INFO.email}   |   LinkedIn: ${PROFILE_INFO.linkedin}   |   GitHub: ${PROFILE_INFO.github}`;
   doc.text(contactText, margin, y);
 
   // Divider

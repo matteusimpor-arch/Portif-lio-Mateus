@@ -492,7 +492,7 @@ export const KartGame: React.FC = () => {
             ctx.fillRect(oppX - size / 2, oppY - size, size, size * 0.7);
             ctx.fillStyle = opp.char.color;
             ctx.beginPath();
-            ctx.arc(oppX, oppY - size * 0.8, size * 0.3, 0, Math.PI * 2);
+            ctx.arc(oppX, oppY - size * 0.8, Math.max(0.1, size * 0.3), 0, Math.PI * 2);
             ctx.fill();
             // Kart wheels
             ctx.fillStyle = '#000000';

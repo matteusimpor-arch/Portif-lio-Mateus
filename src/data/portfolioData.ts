@@ -7,9 +7,12 @@ export const PROFILE_DATA = {
   headline: 'Logística • Gestão • Finanças • Supply Chain • Administração Pública • Inteligência Artificial • Engenharia de Prompt',
   location: 'Brasil',
   email: 'matteus.impor@gmail.com',
-  linkedin: 'https://www.linkedin.com/in/mateus-araujo-santos',
+  phone: '(61) 983180345',
+  phoneFormatted: '(61) 98318-0345',
+  linkedin: 'https://www.linkedin.com/in/mateus-araujo077',
   github: 'https://github.com/matteusimpor-arch',
-  whatsapp: 'https://wa.me/5561991873177',
+  whatsapp: 'https://wa.me/5561983180345',
+  whatsappDisplay: '(61) 983180345',
   
   // Disponibilidade e características principais
   availability: 'Disponibilidade para atuação em áreas administrativas, logísticas e operacionais.',

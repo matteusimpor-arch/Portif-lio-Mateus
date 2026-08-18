@@ -23,16 +23,15 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
 
   // Random screensaver selection with priority for signature modes
   const [activeMode] = useState<ScreensaverType>(() => {
-    const signatureModes: ScreensaverType[] = ['matrix_rain', 'particle_name'];
+    const signatureModes: ScreensaverType[] = ['starfield', 'particle_name', 'particle_orbit'];
     const otherModes: ScreensaverType[] = [
+      'matrix_rain',
       'crt_terminal',
-      'particle_orbit',
-      'starfield',
       'retro_bounce',
       'flying_windows'
     ];
-    // 60% chance for signature modes, 40% for other creative modes
-    if (Math.random() < 0.6) {
+    // 65% chance for signature blue space modes
+    if (Math.random() < 0.65) {
       return signatureModes[Math.floor(Math.random() * signatureModes.length)];
     }
     return otherModes[Math.floor(Math.random() * otherModes.length)];
@@ -91,7 +90,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
     nameOffscreen.width = width;
     nameOffscreen.height = height;
     const nameCtx = nameOffscreen.getContext('2d');
-    let nameTargets: { x: number; y: number }[] = [];
+    const nameTargets: { x: number; y: number }[] = [];
 
     if (nameCtx) {
       const fontSize = Math.min(width / 7.5, 95);
@@ -113,11 +112,11 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
     }
 
     // =========================================================================
-    // 2. PARTICLE NAME SCREENSAVER STATE
+    // 2. PARTICLE NAME SCREENSAVER STATE (BLUE SPACE PALETTE)
     // =========================================================================
-    const particleCount = Math.min(600, nameTargets.length);
-    const particles = Array.from({ length: particleCount }, (_, i) => {
-      const target = nameTargets[i % nameTargets.length] || { x: width / 2, y: height / 2 };
+    const particleCount = Math.min(600, nameTargets.length || 300);
+    const blueParticles = Array.from({ length: particleCount }, (_, i) => {
+      const target = nameTargets[i % (nameTargets.length || 1)] || { x: width / 2, y: height / 2 };
       const startAngle = Math.random() * Math.PI * 2;
       const startDist = Math.random() * Math.max(width, height) * 0.7 + 100;
       return {
@@ -128,7 +127,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
         originX: width / 2 + Math.cos(startAngle) * startDist,
         originY: height / 2 + Math.sin(startAngle) * startDist,
         size: Math.random() * 2 + 1.2,
-        color: ['#14b8a6', '#10b981', '#34d399', '#84cc16', '#a3e635'][Math.floor(Math.random() * 5)],
+        color: ['#38bdf8', '#22d3ee', '#60a5fa', '#3b82f6', '#93c5fd', '#bae6fd'][Math.floor(Math.random() * 6)],
         alpha: Math.random() * 0.4 + 0.6
       };
     });
@@ -140,13 +139,13 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
     let bounceY = height / 2;
     let bounceVx = 2.4;
     let bounceVy = 1.8;
-    const bounceColors = ['#14b8a6', '#10b981', '#a3e635', '#22d3ee', '#facc15'];
+    const bounceColors = ['#38bdf8', '#22d3ee', '#60a5fa', '#3b82f6', '#e0f2fe'];
     let bounceColorIdx = 0;
 
     // =========================================================================
-    // 4. STARFIELD STATE
+    // 4. STARFIELD STATE (DEEP BLUE SPACE)
     // =========================================================================
-    const stars = Array.from({ length: 300 }, () => ({
+    const stars = Array.from({ length: 320 }, () => ({
       x: (Math.random() - 0.5) * width * 2,
       y: (Math.random() - 0.5) * height * 2,
       z: Math.random() * 1000 + 1
@@ -164,7 +163,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
       w: 160,
       h: 110,
       title: windowTitles[i % windowTitles.length],
-      color: ['#14b8a6', '#10b981', '#84cc16'][i % 3]
+      color: ['#38bdf8', '#60a5fa', '#3b82f6'][i % 3]
     }));
 
     // =========================================================================
@@ -173,22 +172,20 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
     const render = () => {
       const elapsed = (Date.now() - startTime) / 1000;
 
-      // Deep Tech-Noir background with slight persistent motion blur
-      ctx.fillStyle = 'rgba(0, 4, 2, 0.22)';
+      // Deep Blue Outer Space background with motion blur
+      ctx.fillStyle = 'rgba(0, 2, 6, 0.22)';
       ctx.fillRect(0, 0, width, height);
 
       switch (activeMode) {
         // ---------------------------------------------------------------------
-        // MATRIX DIGITAL RAIN → MATEUS ARAUJO
+        // MATRIX DIGITAL RAIN (RETRO GREEN)
         // ---------------------------------------------------------------------
         case 'matrix_rain': {
-          // Cycle: 0-8s Rain, 8-15s Converge to MATEUS ARAUJO, 15-20s Pulse & Hold, 20-25s Dissolve
           const cycleTime = elapsed % 24;
           const isConverging = cycleTime >= 7 && cycleTime <= 19;
           const convergenceProgress = isConverging ? Math.min(1, (cycleTime - 7) / 3.5) : 0;
           const dissolveProgress = cycleTime > 19 ? Math.min(1, (cycleTime - 19) / 4) : 0;
 
-          // Matrix Rain Columns
           ctx.font = `${matrixFontSize}px 'VT323', monospace`;
 
           for (let i = 0; i < drops.length; i++) {
@@ -196,7 +193,6 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
             const x = i * matrixFontSize;
             const y = drops[i] * matrixFontSize;
 
-            // Character Color (Leading char is lime/white, trail is teal/green)
             const isLeading = Math.random() > 0.88;
             ctx.fillStyle = isLeading ? '#a3e635' : (i % 3 === 0 ? '#14b8a6' : '#10b981');
             ctx.globalAlpha = isLeading ? 0.95 : Math.max(0.2, 0.8 - (y / height) * 0.4);
@@ -209,7 +205,6 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
             drops[i] += dropSpeeds[i];
           }
 
-          // Convergence into MATEUS ARAUJO
           if (isConverging && nameTargets.length > 0) {
             const pulse = 1 + Math.sin(elapsed * 4) * 0.03;
             const alpha = dissolveProgress > 0 ? (1 - dissolveProgress) : convergenceProgress;
@@ -221,7 +216,6 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
               const tX = width / 2 + (target.x - width / 2) * pulse;
               const tY = height / 2 + (target.y - height / 2) * pulse;
 
-              // Physical interpolation from rain drops to target
               const originX = (i % columns) * matrixFontSize;
               const originY = ((i * 13) % Math.floor(height / matrixFontSize)) * matrixFontSize;
 
@@ -236,10 +230,9 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
         }
 
         // ---------------------------------------------------------------------
-        // PARTICLE NAME SCREENSAVER
+        // PARTICLE NAME SCREENSAVER (BLUE SPACE)
         // ---------------------------------------------------------------------
         case 'particle_name': {
-          // Cycle: 0-6s Gather into Name, 6-12s Breathing Hold, 12-18s Disperse & Orbit
           const cycleTime = elapsed % 18;
           let gather = 0;
 
@@ -253,8 +246,8 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
 
           const pulse = 1 + Math.sin(elapsed * 2.5) * 0.02;
 
-          for (let i = 0; i < particles.length; i++) {
-            const p = particles[i];
+          for (let i = 0; i < blueParticles.length; i++) {
+            const p = blueParticles[i];
             const targetX = width / 2 + (p.targetX - width / 2) * pulse;
             const targetY = height / 2 + (p.targetY - height / 2) * pulse;
 
@@ -268,7 +261,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
 
             ctx.fillStyle = p.color;
             ctx.globalAlpha = p.alpha * (0.4 + gather * 0.6);
-            ctx.fillRect(currX - p.size / 2, currY - p.size / 2, p.size, p.size);
+            ctx.fillRect(currX - p.size / 2, currY - p.size / 2, Math.max(1, p.size), Math.max(1, p.size));
           }
           break;
         }
@@ -277,11 +270,11 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
         // CRT TERMINAL SCREENSAVER
         // ---------------------------------------------------------------------
         case 'crt_terminal': {
-          ctx.fillStyle = '#010804';
+          ctx.fillStyle = '#010511';
           ctx.fillRect(0, 0, width, height);
 
           // CRT Scanlines
-          ctx.strokeStyle = 'rgba(16, 185, 129, 0.06)';
+          ctx.strokeStyle = 'rgba(59, 130, 246, 0.08)';
           ctx.lineWidth = 1;
           for (let y = 0; y < height; y += 3) {
             ctx.beginPath();
@@ -292,19 +285,18 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
 
           // Terminal text typing effect
           const terminalLines = [
-            'MATEUS OS 2000 // CORE SYSTEM DAEMON',
-            'STATUS: IDLE SCREENSAVER ACTIVE [OK]',
-            'TIME LINK: 2000 ➔ 2026 [SYNCHRONIZED]',
-            'SPACE CONNECTION: DIGITAL ORBITAL ENGINE READY',
-            'USER AUTH: MATEUS ARAUJO',
-            'PORTFOLIO REPOSITORY: 8 MODULES ONLINE',
-            'TYPE OR TOUCH ANY KEY TO RESUME WORKSPACE...'
+            'MATEUS SPACE 2026 // BLUE SPACE ENGINE',
+            'STATUS: IDLE SCREENSAVER ACTIVE [ONLINE]',
+            'ORBITAL ROVER: DIGITAL SPACE CORE SYNCHRONIZED',
+            'USER: MATEUS ARAUJO [PORTFOLIO 2026]',
+            '8 MODULES READY FOR DISCOVERY',
+            'MOVE CURSOR OR TOUCH SCREEN TO RETURN...'
           ];
 
           ctx.font = "18px 'VT323', monospace";
-          ctx.fillStyle = '#34d399';
+          ctx.fillStyle = '#38bdf8';
           ctx.shadowBlur = 8;
-          ctx.shadowColor = '#10b981';
+          ctx.shadowColor = '#0284c7';
 
           const lineCount = Math.min(terminalLines.length, Math.floor(elapsed * 1.5) + 1);
           for (let l = 0; l < lineCount; l++) {
@@ -320,7 +312,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
         }
 
         // ---------------------------------------------------------------------
-        // PARTICLE ORBIT SCREENSAVER
+        // PARTICLE ORBIT SCREENSAVER (BLUE SPACE GYRO)
         // ---------------------------------------------------------------------
         case 'particle_orbit': {
           const ringCount = 5;
@@ -332,10 +324,10 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
             const radiusY = (height * 0.12) * (r + 1);
             const tilt = (r % 2 === 0 ? 0.3 : -0.3);
 
-            ctx.strokeStyle = `rgba(20, 184, 166, ${0.15 - r * 0.02})`;
+            ctx.strokeStyle = `rgba(56, 189, 248, ${0.18 - r * 0.025})`;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.ellipse(centerX, centerY, radiusX, radiusY, tilt + elapsed * 0.05, 0, Math.PI * 2);
+            ctx.ellipse(centerX, centerY, Math.max(0.1, radiusX), Math.max(0.1, radiusY), tilt + elapsed * 0.05, 0, Math.PI * 2);
             ctx.stroke();
 
             // Orbiting nodes on this ring
@@ -343,7 +335,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
             const nodeX = centerX + Math.cos(nodeAngle) * radiusX;
             const nodeY = centerY + Math.sin(nodeAngle) * radiusY;
 
-            ctx.fillStyle = r % 2 === 0 ? '#a3e635' : '#14b8a6';
+            ctx.fillStyle = r % 2 === 0 ? '#38bdf8' : '#60a5fa';
             ctx.beginPath();
             ctx.arc(nodeX, nodeY, 4, 0, Math.PI * 2);
             ctx.fill();
@@ -351,14 +343,14 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
 
           // Center Logo
           ctx.font = "28px 'VT323', monospace";
-          ctx.fillStyle = '#84cc16';
+          ctx.fillStyle = '#38bdf8';
           ctx.textAlign = 'center';
           ctx.fillText('MATEUS SPACE 2026', centerX, centerY);
           break;
         }
 
         // ---------------------------------------------------------------------
-        // STARFIELD / HYPERSPACE SCREENSAVER
+        // STARFIELD / HYPERSPACE SCREENSAVER (DEEP BLUE SPACE)
         // ---------------------------------------------------------------------
         case 'starfield': {
           const centerX = width / 2;
@@ -378,9 +370,9 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
             const py = s.y * k + centerY;
 
             if (px >= 0 && px <= width && py >= 0 && py <= height) {
-              const size = (1 - s.z / 1000) * 3 + 0.8;
-              ctx.fillStyle = s.z < 300 ? '#a3e635' : '#14b8a6';
-              ctx.globalAlpha = 1 - s.z / 1000;
+              const size = Math.max(0.1, (1 - s.z / 1000) * 3.2 + 0.8);
+              ctx.fillStyle = s.z < 300 ? '#e0f2fe' : (s.z < 650 ? '#38bdf8' : '#2563eb');
+              ctx.globalAlpha = Math.max(0, Math.min(1, 1 - s.z / 1000));
               ctx.beginPath();
               ctx.arc(px, py, size, 0, Math.PI * 2);
               ctx.fill();
@@ -390,7 +382,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
         }
 
         // ---------------------------------------------------------------------
-        // RETRO BOUNCE SCREENSAVER
+        // RETRO BOUNCE SCREENSAVER (BLUE SPACE)
         // ---------------------------------------------------------------------
         case 'retro_bounce': {
           bounceX += bounceVx;
@@ -430,7 +422,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
             if (win.x < 0 || win.x + win.w > width) win.vx *= -1;
             if (win.y < 0 || win.y + win.h > height) win.vy *= -1;
 
-            ctx.fillStyle = 'rgba(2, 22, 13, 0.85)';
+            ctx.fillStyle = 'rgba(2, 8, 24, 0.88)';
             ctx.strokeStyle = win.color;
             ctx.lineWidth = 1.5;
             ctx.fillRect(win.x, win.y, win.w, win.h);
@@ -463,12 +455,12 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
   return (
     <div
       onClick={onWakeUp}
-      className="fixed inset-0 z-50 bg-[#000402] flex flex-col justify-between cursor-pointer animate-fadeIn select-none"
+      className="fixed inset-0 z-50 bg-[#000206] flex flex-col justify-between cursor-pointer animate-fadeIn select-none"
     >
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
 
       {/* Discreet Wakeup Prompt Ticker (Bottom) */}
-      <div className="relative z-10 p-3 text-center text-[11px] font-mono text-teal-400/70 bg-black/40 backdrop-blur-xs border-t border-teal-950/40">
+      <div className="relative z-10 p-3 text-center text-[11px] font-mono text-sky-400/70 bg-black/40 backdrop-blur-xs border-t border-sky-950/40">
         [ DESCANSO DE TELA ATIVO • MOVA O MOUSE OU TOQUE NA TELA PARA RETORNAR ]
       </div>
     </div>
