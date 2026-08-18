@@ -1,371 +1,392 @@
 import { Project, ExperienceItem, EducationItem, CertificateItem, SkillCategory, CurrentlyNow } from '../types';
 
-export const PROFILE_INFO = {
-  name: 'MATEUS ARAUJO SANTOS',
+export const PROFILE_DATA = {
+  name: 'MATEUS ARAUJO',
+  fullName: 'MATEUS ARAUJO SANTOS',
   title: 'PROFISSIONAL DE LOGÍSTICA, GESTÃO E TECNOLOGIA',
-  headline: 'Logística • Gestão • Finanças • Supply Chain • Administração Pública • Tecnologia • Inteligência Artificial • Engenharia de Prompt',
+  headline: 'Logística • Gestão • Finanças • Supply Chain • Administração Pública • Inteligência Artificial • Engenharia de Prompt',
   location: 'Brasil',
   email: 'matteus.impor@gmail.com',
-  linkedin: 'https://linkedin.com/in/mateus-araujo',
-  github: 'https://github.com/mateus-araujo',
-  subtitle: 'Profissional com formação em Logística e especializações voltadas para Gestão, Finanças, Supply Chain e Administração Pública, atualmente direcionando sua trajetória para tecnologia, Inteligência Artificial e Engenharia de Prompt.',
-  bioShort: 'Minha trajetória profissional e acadêmica é construída na interseção entre gestão, logística e tecnologia. Ao longo da minha formação, desenvolvi conhecimentos em processos, organização, planejamento, finanças, Supply Chain e administração pública, enquanto amplio continuamente minha atuação em Inteligência Artificial, Engenharia de Prompt e soluções digitais.',
-  bioLong: `Minha trajetória profissional e acadêmica é construída na interseção entre gestão, logística e tecnologia. Ao longo da minha formação, desenvolvi conhecimentos em processos, organização, planejamento, finanças, Supply Chain e administração pública, enquanto amplio continuamente minha atuação em Inteligência Artificial, Engenharia de Prompt e soluções digitais.
-
-Minha abordagem conecta conhecimentos de diferentes áreas para criar soluções práticas. Meu foco em Inteligência Artificial está principalmente na aplicação prática: transformar ideias, processos e necessidades reais em soluções digitais utilizando IA, automação e Engenharia de Prompt.`,
-  featuredQuote: 'Gestão para entender o problema. Tecnologia para transformar a solução. Inteligência Artificial para ampliar as possibilidades.',
-  howIThinkQuote: 'Busco transformar conhecimento em soluções. Minha abordagem combina visão de processos, gestão e tecnologia para encontrar formas mais inteligentes, eficientes e práticas de resolver problemas.',
-  howIThinkSteps: ['INPUT', 'ANALYSIS', 'STRATEGY', 'TECHNOLOGY', 'SOLUTION'],
-  nextLevelObjective: 'Meu objetivo é continuar evoluindo na interseção entre gestão, tecnologia e Inteligência Artificial, desenvolvendo soluções que possam melhorar processos, facilitar o acesso ao conhecimento e transformar ideias em aplicações práticas.',
-  transitionFlow: [
-    'LOGISTICS',
-    'MANAGEMENT',
-    'FINANCE',
-    'SUPPLY CHAIN',
-    'PUBLIC ADMINISTRATION',
-    'TECHNOLOGY',
-    'ARTIFICIAL INTELLIGENCE'
+  linkedin: 'https://www.linkedin.com/in/mateus-araujo-santos',
+  github: 'https://github.com/matteusimpor-arch',
+  whatsapp: 'https://wa.me/5561991873177',
+  
+  // Disponibilidade e características principais
+  availability: 'Disponibilidade para atuação em áreas administrativas, logísticas e operacionais.',
+  traits: [
+    'ORGANIZADO',
+    'ANALÍTICO',
+    'COMPROMETIDO',
+    'DESENVOLVIMENTO PROFISSIONAL CONTÍNUO'
   ],
+  
+  subtitle: 'Profissional com formação em Logística, múltiplos MBAs e especializações em Finanças, Controladoria, Supply Chain, Gestão Pública e Licitações, com atuação contínua em tecnologia, automação e Inteligência Artificial.',
+  
+  bioShort: 'Minha trajetória profissional e acadêmica une gestão, logística e tecnologia. Atuo com responsabilidade, conformidade de processos, organização administrativa, controle de informações e aplicação prática de Inteligência Artificial e soluções digitais.',
+  
+  bioLong: `Minha trajetória profissional e acadêmica é construída na interseção entre gestão, logística e tecnologia. Ao longo da minha formação, desenvolvi conhecimentos sólidos em processos, organização, planejamento, finanças, Supply Chain e administração pública, enquanto amplio continuamente minha atuação em Inteligência Artificial, Engenharia de Prompt e soluções digitais.
+
+Possuo disponibilidade para atuação em áreas administrativas, logísticas e operacionais, com perfil analítico, organização rigorosa e foco no desenvolvimento profissional contínuo.`,
+
+  quote: 'Gestão para estruturar processos. Tecnologia para otimizar rotinas. Inteligência Artificial para potencializar resultados.',
+
   stats: [
-    { value: '+1', label: 'Graduação Concluída' },
-    { value: '+4', label: 'Especializações / MBAs e Formações Avançadas' },
-    { value: '+7', label: 'Anos de Experiência no Exército Brasileiro' },
-    { value: '+Diversos', label: 'Projetos Digitais & Soluções' },
-    { value: '★', label: 'Experiência Multidisciplinar' }
+    { value: '1', label: 'Graduação Superior em Logística Concluída' },
+    { value: '3', label: 'MBAs Especializados' },
+    { value: '1', label: 'Pós-Graduação em Licitações' },
+    { value: '2019+', label: 'Experiência Administrativa no Exército' },
+    { value: '160h', label: 'Operador de Computador com IA (SENAI)' }
   ]
 };
 
+// Aliased export for backwards compatibility
+export const PROFILE_INFO = PROFILE_DATA;
+
+// =========================================================================
+// 1. TRABALHO SELECIONADO — PROJETOS REAIS (Sem projetos fictícios)
+// =========================================================================
 export const PROJECTS_DATA: Project[] = [
   {
-    id: 'proj-1',
-    name: 'PromptMatrix AI Studio',
-    tagline: 'Laboratório avançado de Engenharia de Prompt e Otimização de LLMs',
-    description: 'Ambiente interativo desenvolvido para testes, estruturação de prompts sintáticos com poucas amostras (few-shot), avaliação de contexto e otimização de instruções para modelos LLM.',
-    objective: 'Capacitar a estruturação de prompts para aplicações corporativas, reduzindo consumo de tokens e melhorando a assertividade das respostas.',
-    technologies: ['React', 'TypeScript', 'Gemini API', 'Tailwind CSS', 'Prompt Engineering'],
-    category: 'AI PROJECTS',
-    status: 'Destaque',
-    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop',
-    link: '#',
-    github: 'https://github.com/mateus-araujo/prompt-matrix-studio',
-    demoAvailable: true,
-    features: [
-      'Estruturação de prompts sintáticos e personas com foco prático',
-      'Modelagem de contexto, instrução do sistema e formatos de saída (JSON/Markdown)',
-      'Aprimoramento iterativo de comandos e prompts para sistemas',
-      'Biblioteca de templates reutilizáveis'
-    ]
-  },
-  {
-    id: 'proj-2',
-    name: 'LogiFlow Supply Chain Control',
-    tagline: 'Dashboard de Gestão de Estoque, Processos e Indicadores Logísticos',
-    description: 'Sistema web para visualização de movimentação de materiais, controle de níveis de estoque de segurança, cálculo de Lead Time e acompanhamento de processos logísticos.',
-    objective: 'Unir a visão prática de Supply Chain à tecnologia para redução de gargalos e acompanhamento eficiente de indicadores (KPIs).',
-    technologies: ['TypeScript', 'Recharts', 'Express', 'Tailwind CSS', 'Logística'],
-    category: 'LOGISTICS',
-    status: 'Concluído',
-    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=800&auto=format&fit=crop',
-    link: '#',
-    github: 'https://github.com/mateus-araujo/logiflow-control',
-    demoAvailable: true,
-    features: [
-      'Acompanhamento de indicadores chave (OTIF, Giro de Estoque, Curva ABC)',
-      'Controle de estoque mínimo e pontos de pedido',
-      'Organização e visibilidade do fluxo operacional'
-    ]
-  },
-  {
-    id: 'proj-3',
-    name: 'OpsAdmin Suite',
-    tagline: 'Plataforma de Padronização e Gestão de Documentos Operacionais',
-    description: 'Solução digital voltada para a organização, catalogação e auditoria de processos administrativos, instruções de serviço e rotinas institucionais.',
-    objective: 'Inspirado nos fundamentos de administração pública e governança para garantir conformidade documental e rastreabilidade.',
-    technologies: ['React', 'TypeScript', 'Node.js', 'Tailwind CSS', 'Gestão'],
-    category: 'MANAGEMENT',
-    status: 'Concluído',
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=800&auto=format&fit=crop',
-    link: '#',
-    github: 'https://github.com/mateus-araujo/ops-admin-suite',
-    demoAvailable: true,
-    features: [
-      'Organização rápida de rotinas e acompanhamento de relatórios operacionais',
-      'Estruturação clara de responsabilidades e fluxos administrativos',
-      'Padronização de documentação oficial e processos de conformidade'
-    ]
-  },
-  {
-    id: 'proj-4',
-    name: 'AutoDoc AI Agent',
-    tagline: 'Automação inteligente de organização de dados e resumos executivos',
-    description: 'Ferramenta baseada em IA e automação para classificação de informações, síntese de documentos e facilitação do fluxo de trabalho diário.',
-    objective: 'Eliminar tarefas repetitivas na triagem e processamento de informações administrativas.',
-    technologies: ['Python', 'LLM Integration', 'FastAPI', 'Automation', 'IA'],
-    category: 'AUTOMATION',
-    status: 'Destaque',
-    image: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?q=80&w=800&auto=format&fit=crop',
-    link: '#',
-    github: 'https://github.com/mateus-araujo/autodoc-ai-agent',
-    demoAvailable: true,
-    features: [
-      'Extração organizada de dados e estrutura de textos',
-      'Geração de resumos executivos adaptados para a gestão',
-      'Fluxos automatizados de notificação e apoio à decisão'
-    ]
-  },
-  {
-    id: 'proj-5',
-    name: 'EduAI Prompt & Content Hub',
-    tagline: 'Desenvolvimento de Materiais Didáticos, Apostilas e Treinamentos em IA',
-    description: 'Portal e biblioteca de conteúdos didáticos focados na capacitação prática em Inteligência Artificial, Engenharia de Prompt, ferramentas digitais (Canva, CapCut, Gmail) e produtividade.',
-    objective: 'Transformar conhecimentos técnicos e operacionais em materiais didáticos acessíveis e apostilas de treinamento.',
-    technologies: ['React', 'TypeScript', 'Tailwind CSS', 'Educação', 'Canva', 'CapCut'],
-    category: 'EDUCATION',
-    status: 'Em Desenvolvimento',
-    image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop',
-    link: '#',
-    github: 'https://github.com/mateus-araujo/edu-ai-prompt',
-    demoAvailable: true,
-    features: [
-      'Guias didáticos de Engenharia de Prompt e ferramentas digitais',
-      'Apostilas para capacitação prática em rotinas administrativas e digitais',
-      'Treinamentos acessíveis conectando tecnologia e ambiente de trabalho'
-    ]
-  }
-];
-
-export const EXPERIENCE_DATA: ExperienceItem[] = [
-  {
-    id: 'exp-1',
-    period: '2019 — 2027',
-    role: 'Cabo / Militar Temporário',
-    organization: 'Exército Brasileiro — 11ª Região Militar',
-    location: 'Brasil',
-    badge: 'Atuação Institucional',
-    description: [
-      'Atuação voltada para organização, disciplina, responsabilidade e cumprimento rigoroso de procedimentos regimentais.',
-      'Execução e acompanhamento de rotinas administrativas, controle de informações e gerenciamento de demandas de unidade.',
-      'Elaboração, controle e acompanhamento de documentos administrativos e processos oficiais com foco na conformidade.',
-      'Trabalho em equipe, comunicação assertiva e atendimento a diretrizes com alto padrão de ética e compromisso.'
+    id: 'proj-mateus-os',
+    name: 'MATEUS OS 2000 / MATEUS SPACE 2026',
+    tagline: 'Portfólio Pessoal Interativo com Duas Épocas e Linguagens Visuais',
+    description: 'Portfólio pessoal desenvolvido como uma experiência digital que conecta duas épocas e duas linguagens visuais: um ambiente retrô inspirado nos computadores dos anos 2000 e uma experiência moderna e interativa ambientada no MATEUS SPACE 2026.',
+    objective: 'Criar uma ponte imersiva entre a nostalgia da era do desktop clássico e as tecnologias interativas contemporâneas (partículas, WebGL, tech-noir e gravidade zero).',
+    technologies: [
+      'React',
+      'TypeScript',
+      'Tailwind CSS',
+      'HTML5 Canvas 2D',
+      'Web Audio API',
+      'Dot Matrix Particle Engine',
+      'Particle Morphing'
     ],
-    skillsUsed: ['Gestão Administrativa', 'Documentação Oficial', 'Organização de Processos', 'Trabalho em Equipe', 'Disciplina Operacional'],
-    highlights: [
-      'Experiência consolidada em rotinas administrativas e controle rigoroso de prazos e informações institucionais',
-      'Reconhecimento pela dedicação, responsabilidade e condução de tarefas sob diretrizes formais'
+    category: 'WEB PROJECTS',
+    status: 'Destaque',
+    image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop',
+    link: '#',
+    github: 'https://github.com/matteusimpor-arch',
+    demoAvailable: true,
+    features: [
+      'Desktop retrô clássico estilo Windows 2000 com janelas arrastáveis, minimizar e maximizar',
+      'Menu Iniciar funcional com submenus clássicos e atalhos de sistema',
+      'Menu de contexto com botão direito no desktop e personalização de fundos',
+      'Assistente Clippy com olhos interativos que acompanham o cursor e balão de dicas em português',
+      'Viagem no Tempo com portal temporal em espiral cósmica (2000 → 2026)',
+      'MATEUS SPACE 2026 com atmosfera Tech-Noir, Particle Text e física magnética de cursor',
+      'Particle Morphing com desintegração de texto em micropartículas que se convertem nos 8 aplicativos',
+      'Flutuação dos aplicativos em gravidade zero e auras holográficas',
+      'Player de música retrô Napster com sintetizador de áudio Web Audio API',
+      'Central de Jogos retrô (Paciência 2000, Snake 3310, Futebol 2000, Campo Minado)',
+      'Sistema de descanso de tela automático por inatividade (30 segundos) e modo de teste instantâneo'
     ]
   }
 ];
 
+// =========================================================================
+// 2. FORMAÇÃO ACADÊMICA REAL (Graduação ↓ MBAs ↓ Pós-Graduação)
+// =========================================================================
 export const EDUCATION_DATA: EducationItem[] = [
+  // GRADUAÇÃO
   {
-    id: 'edu-1',
-    year: '2023 — 2025',
-    degree: 'TECNOLOGIA EM LOGÍSTICA',
-    institution: 'Graduação Concluída em Julho de 2025',
+    id: 'edu-grad-1',
+    year: 'Concluído',
+    degree: 'SUPERIOR EM LOGÍSTICA',
+    institution: 'Centro Universitário IESB',
     status: 'Concluído',
     type: 'Graduação',
-    description: 'Formação com foco em gestão da cadeia de suprimentos, logística de transportes e armazenagem, gestão de estoques e otimização de fluxos operacionais.',
-    highlights: ['Graduação concluída em Julho de 2025.']
+    description: 'Formação superior com foco em gestão da cadeia de suprimentos, logística de transportes, movimentação e armazenagem, gestão de estoques e otimização de fluxos operacionais.',
+    highlights: [
+      'Graduação concluída.',
+      'Foco em processos logísticos, controle de armazenagem e distribuição física.'
+    ]
   },
+
+  // MBAs
   {
-    id: 'edu-2',
-    year: '2025 — Em Andamento',
+    id: 'edu-mba-1',
+    year: 'Pós-Graduação / MBA',
     degree: 'MBA EM FINANÇAS E CONTROLADORIA',
-    institution: 'Pós-Graduação / MBA',
-    status: 'Em Andamento',
+    institution: 'Anhanguera',
+    status: 'Concluído',
     type: 'MBA / Pós',
-    description: 'Especialização em andamento com foco em planejamento financeiro, gestão de custos, análise orçamentária e controladoria estratégica.',
-    highlights: ['Formação avançada voltada à gestão financeira corporativa.']
+    description: 'Especialização executiva voltada a planejamento financeiro, gestão de custos, análise orçamentária, fluxo de caixa e controladoria estratégica.',
+    highlights: [
+      'Análise financeira e estruturação de orçamentos corporativos.',
+      'Controladoria e indicadores de desempenho econômico.'
+    ]
   },
   {
-    id: 'edu-3',
-    year: '2024 — 2025',
+    id: 'edu-mba-2',
+    year: 'Pós-Graduação / MBA',
     degree: 'MBA EM LOGÍSTICA E SUPPLY CHAIN MANAGEMENT',
-    institution: 'Pós-Graduação Concluída',
+    institution: 'Anhanguera',
     status: 'Concluído',
     type: 'MBA / Pós',
-    description: 'Aprofundamento na gestão integrada da cadeia de suprimentos, estratégias de estocagem, redes de distribuição e otimização de processos logísticos.',
-    highlights: ['Formação executiva concluída.']
+    description: 'Aprofundamento na gestão integrada da cadeia de suprimentos (Supply Chain), redes de distribuição, níveis de serviço, compras estratégicas e otimização de fluxos.',
+    highlights: [
+      'Gestão estratégica da cadeia de suprimentos.',
+      'Planejamento de operações logísticas e Lead Time.'
+    ]
   },
   {
-    id: 'edu-4',
-    year: '2024',
-    degree: 'PÓS-GRADUAÇÃO EM SUPPLY CHAIN',
-    institution: 'Pós-Graduação Concluída',
+    id: 'edu-mba-3',
+    year: 'Pós-Graduação / MBA',
+    degree: 'MBA EM GESTÃO PÚBLICA',
+    institution: 'Especialização Executiva',
     status: 'Concluído',
     type: 'MBA / Pós',
-    description: 'Especialização focada nos elos da cadeia de suprimentos, estratégias de compras, armazenagem e nível de serviço ao cliente.',
-    highlights: ['Formação concluída.']
+    description: 'Capacitação avançada em governança pública, políticas públicas, gestão de recursos, conformidade orçamentária e administração no âmbito governamental.',
+    highlights: [
+      'Governança e conformidade na gestão pública.',
+      'Planejamento e controle de processos administrativos.'
+    ]
   },
+
+  // PÓS-GRADUAÇÃO / ESPECIALIZAÇÕES
   {
-    id: 'edu-5',
-    year: '2024',
+    id: 'edu-pos-1',
+    year: 'Pós-Graduação',
     degree: 'PÓS-GRADUAÇÃO EM LICITAÇÕES E CONTRATOS ADMINISTRATIVOS',
-    institution: 'Pós-Graduação Concluída',
+    institution: 'Especialização',
     status: 'Concluído',
     type: 'MBA / Pós',
-    description: 'Formação voltada aos fundamentos de licitações, contratações públicas e contratos administrativos conforme a legislação vigente.',
-    highlights: ['Especialização nos princípios e práticas do setor público.']
-  },
-  {
-    id: 'edu-6',
-    year: '2024',
-    degree: 'MBA / FORMAÇÃO EM GESTÃO PÚBLICA',
-    institution: 'Pós-Graduação / Especialização Concluída',
-    status: 'Concluído',
-    type: 'MBA / Pós',
-    description: 'Capacitação em administração pública, governança, políticas públicas e gestão de recursos e rotinas no âmbito governamental.',
-    highlights: ['Formação em Gestão Pública.']
+    description: 'Formação especializada em processos licitatórios, legislação de contratações públicas, elaboração e fiscalização de contratos administrativos.',
+    highlights: [
+      'Domínio dos princípios e procedimentos da legislação de licitações públicas.',
+      'Gestão e conformidade de contratos administrativos.'
+    ]
   }
 ];
 
-export const CERTIFICATES_DATA: CertificateItem[] = [
+// =========================================================================
+// 3. CURSOS ADICIONAIS REAIS
+// =========================================================================
+export const COURSES_DATA: CertificateItem[] = [
   {
-    id: 'cert-1',
+    id: 'course-1',
+    name: 'Operador de Computador com IA',
+    hours: '160 horas',
+    issuer: 'SENAI',
+    year: 'Recente',
+    status: 'Concluído (Destaque)'
+  },
+  {
+    id: 'course-2',
+    name: 'Assistente Ambiental',
+    hours: 'Carga Horária Completa',
+    issuer: 'SENAI',
+    year: 'Concluído',
+    status: 'Concluído'
+  },
+  {
+    id: 'course-3',
     name: 'Contabilidade Básica',
-    hours: '30h',
-    issuer: 'Curso Livre de Capacitação',
-    year: '2024',
+    hours: 'Carga Horária Completa',
+    issuer: 'IFRS',
+    year: 'Concluído',
     status: 'Concluído'
   },
   {
-    id: 'cert-2',
+    id: 'course-4',
+    name: 'Gestão de Finanças Pessoais',
+    hours: 'Carga Horária Completa',
+    issuer: 'ENAP',
+    year: 'Concluído',
+    status: 'Concluído'
+  },
+  {
+    id: 'course-5',
     name: 'Gestão Financeira',
-    hours: '40h',
-    issuer: 'Curso Livre de Capacitação',
-    year: '2024',
+    hours: 'Carga Horária Completa',
+    issuer: 'IFRS',
+    year: 'Concluído',
     status: 'Concluído'
   },
   {
-    id: 'cert-3',
-    name: 'Treinamento em Ferramentas Digitais (Canva, CapCut, Gmail & Produtividade)',
-    hours: '20h',
-    issuer: 'Capacitação e Desenvolvimento Prático',
-    year: '2025',
+    id: 'course-6',
+    name: 'Informática Profissionalizante',
+    hours: 'Carga Horária Completa',
+    issuer: 'DigiMaster',
+    year: 'Concluído',
+    status: 'Concluído'
+  },
+  {
+    id: 'course-7',
+    name: 'Logística',
+    hours: 'Carga Horária Completa',
+    issuer: 'IFRS',
+    year: 'Concluído',
     status: 'Concluído'
   }
 ];
 
+export const CERTIFICATES_DATA = COURSES_DATA;
+
+// =========================================================================
+// 4. EXPERIÊNCIA PROFISSIONAL REAL
+// =========================================================================
+export const EXPERIENCE_DATA: ExperienceItem[] = [
+  {
+    id: 'exp-eb-1',
+    period: '2019 até atualmente',
+    role: 'Cabo (Cb)',
+    organization: 'Exército Brasileiro — 11ª Região Militar',
+    location: 'Brasil',
+    badge: 'Atuação Efetiva',
+    description: [
+      'Responsável pela confecção diária do aditamento da Seção do Serviço de Veteranos e Pensionistas (SVP) da 11ª Região Militar.',
+      'Elaboração, conferência detalhada e organização rigorosa de documentos administrativos oficiais.',
+      'Controle rigoroso de informações institucionais, registros oficiais e cumprimento de prazos regimentais.',
+      'Apoio direto às rotinas administrativas e logísticas da unidade militar.'
+    ],
+    skillsUsed: [
+      'Documentação Oficial',
+      'Gestão de Processos',
+      'Controle de Prazos',
+      'Rotinas Administrativas',
+      'Apoio Logístico',
+      'Disciplina e Organização'
+    ],
+    highlights: [
+      'Confecção e conferência diária do aditamento oficial da SVP / 11ª Região Militar.',
+      'Garantia de conformidade, rastreabilidade e pontualidade na tramitação de expedientes oficiais.'
+    ]
+  }
+];
+
+// =========================================================================
+// 5. COMPETÊNCIAS E CONHECIMENTOS
+// =========================================================================
 export const SKILLS_DATA: SkillCategory[] = [
   {
-    category: 'TECHNOLOGY',
-    code: 'TECHNOLOGY',
-    icon: 'Cpu',
-    skills: [
-      { name: 'Inteligência Artificial', level: 92, description: 'Aplicação prática de IA para otimização de processos e produtividade', tags: ['IA Generativa', 'LLMs', 'Modelos de Linguagem'] },
-      { name: 'Engenharia de Prompt', level: 95, description: 'Estruturação de prompts, definição de contexto, requisitos e instruções detalhadas', tags: ['Prompts Estruturados', 'Contexto', 'Instruções', 'Sistemas'] },
-      { name: 'Automação', level: 88, description: 'Desenvolvimento de fluxos automatizados e simplificação de rotinas', tags: ['Fluxos', 'Produtividade', 'Automação de Tarefas'] },
-      { name: 'Ferramentas Digitais & Soluções', level: 90, description: 'Criação de soluções digitais e domínio de ferramentas modernas', tags: ['Soluções Web', 'Ferramentas Digitais', 'Plataformas'] }
-    ]
-  },
-  {
-    category: 'MANAGEMENT',
-    code: 'MANAGEMENT',
-    icon: 'Briefcase',
-    skills: [
-      { name: 'Gestão', level: 92, description: 'Visão sistêmica, alinhamento estratégico e condução de objetivos', tags: ['Gestão de Demandas', 'Gargalos', 'Soluções'] },
-      { name: 'Planejamento', level: 90, description: 'Elaboração de metas, cronogramas e estruturação de ações', tags: ['Planejamento Operacional', 'Estratégia'] },
-      { name: 'Organização', level: 95, description: 'Padronização de rotinas e controle rigoroso de informações', tags: ['Metodologia', 'Estrutura', 'Controle'] },
-      { name: 'Processos', level: 92, description: 'Mapeamento de fluxos, análise de procedimentos e melhoria contínua', tags: ['Análise de Fluxos', 'Conformidade', 'Procedimentos'] }
-    ]
-  },
-  {
-    category: 'LOGISTICS',
+    category: 'LOGÍSTICA & SUPPLY CHAIN',
     code: 'LOGISTICS',
     icon: 'Truck',
     skills: [
-      { name: 'Logística', level: 94, description: 'Gestão de movimentação, armazenagem e fluxo de informações', tags: ['Operações Logísticas', 'Armazenagem', 'Fluxos'] },
-      { name: 'Supply Chain', level: 92, description: 'Visão integrada da cadeia de suprimentos e relacionamento operacional', tags: ['Cadeia de Suprimentos', 'Suprimentos', 'Indicadores'] },
-      { name: 'Gestão de Operações', level: 90, description: 'Acompanhamento do nível de serviço e eficiência nas rotinas', tags: ['Nível de Serviço', 'Lead Time', 'Controle'] }
+      { name: 'Logística Operacional', level: 95, description: 'Planejamento de movimentação, armazenagem e controle de fluxos materiais', tags: ['Armazenagem', 'Fluxos Operacionais', 'Controle'] },
+      { name: 'Supply Chain Management', level: 92, description: 'Visão integrada da cadeia de suprimentos e nível de serviço', tags: ['Cadeia de Suprimentos', 'Lead Time', 'Indicadores'] },
+      { name: 'Gestão de Estoques', level: 90, description: 'Controle de suprimentos, acuracidade e reposição', tags: ['Estoque', 'Inventário', 'Suprimentos'] }
     ]
   },
   {
-    category: 'FINANCE',
+    category: 'GESTÃO & ADMINISTRAÇÃO',
+    code: 'MANAGEMENT',
+    icon: 'Briefcase',
+    skills: [
+      { name: 'Gestão Administrativa', level: 96, description: 'Organização de rotinas, tramitação de documentos oficiais e prazos', tags: ['Documentos Oficiais', 'Conformidade', 'Prazos'] },
+      { name: 'Organização e Métodos', level: 95, description: 'Padronização de processos e estruturação de fluxos operacionais', tags: ['Organização', 'Processos', 'Métodos'] },
+      { name: 'Perfil Analítico', level: 94, description: 'Conferência criteriosa, identificação de inconsistências e resolução de problemas', tags: ['Análise Crítica', 'Precisão', 'Controle'] }
+    ]
+  },
+  {
+    category: 'FINANÇAS & CONTROLADORIA',
     code: 'FINANCE',
     icon: 'Award',
     skills: [
-      { name: 'Gestão Financeira', level: 88, description: 'Fundamentos de análise financeira, planejamento e orçamentos', tags: ['Gestão Financeira', 'Orçamento', 'Planejamento'] },
-      { name: 'Finanças', level: 85, description: 'Compreensão de fluxos financeiros, custos e controles', tags: ['Análise de Custos', 'Finanças Corporativas'] },
-      { name: 'Controladoria', level: 85, description: 'Especialização em andamento voltada ao acompanhamento e controle', tags: ['Controladoria', 'Indicadores Financeiros'] }
+      { name: 'Controladoria & Finanças', level: 90, description: 'Planejamento financeiro, análise de custos e indicadores orçamentários', tags: ['Custos', 'Orçamento', 'Controladoria'] },
+      { name: 'Gestão Financeira', level: 88, description: 'Fundamentos de fluxo financeiro, conciliação e controles', tags: ['Finanças', 'Gestão Orçamentária'] }
     ]
   },
   {
-    category: 'PUBLIC ADMINISTRATION',
+    category: 'GESTÃO PÚBLICA & LICITAÇÕES',
     code: 'PUBLIC ADMINISTRATION',
     icon: 'ShieldCheck',
     skills: [
-      { name: 'Gestão Pública', level: 90, description: 'Princípios da administração pública, governança e rotinas institucionais', tags: ['Administração Pública', 'Normativas', 'Governança'] },
-      { name: 'Licitações', level: 88, description: 'Fundamentos e princípios aplicados às compras públicas', tags: ['Licitações Públicas', 'Processos Licitatórios'] },
-      { name: 'Contratos Administrativos', level: 88, description: 'Acompanhamento e princípios na gestão de contratos públicos', tags: ['Contratos', 'Acompanhamento', 'Legislação'] }
+      { name: 'Gestão Pública', level: 92, description: 'Normativas, governança e rotinas institucionais no setor público', tags: ['Administração Pública', 'Governança', 'Regimentos'] },
+      { name: 'Licitações & Contratos', level: 90, description: 'Fundamentos da legislação de contratações públicas e fiscalização de contratos', tags: ['Licitações', 'Contratos Administrativos', 'Legislação'] }
     ]
   },
   {
-    category: 'EDUCATION',
-    code: 'EDUCATION',
-    icon: 'GraduationCap',
+    category: 'TECNOLOGIA & INTELIGÊNCIA ARTIFICIAL',
+    code: 'TECHNOLOGY',
+    icon: 'Cpu',
     skills: [
-      { name: 'Criação de Materiais', level: 92, description: 'Desenvolvimento de apostilas, guias práticos e materiais didáticos', tags: ['Apostilas', 'Conteúdo Didático', 'Canva'] },
-      { name: 'Treinamentos', level: 90, description: 'Capacitação em IA, Engenharia de Prompt e ferramentas digitais', tags: ['Capacitação', 'Treinamento Prático', 'Educação'] },
-      { name: 'Conteúdo Didático', level: 92, description: 'Transformação de conhecimentos técnicos em materiais acessíveis', tags: ['Didática', 'Ferramentas Digitais', 'CapCut', 'Gmail'] }
+      { name: 'Operação de Computador com IA', level: 94, description: 'Formação SENAI (160h) voltada à aplicação prática de IA nas rotinas digitais', tags: ['SENAI 160h', 'IA Aplicada', 'Produtividade'] },
+      { name: 'Engenharia de Prompt', level: 92, description: 'Estruturação de comandos claros, contextos e especificações para modelos de linguagem', tags: ['Prompts Estruturados', 'LLMs', 'Contexto'] },
+      { name: 'Informática Profissionalizante', level: 95, description: 'Domínio de ferramentas de escritório, sistemas e automações de tarefas', tags: ['DigiMaster', 'Sistemas', 'Ferramentas'] }
     ]
   }
 ];
 
-export const EDUCATIONAL_MATERIALS_INFO = {
-  title: 'EDUCAÇÃO & COMPARTILHAMENTO DE CONHECIMENTO',
-  subtitle: 'Transformando conhecimento técnico em materiais didáticos acessíveis',
-  description: 'Interesse contínuo na criação de apostilas, cursos, treinamentos em Inteligência Artificial, Engenharia de Prompt e uso de ferramentas digitais no dia a dia.',
-  items: [
-    { title: 'Criação de Apostilas & Guias Práticos', desc: 'Estruturação de materiais didáticos claros para aprendizado rápido.' },
-    { title: 'Treinamento em IA & Engenharia de Prompt', desc: 'Capacitação no uso consciente e eficiente de modelos de linguagem para produtividade.' },
-    { title: 'Ferramentas Digitais de Produtividade', desc: 'Aplicações práticas com Canva, CapCut, Gmail e ecossistema digital no ambiente de trabalho.' },
-    { title: 'Conteúdo Acessível', desc: 'Tradução de conceitos de gestão e tecnologia em conteúdos instrucionais estruturados.' }
+// =========================================================================
+// 6. AGORA (2026) — FOCOS ATUAIS E METAS
+// =========================================================================
+export const CURRENTLY_NOW_DATA: CurrentlyNow = {
+  studying: [
+    'Aprofundamento na interseção entre Logística, Gestão Pública e Inteligência Artificial',
+    'Técnicas avançadas de Engenharia de Prompt e automação de fluxos documentais',
+    'Gestão de processos orientada a dados e controle de indicadores'
+  ],
+  building: [
+    'MATEUS OS 2000 / MATEUS SPACE 2026 — Experiência digital interativa',
+    'Modelos de padronização documental com apoio de Inteligência Artificial',
+    'Estruturações de rotinas para ganho de produtividade e redução de prazos operacionais'
+  ],
+  learning: [
+    'Aplicações práticas de IA para otimização de rotinas em logística e administração',
+    'Metodologias ágeis aplicadas ao controle de processos e conformidade legal',
+    'Ferramentas contemporâneas de desenvolvimento web e interfaces interativas'
+  ],
+  designing: [
+    'Fluxos estruturados para triagem e organização de expedientes administrativos',
+    'Modelos conceituais conectando gestão de suprimentos e tecnologia'
+  ],
+  goals2026: [
+    'Disponibilidade para atuação estratégica em áreas administrativas, logísticas e operacionais',
+    'Desenvolver soluções que melhorem a precisão e eficiência dos fluxos de trabalho',
+    'Consolidar a aplicação prática de IA e automação como aceleradores profissionais'
   ]
 };
 
-export const CURRENTLY_NOW_DATA: CurrentlyNow = {
-  studying: [
-    'MBA em Finanças e Controladoria (Em andamento)',
-    'Aplicação prática de Inteligência Artificial e Engenharia de Prompt',
-    'Automação de processos e integração de soluções digitais'
-  ],
-  building: [
-    'PromptMatrix Studio — Laboratório de testes e refinamento de prompts',
-    'Apostilas didáticas e guias práticos sobre uso de IA e ferramentas digitais',
-    'Sistemas web interativos para visualização de processos e indicadores'
-  ],
-  learning: [
-    'Engenharia de Prompt aplicada à criação de instruções para sistemas',
-    'Integração entre gestão pública, finanças e tecnologias emergentes',
-    'Desenvolvimento de conteúdos didáticos acessíveis'
-  ],
-  designing: [
-    'Fluxos automatizados para triagem de informações e documentos',
-    'Modelos de prompts estruturados para treinamento em produtividade'
-  ],
-  goals2026: [
-    'Evoluir continuamente na interseção entre gestão, tecnologia e Inteligência Artificial',
-    'Desenvolver soluções práticas que melhorem processos e facilitem o acesso ao conhecimento',
-    'Expandir a criação de materiais didáticos e treinamentos aplicados'
-  ]
-};
+// =========================================================================
+// 7. CURIOSIDADES "✦ VOCÊ SABIA?" (Rotativas e Factualmente Corretas)
+// =========================================================================
+export const DID_YOU_KNOW_FACTS = [
+  {
+    id: 1,
+    title: 'Armazenamento no ano 2000 vs. Hoje',
+    fact: 'Em 2000, um disco rígido de 20 GB custava mais de $200 dólares. Hoje, sistemas em nuvem processam terabytes em tempo real com alta disponibilidade e inteligência artificial.'
+  },
+  {
+    id: 2,
+    title: 'A Era do Windows 2000',
+    fact: 'Lançado em fevereiro de 2000, o Windows 2000 Professional foi o primeiro sistema operacional da linha NT a trazer suporte nativo avançado a USB e gerenciamento robusto de multitarefas.'
+  },
+  {
+    id: 3,
+    title: 'Nascimento do MP3 e Napster',
+    fact: 'O Napster revolucionou a distribuição de música digital em 1999 e 2000, abrindo caminho para o streaming moderno ao demonstrar o poder das redes descentralizadas.'
+  },
+  {
+    id: 4,
+    title: 'Logística e Código de Barras',
+    fact: 'A padronização dos códigos de barras EAN/UPC e o surgimento dos primeiros sistemas WMS no início dos anos 2000 transformaram radicalmente a acuracidade dos estoques mundiais.'
+  },
+  {
+    id: 5,
+    title: 'Clippy: O Assistente Pioneiro',
+    fact: 'Clippy (Clippit) foi introduzido no Office 97 e utilizava árvores de decisão bayesianas para tentar prever o que o usuário estava escrevendo e sugerir modelos de documentos.'
+  },
+  {
+    id: 6,
+    title: 'MATEUS OS 2000 → SPACE 2026',
+    fact: 'A transição cósmica deste portfólio simula a evolução de 26 anos da computação: saindo da interface beveled cinza de 2000 até um palco de partículas em gravidade zero em 2026.'
+  }
+];
 
 export const TERMINAL_HELP_TEXT = `
 MATEUS ARAUJO PORTFOLIO OS v2026
 Comandos disponíveis:
 
   help         - Exibe este menu de ajuda
-  about        - Exibe um resumo sobre Mateus Araujo
-  experience   - Lista a trajetória profissional no Exército Brasileiro
-  education    - Apresenta a formação acadêmica (Graduação, MBAs e Pós)
-  skills       - Mostra as competências (Gestão, Logística, IA, Finanças, Adm. Pública)
-  projects     - Lista os projetos em destaque
-  contact      - Exibe canais de contato direto
-  ai           - Informações sobre competências e aplicação de IA
-  logistics    - Resumo de competências em Logística & Supply Chain
-  certificates - Lista os cursos e certificações concluídas
-  howithink    - Exibe a filosofia de trabalho
-  nextlevel    - Mostra o objetivo de evolução profissional
-  now          - O que Mateus está desenvolvendo atualmente
-  clear        - Limpa o terminal
+  about        - Exibe o perfil completo de Mateus Araujo
+  experience   - Trajetória no Exército Brasileiro (11ª Região Militar)
+  education    - Formação acadêmica (Logística, MBAs e Pós-Graduação)
+  courses      - Cursos adicionais (SENAI 160h, IFRS, ENAP, DigiMaster)
+  skills       - Competências em Logística, Gestão, Finanças, Adm. Pública e IA
+  projects     - Trabalho Selecionado (MATEUS OS 2000 / SPACE 2026)
+  contact      - Canais de contato direto (LinkedIn, GitHub, Email, WhatsApp)
+  now          - Focos atuais e objetivos para 2026
+  clear        - Limpa a tela do terminal
 `;

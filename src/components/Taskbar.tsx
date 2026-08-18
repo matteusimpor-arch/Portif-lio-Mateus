@@ -22,7 +22,11 @@ import {
   Tv,
   RotateCw,
   Power,
-  ChevronRight
+  ChevronRight,
+  Moon,
+  Info,
+  Layers,
+  BookOpen
 } from 'lucide-react';
 import { WindowAppId, WindowState, NotificationItem } from '../types';
 import { soundFx } from '../utils/soundEffects';
@@ -39,6 +43,7 @@ interface TaskbarProps {
   onToggleScanlines: () => void;
   notifications: NotificationItem[];
   onLaunchTimeTravel: () => void;
+  onTestScreensaver?: () => void;
 }
 
 export const Taskbar: React.FC<TaskbarProps> = ({
@@ -53,14 +58,14 @@ export const Taskbar: React.FC<TaskbarProps> = ({
   onToggleScanlines,
   notifications,
   onLaunchTimeTravel,
+  onTestScreensaver
 }) => {
   const [isStartOpen, setIsStartOpen] = useState<boolean>(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
+  const [activeSubmenu, setActiveSubmenu] = useState<'programs' | 'documents' | 'games' | 'settings' | 'help' | null>(null);
   const [currentTime, setCurrentTime] = useState<string>('2:26 PM');
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const startRef = useRef<HTMLDivElement>(null);
 
-  // Update clock format
+  // Clock format
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -72,277 +77,399 @@ export const Taskbar: React.FC<TaskbarProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Close menus when clicking outside
+  // Close Start Menu on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (startRef.current && !startRef.current.contains(e.target as Node)) {
         setIsStartOpen(false);
+        setActiveSubmenu(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getAppIcon = (appId: WindowAppId) => {
-    const props = { className: "w-3.5 h-3.5 shrink-0" };
-    switch (appId) {
-      case 'welcome': return <Sparkles {...props} className="w-3.5 h-3.5 text-yellow-600" />;
-      case 'projects': return <Folder {...props} className="w-3.5 h-3.5 text-amber-600" />;
-      case 'about': return <FileText {...props} className="w-3.5 h-3.5 text-blue-600" />;
-      case 'skills': return <Cpu {...props} className="w-3.5 h-3.5 text-indigo-600" />;
-      case 'now': return <Clock {...props} className="w-3.5 h-3.5 text-lime-600" />;
-      case 'contact': return <Mail {...props} className="w-3.5 h-3.5 text-rose-600" />;
-      case 'resume': return <FileText {...props} className="w-3.5 h-3.5 text-red-600" />;
-      case 'paint': return <Palette {...props} className="w-3.5 h-3.5 text-pink-600" />;
-      case 'quiz': return <HelpCircle {...props} className="w-3.5 h-3.5 text-yellow-600" />;
-      case 'clippy': return <span className="text-xs">📎</span>;
-      case 'games':
-      case 'experiments': return <Gamepad2 {...props} className="w-3.5 h-3.5 text-purple-600" />;
-      case 'aims': return <MessageSquare {...props} className="w-3.5 h-3.5 text-orange-600" />;
-      case 'settings': return <Settings {...props} className="w-3.5 h-3.5 text-slate-700" />;
-      case 'napster': return <Music {...props} className="w-3.5 h-3.5 text-cyan-600" />;
-      case 'nostalgia': return <Tv {...props} className="w-3.5 h-3.5 text-amber-700" />;
-      case 'trash': return <Trash2 {...props} className="w-3.5 h-3.5 text-gray-600" />;
-      default: return <Folder {...props} className="w-3.5 h-3.5 text-blue-600" />;
-    }
+  const handleStartButtonClick = () => {
+    soundFx.playClick();
+    setIsStartOpen(!isStartOpen);
+    setActiveSubmenu(null);
   };
 
-  const startMenuItems: { id: WindowAppId; label: string; desc: string }[] = [
-    { id: 'welcome', label: '✦ Bem-Vindo · Leia-Me', desc: 'Apresentação inicial e visão geral' },
-    { id: 'projects', label: 'Trabalho Selecionado', desc: 'Dashboards, Supply Chain & Web' },
-    { id: 'about', label: 'Sobre mim', desc: 'Biografia e filosofia de trabalho' },
-    { id: 'skills', label: 'O que eu faço', desc: 'Logística, Engenharia de Prompt e Gestão' },
-    { id: 'now', label: 'Agora (2026)', desc: 'Focos atuais, aprendizado e metas' },
-    { id: 'contact', label: 'Contato', desc: 'WhatsApp, LinkedIn e Email' },
-    { id: 'resume', label: 'Résumé.pdf', desc: 'Visualizar e baixar currículo oficial' },
-    { id: 'paint', label: 'Criança Pix', desc: 'Estúdio retrô de pintura e pixel art' },
-    { id: 'quiz', label: 'Cultura Pop Quiz', desc: 'Jogo de perguntas dos anos 2000' },
-    { id: 'clippy', label: 'Clippy Ajuda', desc: 'Dicas interativas e atalhos' },
-    { id: 'games', label: 'Jogos', desc: 'Campo Minado, Paciência, Snake' },
-    { id: 'aims', label: 'AIMS Messenger', desc: 'Bate-papo instantâneo com Mateus' },
-    { id: 'napster', label: 'Categoria: Napster', desc: 'Player MP3 retrô e visualizador' },
-    { id: 'nostalgia', label: 'Momentos de Nostalgia', desc: 'Sintonizador de TV CRT e memórias' },
-    { id: 'settings', label: 'Fundos & Temas', desc: 'Papéis de parede e configurações' },
-    { id: 'trash', label: 'Lixeira', desc: 'Arquivos descontinuados' },
-  ];
-
-  const filteredStartItems = startMenuItems.filter(
-    (item) =>
-      item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.desc.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleStartItemClick = (appId: WindowAppId) => {
-    try { soundFx.playClick(); } catch (e) {}
-    if (appId === 'timetravel') {
-      onLaunchTimeTravel();
-    } else {
-      onOpenApp(appId);
-    }
+  const openAndCloseMenu = (appId: WindowAppId) => {
+    soundFx.playClick();
     setIsStartOpen(false);
+    setActiveSubmenu(null);
+    onOpenApp(appId);
+  };
+
+  const getAppIcon = (appId: WindowAppId) => {
+    switch (appId) {
+      case 'welcome': return <Sparkles className="w-3.5 h-3.5 text-yellow-600 shrink-0" />;
+      case 'projects': return <Folder className="w-3.5 h-3.5 text-amber-600 shrink-0" />;
+      case 'about': return <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+      case 'skills': return <Cpu className="w-3.5 h-3.5 text-indigo-600 shrink-0" />;
+      case 'now': return <Clock className="w-3.5 h-3.5 text-lime-600 shrink-0" />;
+      case 'contact': return <Mail className="w-3.5 h-3.5 text-rose-600 shrink-0" />;
+      case 'resume': return <FileText className="w-3.5 h-3.5 text-red-600 shrink-0" />;
+      case 'paint': return <Palette className="w-3.5 h-3.5 text-pink-600 shrink-0" />;
+      case 'quiz': return <HelpCircle className="w-3.5 h-3.5 text-yellow-600 shrink-0" />;
+      case 'clippy': return <span className="text-xs">📎</span>;
+      case 'games':
+      case 'experiments': return <Gamepad2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />;
+      case 'aims': return <MessageSquare className="w-3.5 h-3.5 text-orange-600 shrink-0" />;
+      case 'settings': return <Settings className="w-3.5 h-3.5 text-slate-700 shrink-0" />;
+      case 'napster': return <Music className="w-3.5 h-3.5 text-cyan-600 shrink-0" />;
+      case 'nostalgia': return <Tv className="w-3.5 h-3.5 text-amber-700 shrink-0" />;
+      case 'trash': return <Trash2 className="w-3.5 h-3.5 text-gray-600 shrink-0" />;
+      default: return <Folder className="w-3.5 h-3.5 text-blue-600 shrink-0" />;
+    }
   };
 
   const openWindows = windows.filter((w) => w.isOpen);
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-10 bg-[#c0c0c0] border-t-2 border-white flex items-center justify-between px-1 sm:px-2 z-40 select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-      {/* Left: Start Button + Window Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar max-w-[75%] h-full py-1">
-        {/* Start Button */}
-        <div ref={startRef} className="relative shrink-0 flex items-center gap-1">
-          <button
-            onClick={() => {
-              try { soundFx.playClick(); } catch (e) {}
-              setIsStartOpen(!isStartOpen);
-            }}
-            className={`h-8 px-3 btn-retro flex items-center gap-1.5 font-bold text-xs text-black cursor-pointer shadow-xs ${
-              isStartOpen ? 'border-gray-800 border-t-gray-800 border-l-gray-800 bg-[#d0d0d0]' : ''
-            }`}
-          >
-            <div className="w-4 h-4 bg-gradient-to-br from-red-500 via-yellow-400 to-green-500 flex items-center justify-center text-[9px] text-black font-black shrink-0">
-              田
-            </div>
-            <span className="font-bold tracking-tight">✦ Início</span>
-          </button>
+    <div
+      ref={startRef}
+      className="fixed bottom-0 left-0 right-0 h-10 bg-[#c0c0c0] border-t-2 border-white flex items-center justify-between px-1.5 select-none z-50 shadow-md font-sans text-xs"
+    >
+      {/* LEFT SECTION: START BUTTON & OPEN WINDOWS */}
+      <div className="flex items-center gap-1.5 h-full py-1 flex-1 min-w-0">
+        {/* Windows 2000 Start Button */}
+        <button
+          onClick={handleStartButtonClick}
+          className={`h-full px-3 flex items-center gap-1.5 font-bold text-gray-900 border-2 cursor-pointer transition active:translate-y-0.5 ${
+            isStartOpen
+              ? 'bg-[#d8d8d8] border-gray-800 border-r-white border-b-white shadow-inner font-black'
+              : 'bg-[#c0c0c0] border-white border-r-gray-800 border-b-gray-800 shadow'
+          }`}
+        >
+          {/* Windows 4-Color Flag Icon */}
+          <div className="grid grid-cols-2 gap-0.5 w-3.5 h-3.5">
+            <span className="bg-[#ff3333] rounded-[1px]" />
+            <span className="bg-[#33cc33] rounded-[1px]" />
+            <span className="bg-[#3366ff] rounded-[1px]" />
+            <span className="bg-[#ffcc00] rounded-[1px]" />
+          </div>
+          <span className="text-xs font-mono font-bold tracking-tight">Iniciar</span>
+        </button>
 
-          {/* Start Menu Popup */}
-          {isStartOpen && (
-            <div className="absolute bottom-11 left-0 w-80 sm:w-96 bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 shadow-2xl overflow-hidden z-50 font-sans">
-              {/* Header Profile */}
-              <div className="bg-gradient-to-r from-[#000080] via-[#1084d0] to-[#000080] p-3 border-b-2 border-white flex items-center justify-between text-white shadow-md">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-yellow-400 text-blue-950 font-black flex items-center justify-center font-vt323 text-lg border-2 border-white shadow">
-                    MA
-                  </div>
-                  <div>
-                    <h3 className="font-black text-white text-sm tracking-wide font-vt323 text-lg">MATEUS OS 2000</h3>
-                    <p className="text-[10px] text-yellow-300 font-mono font-bold">EDIÇÃO ANO 2000 • ED. 2026</p>
-                  </div>
-                </div>
-                <span className="bg-blue-900 border border-blue-400 text-white px-2 py-0.5 rounded text-[10px] font-mono">
-                  ONLINE
-                </span>
-              </div>
+        {/* Separator */}
+        <div className="w-[2px] h-6 bg-gray-400 border-r border-white mx-0.5" />
 
-              {/* Search Bar */}
-              <div className="p-2 border-b border-gray-400 bg-[#d0d0d0]">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-gray-500" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Buscar aplicativo no sistema..."
-                    className="w-full bg-white text-xs text-gray-900 pl-8 pr-3 py-1 border-2 border-gray-500 border-r-white border-b-white focus:outline-hidden font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* Big Time Travel Action Button */}
-              <div className="p-1.5 bg-[#b0b0b0] border-b border-gray-400">
-                <button
-                  onClick={() => {
-                    try { soundFx.playClick(); } catch (e) {}
-                    setIsStartOpen(false);
-                    onLaunchTimeTravel();
-                  }}
-                  className="w-full bg-gradient-to-r from-blue-950 via-indigo-900 to-purple-900 hover:from-blue-900 hover:to-purple-800 text-white p-2 border-2 border-yellow-300 text-left flex items-center justify-between group cursor-pointer shadow-md"
-                >
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-yellow-300 animate-spin shrink-0" />
-                    <div>
-                      <div className="font-bold text-xs text-yellow-300 font-mono">Viagem no Tempo 2000 ➔ 2026</div>
-                      <div className="text-[10px] text-blue-200">MATEUS SPACE Interativo com Partículas</div>
-                    </div>
-                  </div>
-                  <span className="bg-yellow-400 text-black font-bold text-[9px] px-1.5 py-0.5 font-mono">
-                    Entrar ›
-                  </span>
-                </button>
-              </div>
-
-              {/* Menu Apps List */}
-              <div className="max-h-72 overflow-y-auto custom-scrollbar p-1 space-y-0.5 bg-white">
-                {filteredStartItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleStartItemClick(item.id)}
-                    className="w-full text-left p-1.5 hover:bg-[#000080] hover:text-white flex items-center gap-2.5 transition cursor-pointer group text-gray-900 text-xs"
-                  >
-                    <div className="p-1 bg-[#c0c0c0] border border-gray-600 rounded-xs group-hover:bg-blue-900 shrink-0">
-                      {getAppIcon(item.id)}
-                    </div>
-                    <div className="truncate">
-                      <div className="font-bold group-hover:text-white truncate">{item.label}</div>
-                      <div className="text-[10px] text-gray-500 group-hover:text-blue-200 truncate">{item.desc}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Footer Restart / Shutdown */}
-              <div className="p-2 bg-[#c0c0c0] border-t-2 border-white flex justify-between items-center text-xs">
-                <button
-                  onClick={() => {
-                    try { soundFx.playClick(); } catch (e) {}
-                    setIsStartOpen(false);
-                    window.location.reload();
-                  }}
-                  className="btn-retro px-2.5 py-1 text-gray-900 cursor-pointer font-bold text-[11px] flex items-center gap-1"
-                >
-                  <RotateCw className="w-3 h-3 text-amber-700" />
-                  <span>Reiniciar</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    try { soundFx.playClick(); } catch (e) {}
-                    setIsStartOpen(false);
-                    onShutdown();
-                  }}
-                  className="btn-retro px-3 py-1 text-gray-900 hover:bg-red-600 hover:text-white cursor-pointer font-bold text-[11px] flex items-center gap-1"
-                >
-                  <Power className="w-3 h-3 text-red-600" />
-                  <span>Desligar</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Open Windows Tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar h-full">
+        {/* Taskbar Open Windows Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto custom-scrollbar h-full flex-1 max-w-2xl">
           {openWindows.map((win) => {
             const isActive = activeWindowId === win.id && !win.isMinimized;
             return (
               <button
                 key={win.id}
                 onClick={() => {
-                  try { soundFx.playClick(); } catch (e) {}
+                  soundFx.playClick();
                   onToggleMinimize(win.id);
                 }}
-                className={`h-8 px-2.5 flex items-center gap-1.5 text-xs font-sans max-w-[170px] truncate cursor-pointer transition ${
+                className={`h-full px-2.5 max-w-[150px] min-w-[90px] flex items-center gap-1.5 text-left border-2 cursor-pointer truncate transition ${
                   isActive
-                    ? 'bg-[#e0e0e0] border-2 border-gray-500 border-t-gray-800 border-l-gray-800 font-bold text-gray-950 shadow-inner'
-                    : win.isMinimized
-                    ? 'btn-retro text-gray-600 opacity-80'
-                    : 'btn-retro text-gray-900'
+                    ? 'bg-[#e4e4e4] border-gray-800 border-r-white border-b-white font-bold shadow-inner text-blue-950'
+                    : 'bg-[#c0c0c0] border-white border-r-gray-800 border-b-gray-800 text-gray-800 hover:bg-gray-200'
                 }`}
               >
-                {getAppIcon(win.iconName as WindowAppId)}
-                <span className="truncate">{win.title}</span>
+                {getAppIcon(win.id)}
+                <span className="truncate text-[11px]">{win.title}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Right Section: 🟢 Atualização para 2026 + Sound + Clock */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        {/* Green Upgrade Button to 2026 */}
-        <button
-          onClick={() => {
-            try { soundFx.playClick(); } catch (e) {}
-            onLaunchTimeTravel();
-          }}
-          className="h-8 px-2 sm:px-3 bg-emerald-800 hover:bg-emerald-700 text-yellow-300 border-2 border-emerald-500 flex items-center gap-1.5 font-bold text-xs font-mono cursor-pointer shadow-xs active:scale-95"
-          title="Viajar no tempo para 2026"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          <span className="hidden sm:inline">Atualização para 2026</span>
-          <span className="sm:hidden">2026</span>
-          <Sparkles className="w-3 h-3 text-yellow-300 animate-spin" />
-        </button>
-
-        {/* System Tray Frame */}
-        <div className="h-8 flex items-center gap-1.5 bg-[#c0c0c0] border-2 border-gray-500 border-t-gray-800 border-l-gray-800 px-2 shadow-inner text-gray-900 font-mono text-xs shrink-0">
-          {/* CRT Scanlines Toggle */}
-          <button
-            onClick={onToggleScanlines}
-            title={isScanlinesEnabled ? 'Desativar efeito CRT' : 'Ativar efeito CRT'}
-            className={`p-0.5 rounded cursor-pointer ${
-              isScanlinesEnabled ? 'text-blue-900 font-bold' : 'text-gray-600'
-            }`}
-          >
-            <Monitor className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Sound Toggle */}
+      {/* RIGHT SECTION: SYSTEM TRAY */}
+      <div className="flex items-center gap-2 h-full py-1 shrink-0">
+        <div className="bg-[#c0c0c0] border-bevel-in px-2.5 h-full flex items-center gap-2 text-gray-800 font-mono text-[11px]">
+          {/* Audio Toggle */}
           <button
             onClick={onToggleSound}
-            title={isSoundEnabled ? 'Som ativado' : 'Som mutado'}
-            className="p-0.5 text-gray-800 cursor-pointer"
+            className="hover:text-black cursor-pointer p-0.5"
+            title={isSoundEnabled ? 'Som Ativado' : 'Som Mudo'}
           >
-            {isSoundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5 text-gray-400" />}
+            {isSoundEnabled ? <Volume2 className="w-3.5 h-3.5 text-blue-900" /> : <VolumeX className="w-3.5 h-3.5 text-gray-500" />}
           </button>
 
-          {/* Clock matching 2:26 PM */}
-          <div className="font-sans font-bold text-[11px] text-gray-900 border-l border-gray-400 pl-1.5">
-            {currentTime}
-          </div>
+          {/* CRT Scanline Toggle */}
+          <button
+            onClick={onToggleScanlines}
+            className="hover:text-black cursor-pointer p-0.5"
+            title={isScanlinesEnabled ? 'Linhas CRT Ativadas' : 'Linhas CRT Desativadas'}
+          >
+            <Monitor className={`w-3.5 h-3.5 ${isScanlinesEnabled ? 'text-green-800 font-bold' : 'text-gray-500'}`} />
+          </button>
+
+          {/* Digital Clock */}
+          <span className="font-bold text-gray-900 ml-1">{currentTime}</span>
         </div>
       </div>
+
+      {/* START MENU POPUP */}
+      {isStartOpen && (
+        <div className="absolute bottom-10 left-1 w-64 bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 shadow-2xl flex text-gray-900 select-none z-50">
+          {/* Left Vertical Band (Windows 2000 Style) */}
+          <div className="w-8 bg-gradient-to-t from-[#000080] via-[#000050] to-[#008080] text-white flex flex-col justify-end items-center py-4 font-mono font-bold tracking-widest text-xs">
+            <span className="transform -rotate-90 origin-center whitespace-nowrap text-white drop-shadow">
+              MATEUS OS 2000
+            </span>
+          </div>
+
+          {/* Right Menu Content */}
+          <div className="flex-1 py-1.5 px-1 space-y-0.5 text-xs">
+            {/* 1. PROGRAMAS SUBMENU */}
+            <div
+              onMouseEnter={() => setActiveSubmenu('programs')}
+              className="relative"
+            >
+              <div className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center justify-between group">
+                <div className="flex items-center gap-2">
+                  <Folder className="w-4 h-4 text-amber-700" />
+                  <span className="font-bold">Programas</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-white" />
+              </div>
+
+              {/* Submenu Content */}
+              {activeSubmenu === 'programs' && (
+                <div
+                  className="absolute left-full -top-1 w-56 bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 shadow-2xl p-1 space-y-0.5 z-50"
+                  onMouseLeave={() => setActiveSubmenu(null)}
+                >
+                  <div
+                    onClick={() => openAndCloseMenu('projects')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <Folder className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Trabalho Selecionado (Projects.exe)</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('about')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-blue-700" />
+                    <span>Sobre Mim (Perfil & Trajetória)</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('education')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-blue-800" />
+                    <span>Educação, MBAs e Cursos</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('skills')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <Cpu className="w-3.5 h-3.5 text-indigo-700" />
+                    <span>O Que Eu Faço (Competências)</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('now')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Agora (2026)</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('contact')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-rose-700" />
+                    <span>Contato Direto</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 2. DOCUMENTOS SUBMENU */}
+            <div
+              onMouseEnter={() => setActiveSubmenu('documents')}
+              className="relative"
+            >
+              <div className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center justify-between group">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-800" />
+                  <span>Documentos</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-white" />
+              </div>
+
+              {activeSubmenu === 'documents' && (
+                <div
+                  className="absolute left-full -top-1 w-56 bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 shadow-2xl p-1 space-y-0.5 z-50"
+                  onMouseLeave={() => setActiveSubmenu(null)}
+                >
+                  <div
+                    onClick={() => openAndCloseMenu('resume')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-red-700" />
+                    <span>Résumé_Mateus_Araujo.pdf</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('experience')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-green-800" />
+                    <span>Aditamento_SVP_11RM.doc</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 3. JOGOS SUBMENU */}
+            <div
+              onMouseEnter={() => setActiveSubmenu('games')}
+              className="relative"
+            >
+              <div className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center justify-between group">
+                <div className="flex items-center gap-2">
+                  <Gamepad2 className="w-4 h-4 text-purple-800" />
+                  <span>Jogos Retrô</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-white" />
+              </div>
+
+              {activeSubmenu === 'games' && (
+                <div
+                  className="absolute left-full -top-1 w-52 bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 shadow-2xl p-1 space-y-0.5 z-50"
+                  onMouseLeave={() => setActiveSubmenu(null)}
+                >
+                  <div
+                    onClick={() => openAndCloseMenu('games')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <span>🃏 Paciência 2000 (Solitaire)</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('games')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <span>🐍 Snake 3310</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('games')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <span>⚽ Futebol 2000</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('games')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <span>💣 Campo Minado</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 4. CONFIGURAÇÕES SUBMENU */}
+            <div
+              onMouseEnter={() => setActiveSubmenu('settings')}
+              className="relative"
+            >
+              <div className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center justify-between group">
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-slate-800" />
+                  <span>Configurações</span>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-600 group-hover:text-white" />
+              </div>
+
+              {activeSubmenu === 'settings' && (
+                <div
+                  className="absolute left-full -top-1 w-56 bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 shadow-2xl p-1 space-y-0.5 z-50"
+                  onMouseLeave={() => setActiveSubmenu(null)}
+                >
+                  <div
+                    onClick={() => openAndCloseMenu('settings')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <Palette className="w-3.5 h-3.5 text-blue-900" />
+                    <span>Personalizar / Fundos</span>
+                  </div>
+                  <div
+                    onClick={() => {
+                      onToggleSound();
+                      soundFx.playClick();
+                    }}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <Volume2 className="w-3.5 h-3.5 text-gray-800" />
+                    <span>Alternar Som ({isSoundEnabled ? 'Ligado' : 'Desligado'})</span>
+                  </div>
+                  <div
+                    onClick={() => {
+                      onToggleScanlines();
+                      soundFx.playClick();
+                    }}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <Monitor className="w-3.5 h-3.5 text-gray-800" />
+                    <span>Linhas CRT ({isScanlinesEnabled ? 'Ligado' : 'Desligado'})</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 5. DESCANSO DE TELA */}
+            <div
+              onClick={() => {
+                soundFx.playClick();
+                setIsStartOpen(false);
+                if (onTestScreensaver) {
+                  onTestScreensaver();
+                }
+              }}
+              className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center gap-2"
+            >
+              <Moon className="w-4 h-4 text-indigo-800" />
+              <span>Descanso de Tela Agora</span>
+            </div>
+
+            {/* 6. AJUDA SUBMENU */}
+            <div
+              onClick={() => openAndCloseMenu('clippy')}
+              className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center gap-2"
+            >
+              <HelpCircle className="w-4 h-4 text-yellow-700" />
+              <span>Ajuda & Clippy</span>
+            </div>
+
+            {/* Divider */}
+            <div className="my-1 border-t border-gray-400 border-b border-white" />
+
+            {/* 7. VIAGEM NO TEMPO (2026) */}
+            <div
+              onClick={() => {
+                soundFx.playClick();
+                setIsStartOpen(false);
+                onLaunchTimeTravel();
+              }}
+              className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center gap-2 font-bold"
+            >
+              <span className="text-sm">🌀</span>
+              <span>Viagem no Tempo (2026)</span>
+            </div>
+
+            {/* 8. DESLIGAR SISTEMA */}
+            <div
+              onClick={() => {
+                soundFx.playClick();
+                setIsStartOpen(false);
+                onShutdown();
+              }}
+              className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center gap-2"
+            >
+              <Power className="w-4 h-4 text-red-700" />
+              <span>Desligar Sistema...</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Folder,
   FileText,
@@ -18,16 +18,21 @@ import {
   X,
   RotateCw,
   Info,
-  Lightbulb
+  Lightbulb,
+  Moon,
+  Settings,
+  Maximize2
 } from 'lucide-react';
 import { WindowAppId, ThemeConfig } from '../types';
 import { soundFx } from '../utils/soundEffects';
+import { DID_YOU_KNOW_FACTS } from '../data/portfolioData';
 import { ClippyFloatingAssistant } from './ClippyFloatingAssistant';
 
 interface DesktopProps {
   onOpenApp: (appId: WindowAppId) => void;
   themeConfig: ThemeConfig;
   onLaunchTimeTravel: () => void;
+  onTestScreensaver?: () => void;
 }
 
 interface DesktopItem {
@@ -55,12 +60,69 @@ interface DesktopItem {
     | 'recycle-bin';
 }
 
-export const Desktop: React.FC<DesktopProps> = ({ onOpenApp, themeConfig, onLaunchTimeTravel }) => {
+export const Desktop: React.FC<DesktopProps> = ({
+  onOpenApp,
+  themeConfig,
+  onLaunchTimeTravel,
+  onTestScreensaver
+}) => {
   const [selectedIcon, setSelectedIcon] = useState<WindowAppId | null>(null);
   const [isFactDismissed, setIsFactDismissed] = useState<boolean>(false);
-  const [isUpdateDismissed, setIsUpdateDismissed] = useState<boolean>(false);
+  const [currentFactIndex, setCurrentFactIndex] = useState<number>(0);
 
-  // The 16 desktop icons arranged in 3 neat columns matching the screenshot
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{ visible: boolean; x: number; y: number } | null>(null);
+
+  // Rotate "Você Sabia?" facts automatically every 8 seconds
+  useEffect(() => {
+    if (isFactDismissed) return;
+    const timer = setInterval(() => {
+      setCurrentFactIndex((prev) => (prev + 1) % DID_YOU_KNOW_FACTS.length);
+    }, 8500);
+    return () => clearInterval(timer);
+  }, [isFactDismissed]);
+
+  // Handle right-click for Context Menu
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    soundFx.playClick();
+    const x = Math.min(e.clientX, window.innerWidth - 200);
+    const y = Math.min(e.clientY, window.innerHeight - 240);
+    setContextMenu({ visible: true, x, y });
+  };
+
+  // Close context menu on any click
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // Wallpaper background styling lookup
+  const getWallpaperBackground = () => {
+    switch (themeConfig.wallpaper) {
+      case 'mateus-os':
+        return 'bg-[#000080]';
+      case 'retro-computer':
+        return 'bg-[#c8bfa7]';
+      case 'pixel-art':
+        return 'bg-gradient-to-b from-indigo-950 via-purple-900 to-pink-700';
+      case 'minimal-slate':
+        return 'bg-[#2b3542]';
+      case 'matrix':
+        return 'bg-black';
+      case 'space':
+        return 'bg-black bg-[radial-gradient(ellipse_at_top,#2e1065,#030712)]';
+      case 'cyber':
+        return 'bg-slate-950';
+      case 'classic-teal':
+      case '90s':
+      default:
+        return 'bg-[#008080]';
+    }
+  };
+
+  // Desktop Icons arranged in 3 columns
   const desktopItems: DesktopItem[] = [
     // Column 1
     { id: 'projects', title: 'Trabalho Selecionado', column: 1, iconType: 'folder-tabbed' },
@@ -99,13 +161,11 @@ export const Desktop: React.FC<DesktopProps> = ({ onOpenApp, themeConfig, onLaun
     }
   };
 
-  // Render authentic retro pixel icons matching the screenshot
   const renderIconVisual = (iconType: DesktopItem['iconType']) => {
     switch (iconType) {
       case 'folder-tabbed':
         return (
           <div className="w-12 h-12 relative flex items-center justify-center">
-            {/* Manila Folder with color tabs */}
             <div className="w-10 h-8 bg-amber-300 border-2 border-amber-500 rounded-t-xs shadow-md relative">
               <div className="absolute -top-2 left-0 w-4 h-2 bg-amber-400 border-t-2 border-l-2 border-r-2 border-amber-600 rounded-t-xs" />
               <div className="absolute top-1 left-1 right-1 flex gap-0.5">
@@ -280,10 +340,13 @@ export const Desktop: React.FC<DesktopProps> = ({ onOpenApp, themeConfig, onLaun
   const col2Items = desktopItems.filter((i) => i.column === 2);
   const col3Items = desktopItems.filter((i) => i.column === 3);
 
+  const currentFact = DID_YOU_KNOW_FACTS[currentFactIndex] || DID_YOU_KNOW_FACTS[0];
+
   return (
     <div
       onClick={() => setSelectedIcon(null)}
-      className="fixed inset-0 pt-3 px-3 pb-12 overflow-hidden bg-[#008080] select-none text-white font-sans text-xs"
+      onContextMenu={handleContextMenu}
+      className={`fixed inset-0 pt-3 px-3 pb-12 overflow-hidden ${getWallpaperBackground()} select-none text-white font-sans text-xs transition-colors duration-500`}
     >
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(rgba(255,255,255,0.4)_1px,transparent_1px)] [background-size:20px_20px]" />
@@ -392,27 +455,132 @@ export const Desktop: React.FC<DesktopProps> = ({ onOpenApp, themeConfig, onLaun
         </div>
       </div>
 
-      {/* TOP RIGHT WIDGET: ✦ Você sabia? [x] (Sticky Note from Screenshot) */}
+      {/* TOP RIGHT WIDGET: ✦ Você sabia? (Auto-Rotating Sticky Note) */}
       {!isFactDismissed && (
-        <div className="hidden md:block absolute top-4 right-4 z-20 w-80 bg-[#ffffd0] text-gray-900 border-2 border-yellow-600 shadow-2xl p-3 font-sans select-none animate-fadeIn">
+        <div className="hidden md:block absolute top-4 right-4 z-20 w-80 bg-[#ffffd0] text-gray-900 border-2 border-yellow-600 shadow-2xl p-3 font-sans select-none animate-fadeIn transition-all duration-300">
           {/* Note Titlebar */}
           <div className="flex items-center justify-between border-b border-yellow-400 pb-1.5 mb-2">
             <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 font-mono">
-              <span>✦ Você sabia?</span>
+              <Lightbulb className="w-3.5 h-3.5 text-amber-700" />
+              <span>✦ Você sabia? ({currentFactIndex + 1}/{DID_YOU_KNOW_FACTS.length})</span>
             </div>
-            <button
-              onClick={() => setIsFactDismissed(true)}
-              className="text-gray-600 hover:text-black font-bold text-xs cursor-pointer p-0.5"
-              title="Fechar"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  soundFx.playClick();
+                  setCurrentFactIndex((prev) => (prev + 1) % DID_YOU_KNOW_FACTS.length);
+                }}
+                className="text-gray-600 hover:text-blue-900 font-mono text-[10px] px-1 bg-yellow-200 border border-yellow-500 rounded cursor-pointer"
+                title="Próxima Curiosidade"
+              >
+                Próximo ❯
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  soundFx.playClick();
+                  setIsFactDismissed(true);
+                }}
+                className="text-gray-600 hover:text-black font-bold text-xs cursor-pointer p-0.5"
+                title="Fechar"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
           {/* Note Content */}
-          <p className="text-[11px] leading-relaxed text-gray-800">
-            Em 2000, 1 GB de armazenamento custava centenas de dólares. Hoje a logística digital e a automação de processos tratam terabytes em tempo real com inteligência artificial e alta disponibilidade.
-          </p>
+          <div className="space-y-1">
+            <div className="text-[11px] font-bold text-blue-950 font-mono">
+              {currentFact.title}
+            </div>
+            <p className="text-[11px] leading-relaxed text-gray-800">
+              {currentFact.fact}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* RIGHT-CLICK CONTEXT MENU */}
+      {contextMenu && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+          className="fixed z-50 w-48 bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 shadow-2xl p-1 text-gray-900 font-sans text-xs select-none"
+        >
+          <div
+            onClick={() => {
+              soundFx.playClick();
+              setContextMenu(null);
+            }}
+            className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center justify-between"
+          >
+            <span>Organizar Ícones</span>
+          </div>
+
+          <div
+            onClick={() => {
+              soundFx.playClick();
+              setContextMenu(null);
+            }}
+            className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center justify-between"
+          >
+            <span>Atualizar Área de Trabalho</span>
+          </div>
+
+          <div className="my-1 border-t border-gray-400 border-b border-white" />
+
+          <div
+            onClick={() => {
+              soundFx.playClick();
+              setContextMenu(null);
+              onOpenApp('settings');
+            }}
+            className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center gap-2"
+          >
+            <Palette className="w-3.5 h-3.5 text-blue-900" />
+            <span>Personalizar / Fundos</span>
+          </div>
+
+          <div
+            onClick={() => {
+              soundFx.playClick();
+              setContextMenu(null);
+              if (onTestScreensaver) {
+                onTestScreensaver();
+              }
+            }}
+            className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center gap-2"
+          >
+            <Moon className="w-3.5 h-3.5 text-indigo-900" />
+            <span>Testar Descanso de Tela</span>
+          </div>
+
+          <div className="my-1 border-t border-gray-400 border-b border-white" />
+
+          <div
+            onClick={() => {
+              soundFx.playClick();
+              setContextMenu(null);
+              onLaunchTimeTravel();
+            }}
+            className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center gap-2 font-bold"
+          >
+            <span>🌀 Viagem no Tempo (2026)</span>
+          </div>
+
+          <div
+            onClick={() => {
+              soundFx.playClick();
+              setContextMenu(null);
+              onOpenApp('about');
+            }}
+            className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center gap-2"
+          >
+            <Info className="w-3.5 h-3.5 text-gray-700" />
+            <span>Propriedades do Sistema</span>
+          </div>
         </div>
       )}
 

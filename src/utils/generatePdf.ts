@@ -5,8 +5,7 @@ import {
   EXPERIENCE_DATA,
   CERTIFICATES_DATA,
   SKILLS_DATA,
-  PROJECTS_DATA,
-  EDUCATIONAL_MATERIALS_INFO
+  PROJECTS_DATA
 } from '../data/portfolioData';
 
 /**
@@ -114,7 +113,7 @@ export function generateCurriculumPdf(): void {
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8.2);
   doc.setTextColor(67, 56, 202);
-  const quoteText = `"${PROFILE_INFO.featuredQuote}"`;
+  const quoteText = `"${PROFILE_INFO.quote}"`;
   doc.text(quoteText, margin + 4, y + 6);
   y += 13.5;
 

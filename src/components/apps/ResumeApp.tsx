@@ -51,7 +51,7 @@ export const ResumeApp: React.FC = () => {
       `---------------------------------------------------\n` +
       `${PROFILE_INFO.subtitle}\n\n` +
       `${PROFILE_INFO.bioShort}\n\n` +
-      `Citação: "${PROFILE_INFO.featuredQuote}"\n\n` +
+      `Citação: "${PROFILE_INFO.quote}"\n\n` +
       `---------------------------------------------------\n` +
       `FORMAÇÃO ACADÊMICA & PÓS-GRADUAÇÕES\n` +
       `---------------------------------------------------\n` +
@@ -166,7 +166,7 @@ export const ResumeApp: React.FC = () => {
             {PROFILE_INFO.bioShort}
           </p>
           <div className="p-2.5 rounded-lg bg-indigo-950/40 border border-indigo-800/40 text-xs italic text-indigo-300">
-            "{PROFILE_INFO.featuredQuote}"
+            "{PROFILE_INFO.quote}"
           </div>
         </div>
 

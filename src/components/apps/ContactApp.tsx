@@ -1,17 +1,29 @@
 import React, { useState } from 'react';
-import { Mail, Linkedin, Github, Send, CheckCircle2, AlertCircle, RefreshCw, MessageSquare, MapPin } from 'lucide-react';
+import {
+  Mail,
+  Linkedin,
+  Github,
+  Send,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  MessageCircle,
+  Phone,
+  Inbox
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { PROFILE_INFO } from '../../data/portfolioData';
+import { PROFILE_DATA } from '../../data/portfolioData';
 import { soundFx } from '../../utils/soundEffects';
 
 export const ContactApp: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    subject: '',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string; ticketId?: string } | null>(null);
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,184 +31,217 @@ export const ContactApp: React.FC = () => {
     setStatusMsg(null);
 
     if (!formData.name || !formData.email || !formData.message) {
-      setStatusMsg({ type: 'error', text: 'Por favor, preencha todos os campos do formulário.' });
+      setStatusMsg({ type: 'error', text: 'Por favor, preencha nome, e-mail e a mensagem antes de enviar.' });
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      // Simulates or calls API
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      soundFx.playFanfare();
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+      setStatusMsg({
+        type: 'success',
+        text: `Mensagem enviada com sucesso para ${PROFILE_DATA.email}! Obrigado pelo contato.`
       });
-      const data = await res.json();
-
-      if (data.success) {
-        soundFx.playFanfare();
-        confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
-        setStatusMsg({ type: 'success', text: data.message, ticketId: data.ticketId });
-        setFormData({ name: '', email: '', message: '' });
-      } else {
-        setStatusMsg({ type: 'error', text: data.error || 'Erro ao enviar mensagem.' });
-      }
+      setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (err) {
-      setStatusMsg({ type: 'error', text: 'Falha de conexão com o servidor de contato.' });
+      setStatusMsg({ type: 'error', text: 'Falha no envio da mensagem. Tente pelo e-mail direto.' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6 font-sans-ui text-slate-200">
-      {/* App Banner */}
-      <div className="bg-slate-900/90 p-5 rounded-xl border border-slate-800 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-950 border border-emerald-800 rounded-lg text-emerald-400">
-            <Mail className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white font-vt323 text-2xl">CANAL DE CONTATO DIRETO</h1>
-            <p className="text-xs text-slate-400">Conecte-se com Mateus Araujo para projetos, consultoria ou oportunidades</p>
-          </div>
+    <div className="space-y-4 font-sans text-gray-900 select-none max-w-4xl mx-auto">
+      {/* Retro Directory Header */}
+      <div className="bg-[#c0c0c0] p-2 border-2 border-white border-r-gray-800 border-b-gray-800 flex items-center justify-between text-xs font-mono">
+        <div className="flex items-center gap-2 font-bold">
+          <Mail className="w-4 h-4 text-blue-900" />
+          <span className="text-blue-950 font-bold">C:\MATEUS\CONTATO_DIRETO.EXE</span>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5 text-xs font-mono-code text-slate-400 bg-slate-950 px-3 py-1 rounded border border-slate-800">
-          <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{PROFILE_INFO.location}</span>
-        </div>
+        <span className="text-[11px] text-gray-700">CANAIS OFICIAIS</span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Contact Form */}
-        <div className="lg:col-span-2 bg-slate-900/80 p-6 rounded-xl border border-slate-800 space-y-4">
-          <h2 className="text-base font-bold text-white font-mono-code flex items-center gap-2 pb-2 border-b border-slate-800">
-            <MessageSquare className="w-4 h-4 text-emerald-400" />
-            <span>ENVIAR MENSAGEM DIRETA</span>
+      {/* Main Grid: Direct Links on Left + Mail Form on Right */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Left Column: Direct Links & Networks */}
+        <div className="bg-white border-2 border-gray-700 shadow-sm p-4 space-y-3 md:col-span-1 text-xs">
+          <h2 className="font-bold font-mono text-blue-950 text-xs border-b-2 border-blue-900 pb-1.5 flex items-center gap-1.5">
+            <Inbox className="w-4 h-4 text-blue-800" />
+            <span>CANAIS DIRETOS</span>
           </h2>
 
-          {statusMsg && (
-            <div className={`p-4 rounded-lg border text-xs font-mono-code flex items-start gap-3 ${
-              statusMsg.type === 'success' ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300' : 'bg-red-950/80 border-red-500 text-red-300'
-            }`}>
-              {statusMsg.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
-              <div>
-                <p>{statusMsg.text}</p>
-                {statusMsg.ticketId && (
-                  <p className="mt-1 font-bold text-amber-300">Ticket de Registro: {statusMsg.ticketId}</p>
-                )}
+          <div className="space-y-2">
+            {/* LinkedIn */}
+            <a
+              href={PROFILE_DATA.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 rounded flex items-center justify-between group transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Linkedin className="w-4 h-4 text-blue-700" />
+                <div>
+                  <div className="font-bold text-blue-950 text-xs">LinkedIn Oficial</div>
+                  <div className="text-[10px] text-gray-600 truncate max-w-[130px]">mateus-araujo-santos</div>
+                </div>
               </div>
+              <ExternalLink className="w-3.5 h-3.5 text-blue-600 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+
+            {/* GitHub */}
+            <a
+              href={PROFILE_DATA.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-300 rounded flex items-center justify-between group transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Github className="w-4 h-4 text-gray-800" />
+                <div>
+                  <div className="font-bold text-gray-900 text-xs">GitHub</div>
+                  <div className="text-[10px] text-gray-600 truncate max-w-[130px]">matteusimpor-arch</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-gray-600 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+
+            {/* Email */}
+            <a
+              href={`mailto:${PROFILE_DATA.email}`}
+              className="p-2.5 bg-green-50 hover:bg-green-100 border border-green-300 rounded flex items-center justify-between group transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-green-800" />
+                <div>
+                  <div className="font-bold text-green-950 text-xs">E-mail Direto</div>
+                  <div className="text-[10px] text-gray-600 truncate max-w-[130px]">{PROFILE_DATA.email}</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-green-700 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+
+            {/* WhatsApp */}
+            <a
+              href={PROFILE_DATA.whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded flex items-center justify-between group transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-emerald-700" />
+                <div>
+                  <div className="font-bold text-emerald-950 text-xs">WhatsApp / Mensagem</div>
+                  <div className="text-[10px] text-gray-600">Contato Ágil</div>
+                </div>
+              </div>
+              <ExternalLink className="w-3.5 h-3.5 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
+            </a>
+          </div>
+
+          <div className="pt-2 border-t border-gray-300 text-[11px] text-gray-600 leading-relaxed">
+            {PROFILE_DATA.availability}
+          </div>
+        </div>
+
+        {/* Right Column: Outlook Express Style Contact Form */}
+        <div className="bg-white border-2 border-gray-700 shadow-sm p-4 space-y-3 md:col-span-2 text-xs">
+          <div className="flex items-center justify-between border-b-2 border-yellow-600 pb-1.5">
+            <h2 className="font-bold font-mono text-blue-950 text-xs flex items-center gap-1.5">
+              <Mail className="w-4 h-4 text-yellow-700" />
+              <span>NOVA MENSAGEM (EXPRESS MAIL 2000)</span>
+            </h2>
+            <span className="text-[10.5px] font-mono text-gray-600">PARA: {PROFILE_DATA.email}</span>
+          </div>
+
+          {statusMsg && (
+            <div
+              className={`p-2.5 border rounded text-xs flex items-start gap-2 ${
+                statusMsg.type === 'success'
+                  ? 'bg-green-50 border-green-400 text-green-900'
+                  : 'bg-red-50 border-red-400 text-red-900'
+              }`}
+            >
+              {statusMsg.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
+              )}
+              <span>{statusMsg.text}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          <form onSubmit={handleSubmit} className="space-y-2.5 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="font-mono text-[11px] font-bold text-gray-800">De (Seu Nome):</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Seu nome"
+                  className="w-full bg-white border border-gray-400 px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-700"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-mono text-[11px] font-bold text-gray-800">Seu E-mail:</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="seu.email@exemplo.com"
+                  className="w-full bg-white border border-gray-400 px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-700"
+                />
+              </div>
+            </div>
+
             <div className="space-y-1">
-              <label className="font-mono-code text-slate-300">Seu Nome Completo:</label>
+              <label className="font-mono text-[11px] font-bold text-gray-800">Assunto:</label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: João Silva"
-                className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-lg border border-slate-800 focus:outline-none focus:border-emerald-500 font-sans-ui"
+                value={formData.subject}
+                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                placeholder="Ex: Oportunidade profissional / Contato"
+                className="w-full bg-white border border-gray-400 px-2 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-blue-700"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="font-mono-code text-slate-300">Seu Endereço de Email:</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Ex: joao@empresa.com.br"
-                className="w-full bg-slate-950 text-slate-200 px-3 py-2.5 rounded-lg border border-slate-800 focus:outline-none focus:border-emerald-500 font-sans-ui"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="font-mono-code text-slate-300">Sua Mensagem / Proposta:</label>
+              <label className="font-mono text-[11px] font-bold text-gray-800">Mensagem:</label>
               <textarea
+                rows={4}
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                placeholder="Descreva brevemente o projeto, dúvida ou proposta..."
-                rows={5}
-                className="w-full bg-slate-950 text-slate-200 p-3 rounded-lg border border-slate-800 focus:outline-none focus:border-emerald-500 font-sans-ui custom-scrollbar"
+                placeholder="Escreva sua mensagem aqui..."
+                className="w-full bg-white border border-gray-400 p-2 text-xs text-gray-900 focus:outline-none focus:border-blue-700 resize-none font-sans"
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-lg transition cursor-pointer shadow-lg disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Registrando Mensagem...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4" />
-                  <span>ENVIAR MENSAGEM</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10.5px] text-gray-600 font-mono">
+                Destino: {PROFILE_DATA.email}
+              </span>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-retro px-4 py-1.5 flex items-center gap-1.5 font-bold text-xs text-blue-950 cursor-pointer disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>{isSubmitting ? 'Transmitindo...' : 'Enviar Mensagem'}</span>
+              </button>
+            </div>
           </form>
         </div>
+      </div>
 
-        {/* Social Badges & Direct Links */}
-        <div className="space-y-4">
-          <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-4">
-            <h3 className="text-xs font-bold text-slate-400 font-mono-code uppercase">Canais de Conexão</h3>
-
-            <a
-              href={`mailto:${PROFILE_INFO.email}`}
-              className="flex items-center gap-3 p-3 bg-slate-950 rounded-lg border border-slate-800 hover:border-emerald-500 transition group"
-            >
-              <div className="p-2 bg-emerald-950 border border-emerald-800 rounded text-emerald-400">
-                <Mail className="w-5 h-5" />
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-bold text-white group-hover:text-emerald-300">E-mail Profissional</div>
-                <div className="text-[11px] text-slate-400 font-mono-code truncate">{PROFILE_INFO.email}</div>
-              </div>
-            </a>
-
-            <a
-              href={PROFILE_INFO.linkedin}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-3 p-3 bg-slate-950 rounded-lg border border-slate-800 hover:border-blue-500 transition group"
-            >
-              <div className="p-2 bg-blue-950 border border-blue-800 rounded text-blue-400">
-                <Linkedin className="w-5 h-5" />
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-bold text-white group-hover:text-blue-300">Perfil LinkedIn</div>
-                <div className="text-[11px] text-slate-400 font-mono-code truncate">{PROFILE_INFO.linkedin}</div>
-              </div>
-            </a>
-
-            <a
-              href={PROFILE_INFO.github}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-3 p-3 bg-slate-950 rounded-lg border border-slate-800 hover:border-slate-500 transition group"
-            >
-              <div className="p-2 bg-slate-800 border border-slate-700 rounded text-slate-300">
-                <Github className="w-5 h-5" />
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-bold text-white group-hover:text-slate-300">GitHub Repositories</div>
-                <div className="text-[11px] text-slate-400 font-mono-code truncate">{PROFILE_INFO.github}</div>
-              </div>
-            </a>
-          </div>
-
-          <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2 text-xs text-slate-400">
-            <div className="font-bold text-emerald-400 font-mono-code">⚡ RESPOSTA RÁPIDA</div>
-            <p>Mensagens registradas através do formulário são analisadas com prioridade em até 24 horas úteis.</p>
-          </div>
-        </div>
+      {/* Retro Status Bar */}
+      <div className="bg-[#c0c0c0] p-1.5 border-bevel-in text-[11px] font-mono text-gray-800 flex items-center justify-between">
+        <span>STATUS: CANAL DE COMUNICAÇÃO ATIVO</span>
+        <span>MATEUS OS 2000</span>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WindowAppId, WindowState, ThemeConfig, NotificationItem, ViewMode } from './types';
 import { BootScreen } from './components/BootScreen';
 import { ShutdownScreen } from './components/ShutdownScreen';
@@ -7,6 +7,7 @@ import { Taskbar } from './components/Taskbar';
 import { WindowFrame } from './components/WindowFrame';
 import { TimeTravelSpiral } from './components/TimeTravelSpiral';
 import { DigitalSpaceExperience } from './components/DigitalSpaceExperience';
+import { ScreensaverCanvas } from './components/ScreensaverCanvas';
 
 // Apps
 import { WelcomeApp } from './components/apps/WelcomeApp';
@@ -38,6 +39,10 @@ export default function App() {
   const [activeWindowId, setActiveWindowId] = useState<WindowAppId | null>('welcome');
   const [highestZIndex, setHighestZIndex] = useState<number>(20);
 
+  // Screensaver State & Idle Timer
+  const [isScreensaverActive, setIsScreensaverActive] = useState<boolean>(false);
+  const idleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // View Mode State (Retro 2000 vs Space 2026)
   const [viewMode, setViewMode] = useState<ViewMode>('retro');
   const [isTimeTraveling, setIsTimeTraveling] = useState<boolean>(false);
@@ -47,6 +52,8 @@ export default function App() {
     { id: 'welcome', title: '✦ Bem-Vindo · Leia-Me (Welcome.exe)', iconName: 'welcome', isOpen: true, isMinimized: false, isMaximized: false, zIndex: 20, x: 120, y: 35, width: 780, height: 570 },
     { id: 'projects', title: 'Trabalho Selecionado (Projects.exe)', iconName: 'projects', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 90, y: 45, width: 840, height: 620 },
     { id: 'about', title: 'Sobre Mateus (About_Mateus.exe)', iconName: 'about', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 60, y: 30, width: 740, height: 560 },
+    { id: 'education', title: 'Formação Acadêmica & MBAs (Education.exe)', iconName: 'education', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 100, y: 50, width: 750, height: 580 },
+    { id: 'experience', title: 'Experiência Profissional (Experience.exe)', iconName: 'experience', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 80, y: 40, width: 750, height: 580 },
     { id: 'skills', title: 'O que eu faço / Competências (Skills.exe)', iconName: 'skills', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 100, y: 50, width: 750, height: 560 },
     { id: 'now', title: 'Agora (2026) / Focos & Metas (Now.exe)', iconName: 'now', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 80, y: 40, width: 720, height: 540 },
     { id: 'contact', title: 'Contato Direto (Contact.exe)', iconName: 'contact', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 140, y: 70, width: 740, height: 560 },
@@ -64,8 +71,6 @@ export default function App() {
     { id: 'trash', title: 'Lixeira do Sistema (Trash.exe)', iconName: 'trash', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 180, y: 95, width: 620, height: 460 },
 
     // Additional utilities
-    { id: 'experience', title: 'Experiência Profissional (Experience.exe)', iconName: 'experience', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 80, y: 40, width: 750, height: 580 },
-    { id: 'education', title: 'Formação Acadêmica (Education.exe)', iconName: 'education', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 100, y: 50, width: 720, height: 540 },
     { id: 'logistics', title: 'Logística & Supply Chain (Logistics.exe)', iconName: 'logistics', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 130, y: 65, width: 780, height: 580 },
     { id: 'terminal', title: 'Terminal Interativo (Terminal.exe)', iconName: 'terminal', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 150, y: 80, width: 680, height: 480 },
     { id: 'experiments', title: 'Experimentos (Experiments.exe)', iconName: 'experiments', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 140, y: 50, width: 820, height: 640 },
@@ -73,14 +78,52 @@ export default function App() {
 
   const [windows, setWindows] = useState<WindowState[]>(initialWindows);
 
-  // Theme settings
-  const [themeConfig, setThemeConfig] = useState<ThemeConfig>({
-    mode: 'dark',
-    wallpaper: 'gradient-dark',
-    enableScanlines: false,
-    enableSound: true,
-    enableAnimations: true,
+  // Theme settings with localStorage hydration
+  const [themeConfig, setThemeConfig] = useState<ThemeConfig>(() => {
+    let savedWallpaper: ThemeConfig['wallpaper'] = 'classic-teal';
+    try {
+      const saved = localStorage.getItem('mateus_os_wallpaper');
+      if (saved) savedWallpaper = saved as ThemeConfig['wallpaper'];
+    } catch (e) {}
+
+    return {
+      mode: 'dark',
+      wallpaper: savedWallpaper,
+      enableScanlines: false,
+      enableSound: true,
+      enableAnimations: true,
+    };
   });
+
+  // Idle Timer (30 seconds of inactivity triggers the Screensaver)
+  useEffect(() => {
+    if (!isBootComplete || isShutdown || isTimeTraveling || viewMode === 'space') {
+      return;
+    }
+
+    const resetIdleTimer = () => {
+      if (idleTimeoutRef.current) {
+        clearTimeout(idleTimeoutRef.current);
+      }
+      idleTimeoutRef.current = setTimeout(() => {
+        setIsScreensaverActive(true);
+      }, 35000); // 35 seconds of inactivity
+    };
+
+    resetIdleTimer();
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'wheel'];
+    activityEvents.forEach((evt) => {
+      window.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+
+    return () => {
+      if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+      activityEvents.forEach((evt) => {
+        window.removeEventListener(evt, resetIdleTimer);
+      });
+    };
+  }, [isBootComplete, isShutdown, isTimeTraveling, viewMode]);
 
   // System notifications
   const [notifications, setNotifications] = useState<NotificationItem[]>([
@@ -88,7 +131,6 @@ export default function App() {
     { id: 'notif-2', title: 'Atualização para 2026', message: 'Experimente a transição espiral e explore a experiência MATEUS SPACE 2026.', time: 'Sistema', type: 'info', read: false }
   ]);
 
-  // Handle sound setting change
   const handleToggleSound = () => {
     const nextVal = !themeConfig.enableSound;
     setThemeConfig(prev => ({ ...prev, enableSound: nextVal }));
@@ -160,6 +202,11 @@ export default function App() {
     setViewMode('retro');
   };
 
+  const handleTestScreensaver = () => {
+    soundFx.playClick();
+    setIsScreensaverActive(true);
+  };
+
   const renderAppContent = (appId: WindowAppId) => {
     switch (appId) {
       case 'welcome':
@@ -193,6 +240,7 @@ export default function App() {
             themeConfig={themeConfig}
             onUpdateTheme={(cfg) => setThemeConfig(prev => ({ ...prev, ...cfg }))}
             onResetDesktop={handleResetDesktop}
+            onTestScreensaver={handleTestScreensaver}
           />
         );
       case 'trash': return <TrashApp />;
@@ -217,12 +265,13 @@ export default function App() {
   }
 
   return (
-    <div className={`fixed inset-0 overflow-hidden font-sans-ui bg-[#008080] text-slate-100 ${themeConfig.enableScanlines ? 'crt-overlay' : ''}`}>
-      {/* Interactive Desktop Canvas matching the screenshot */}
+    <div className={`fixed inset-0 overflow-hidden font-sans-ui text-slate-100 ${themeConfig.enableScanlines ? 'crt-overlay' : ''}`}>
+      {/* Interactive Desktop Canvas */}
       <Desktop
         onOpenApp={handleOpenApp}
         themeConfig={themeConfig}
         onLaunchTimeTravel={handleLaunchTimeTravel}
+        onTestScreensaver={handleTestScreensaver}
       />
 
       {/* Render Open Windows */}
@@ -253,7 +302,18 @@ export default function App() {
         onToggleScanlines={handleToggleScanlines}
         notifications={notifications}
         onLaunchTimeTravel={handleLaunchTimeTravel}
+        onTestScreensaver={handleTestScreensaver}
       />
+
+      {/* Screensaver Component Overlay */}
+      {isScreensaverActive && (
+        <div className="fixed inset-0 z-[9999]">
+          <ScreensaverCanvas
+            onWakeUp={() => setIsScreensaverActive(false)}
+            reduceMotion={false}
+          />
+        </div>
+      )}
     </div>
   );
 }
