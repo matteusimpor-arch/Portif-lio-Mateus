@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-vt323 {
+    font-family: 'VT323', monospace;
+  }
+  .font-pixel {
+    font-family: 'Press Start 2P', monospace;
+  }
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .font-sans-ui {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+/* Geometric Balance Classic Retro OS Bevel Borders */
+.border-bevel-out {
+  border-style: solid;
+  border-width: 2px;
+  border-color: #ffffff #404040 #404040 #ffffff;
+}
+
+.border-bevel-in {
+  border-style: solid;
+  border-width: 2px;
+  border-color: #404040 #ffffff #ffffff #404040;
+}
+
+.border-inset {
+  border-style: solid;
+  border-width: 2px;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+/* Retro Physical Button Utility */
+.btn-retro {
+  background-color: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #404040 #404040 #ffffff;
+  color: #000000;
+  font-weight: bold;
+  box-shadow: 1px 1px 0px #000000;
+  transition: all 0.05s ease;
+}
+
+.btn-retro:hover {
+  background-color: #d4d4d4;
+}
+
+.btn-retro:active {
+  border-color: #404040 #ffffff #ffffff #404040;
+  box-shadow: inset 1px 1px 2px #404040;
+  transform: translate(1px, 1px);
+}
+
+/* CRT Monitor Power On Transition Animation */
+@keyframes monitorOn {
+  0% {
+    transform: scale(1, 0.002);
+    filter: brightness(5) contrast(2);
+    opacity: 0.1;
+  }
+  40% {
+    transform: scale(1, 0.05);
+    filter: brightness(3);
+    opacity: 0.6;
+  }
+  70% {
+    transform: scale(1.02, 1);
+    filter: brightness(1.5);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1, 1);
+    filter: brightness(1);
+    opacity: 1;
+  }
+}
+
+.animate-monitor-on {
+  animation: monitorOn 0.6s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+/* CRT Scanlines Layer matching Geometric Balance Theme */
+.crt-overlay {
+  position: relative;
+}
+
+.crt-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: 
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%), 
+    linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Custom retro scrollbar */
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: #c0c0c0;
+  border: 1px solid #808080;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #404040 #404040 #ffffff;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d0d0d0;
+}
+
+/* Subtle CRT Flicker optional animation */
+@keyframes crtFlicker {
+  0% { opacity: 0.98; }
+  50% { opacity: 1; }
+  100% { opacity: 0.99; }
+}
+
+.crt-flicker {
+  animation: crtFlicker 0.15s infinite;
+}
+
+/* Custom Selection */
+::selection {
+  background-color: #000080;
+  color: #ffffff;
+}
+
+/* Zero-gravity orbital float animations for Space 2026 Apps */
+@keyframes floatSpace0 {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  33% { transform: translateY(-7px) translateX(4px) rotate(1.2deg); }
+  66% { transform: translateY(6px) translateX(-3px) rotate(-1deg); }
+}
+
+@keyframes floatSpace1 {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  33% { transform: translateY(8px) translateX(-5px) rotate(-1.5deg); }
+  66% { transform: translateY(-6px) translateX(3px) rotate(1.4deg); }
+}
+
+@keyframes floatSpace2 {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  33% { transform: translateY(-8px) translateX(-4px) rotate(1.5deg); }
+  66% { transform: translateY(7px) translateX(5px) rotate(-1.2deg); }
+}
+
+@keyframes floatSpace3 {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  33% { transform: translateY(6px) translateX(5px) rotate(-1.6deg); }
+  66% { transform: translateY(-8px) translateX(-4px) rotate(1.1deg); }
+}
+
+@keyframes floatSpace4 {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  33% { transform: translateY(-6px) translateX(-4px) rotate(-1.3deg); }
+  66% { transform: translateY(7px) translateX(3px) rotate(1.5deg); }
+}
+
+@keyframes floatSpace5 {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  33% { transform: translateY(7px) translateX(4px) rotate(1.4deg); }
+  66% { transform: translateY(-5px) translateX(-4px) rotate(-1.2deg); }
+}
+
+@keyframes floatSpace6 {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  33% { transform: translateY(-8px) translateX(3px) rotate(-1.5deg); }
+  66% { transform: translateY(6px) translateX(-4px) rotate(1.3deg); }
+}
+
+@keyframes floatSpace7 {
+  0%, 100% { transform: translateY(0px) translateX(0px) rotate(0deg); }
+  33% { transform: translateY(7px) translateX(-4px) rotate(1.6deg); }
+  66% { transform: translateY(-7px) translateX(4px) rotate(-1deg); }
+}
+
+.animate-space-float-0 { animation: floatSpace0 5.2s ease-in-out infinite; }
+.animate-space-float-1 { animation: floatSpace1 6.1s ease-in-out infinite; }
+.animate-space-float-2 { animation: floatSpace2 5.5s ease-in-out infinite; }
+.animate-space-float-3 { animation: floatSpace3 6.4s ease-in-out infinite; }
+.animate-space-float-4 { animation: floatSpace4 5.8s ease-in-out infinite; }
+.animate-space-float-5 { animation: floatSpace5 5.3s ease-in-out infinite; }
+.animate-space-float-6 { animation: floatSpace6 6.0s ease-in-out infinite; }
+.animate-space-float-7 { animation: floatSpace7 5.6s ease-in-out infinite; }
+
+
+
+
