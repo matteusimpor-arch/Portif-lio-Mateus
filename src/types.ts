@@ -8,6 +8,7 @@ export type WindowAppId =
   | 'skills'
   | 'now'
   | 'contact'
+  | 'guestbook'
   | 'resume'
   | 'paint'
   | 'quiz'

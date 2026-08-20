@@ -1,198 +1,148 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Play, RotateCcw, Zap, Sparkles, Volume2, Flag, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Shield } from 'lucide-react';
+import { Trophy, RotateCcw, Volume2, Sparkles, Flag, ArrowRight, Zap, Play, ArrowLeft, ChevronLeft, ChevronRight, Gauge } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundFx } from '../../utils/soundEffects';
 
 interface Character {
   id: string;
   name: string;
+  avatar: string;
   color: string;
   kartColor: string;
-  speed: number;
-  accel: number;
-  handling: number;
-  icon: string;
+  speedStat: number;
+  accelStat: number;
+  weightStat: number;
 }
 
 const CHARACTERS: Character[] = [
-  { id: 'mario', name: 'Mario', color: '#ef4444', kartColor: '#dc2626', speed: 85, accel: 80, handling: 80, icon: '🔴' },
-  { id: 'luigi', name: 'Luigi', color: '#22c55e', kartColor: '#16a34a', speed: 82, accel: 85, handling: 85, icon: '🟢' },
-  { id: 'toad', name: 'Toad', color: '#38bdf8', kartColor: '#0284c7', speed: 78, accel: 95, handling: 90, icon: '🍄' },
-  { id: 'yoshi', name: 'Yoshi', color: '#84cc16', kartColor: '#65a30d', speed: 86, accel: 88, handling: 82, icon: '🦖' },
-  { id: 'peach', name: 'Peach', color: '#f472b6', kartColor: '#db2777', speed: 80, accel: 90, handling: 88, icon: '👑' },
-  { id: 'bowser', name: 'Bowser', color: '#f97316', kartColor: '#ea580c', speed: 95, accel: 65, handling: 60, icon: '🐢' },
+  { id: 'mario', name: 'Mario', avatar: '🔴', color: '#ef4444', kartColor: '#dc2626', speedStat: 8, accelStat: 8, weightStat: 7 },
+  { id: 'luigi', name: 'Luigi', avatar: '🟢', color: '#22c55e', kartColor: '#16a34a', speedStat: 8, accelStat: 8, weightStat: 7 },
+  { id: 'peach', name: 'Peach', avatar: '💖', color: '#ec4899', kartColor: '#db2777', speedStat: 7, accelStat: 10, weightStat: 5 },
+  { id: 'toad', name: 'Toad', avatar: '🍄', color: '#3b82f6', kartColor: '#2563eb', speedStat: 7, accelStat: 10, weightStat: 4 },
+  { id: 'yoshi', name: 'Yoshi', avatar: '🦖', color: '#84cc16', kartColor: '#65a30d', speedStat: 8, accelStat: 9, weightStat: 6 },
+  { id: 'bowser', name: 'Bowser', avatar: '🔥', color: '#eab308', kartColor: '#ca8a04', speedStat: 10, accelStat: 5, weightStat: 10 },
+  { id: 'donkey', name: 'DK', avatar: '🦍', color: '#b45309', kartColor: '#92400e', speedStat: 9, accelStat: 6, weightStat: 9 },
+  { id: 'wario', name: 'Wario', avatar: '⭐', color: '#eab308', kartColor: '#854d0e', speedStat: 9, accelStat: 6, weightStat: 9 },
 ];
 
 interface Track {
   id: string;
   name: string;
-  theme: 'grass' | 'desert' | 'castle' | 'rainbow';
-  skyColor: string;
-  groundColor: string;
+  theme: string;
+  bgGrad: [string, string];
   roadColor: string;
-  curbColor1: string;
-  curbColor2: string;
+  curbColor: string;
+  length: number;
+  curves: Array<{ pos: number; curve: number }>;
 }
 
 const TRACKS: Track[] = [
-  { id: 'circuit', name: 'Mario Circuit 2000', theme: 'grass', skyColor: '#38bdf8', groundColor: '#15803d', roadColor: '#475569', curbColor1: '#ef4444', curbColor2: '#ffffff' },
-  { id: 'desert', name: 'Choco Desert 2000', theme: 'desert', skyColor: '#fde047', groundColor: '#d97706', roadColor: '#78350f', curbColor1: '#f97316', curbColor2: '#fde68a' },
-  { id: 'castle', name: 'Bowser Castle 2000', theme: 'castle', skyColor: '#0f172a', groundColor: '#1e1b4b', roadColor: '#1e293b', curbColor1: '#a855f7', curbColor2: '#ffffff' },
-  { id: 'rainbow', name: 'Rainbow Road 2000', theme: 'rainbow', skyColor: '#030712', groundColor: '#312e81', roadColor: '#4338ca', curbColor1: '#ec4899', curbColor2: '#06b6d4' },
+  {
+    id: 'mushroom',
+    name: 'Circuito Cogumelo 2000',
+    theme: 'Grama & Asfalto Clássico',
+    bgGrad: ['#38bdf8', '#86efac'],
+    roadColor: '#334155',
+    curbColor: '#ef4444',
+    length: 2200,
+    curves: [
+      { pos: 300, curve: 0.8 },
+      { pos: 700, curve: -0.9 },
+      { pos: 1200, curve: 1.2 },
+      { pos: 1600, curve: -0.7 },
+    ],
+  },
+  {
+    id: 'beach',
+    name: 'Praia Koopa Beach',
+    theme: 'Areia Tropical & Mar Azul',
+    bgGrad: ['#0284c7', '#fde047'],
+    roadColor: '#78716c',
+    curbColor: '#f97316',
+    length: 2600,
+    curves: [
+      { pos: 400, curve: -1.1 },
+      { pos: 900, curve: 1.0 },
+      { pos: 1500, curve: -1.3 },
+      { pos: 2000, curve: 0.9 },
+    ],
+  },
+  {
+    id: 'castle',
+    name: 'Castelo de Fogo Bowser',
+    theme: 'Lava Vulcânica & Fortaleza',
+    bgGrad: ['#450a0a', '#ea580c'],
+    roadColor: '#18181b',
+    curbColor: '#facc15',
+    length: 3000,
+    curves: [
+      { pos: 350, curve: 1.3 },
+      { pos: 800, curve: -1.4 },
+      { pos: 1400, curve: 1.5 },
+      { pos: 2100, curve: -1.2 },
+      { pos: 2600, curve: 1.1 },
+    ],
+  },
 ];
 
-type ItemType = 'mushroom' | 'banana' | 'greenshell' | 'redshell' | 'star' | null;
-
-interface KartOpponent {
-  id: string;
-  char: Character;
-  trackPos: number; // 0 to 1000
-  lane: number; // -1 to 1
-  speed: number;
+interface KartGameProps {
+  onBackToHub?: () => void;
+  mode?: 'retro' | 'space';
 }
 
-export const KartGame: React.FC = () => {
+export const KartGame: React.FC<KartGameProps> = ({
+  onBackToHub,
+  mode = 'retro',
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [selectedChar, setSelectedChar] = useState<Character>(CHARACTERS[0]);
   const [selectedTrack, setSelectedTrack] = useState<Track>(TRACKS[0]);
 
-  // Race State
-  const [gameState, setGameState] = useState<'menu' | 'countdown' | 'racing' | 'finished'>('menu');
-  const [countdown, setCountdown] = useState<number>(3);
-  const [currentLap, setCurrentLap] = useState<number>(1);
-  const TOTAL_LAPS = 3;
-  const [position, setPosition] = useState<number>(8);
-  const [speedKmh, setSpeedKmh] = useState<number>(0);
-  const [heldItem, setHeldItem] = useState<ItemType>(null);
-  const [isItemRolling, setIsItemRolling] = useState<boolean>(false);
-  const [invincibleTimer, setInvincibleTimer] = useState<number>(0);
-  const [raceTime, setRaceTime] = useState<number>(0);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [lap, setLap] = useState<number>(1);
+  const [position, setPosition] = useState<number>(1);
+  const [coins, setCoins] = useState<number>(0);
+  const [boostTime, setBoostTime] = useState<number>(0);
+  const [isFinished, setIsFinished] = useState<boolean>(false);
 
-  // Player physics
-  const playerRef = useRef({
-    x: 0, // -1 to 1 on track width
-    distance: 0,
-    speed: 0,
-    maxSpeed: 120,
-    accel: 0.6,
-    brake: 0.8,
-    angle: 0,
-    drift: 0,
-    spinOutTimer: 0,
-  });
-
-  // Track & Road curve parameters
-  const trackCurveRef = useRef({
-    curve: 0,
-    targetCurve: 0,
-    segment: 0,
-  });
-
-  // Item Boxes on track
-  const itemBoxesRef = useRef<{ dist: number; lane: number; active: boolean }[]>([
-    { dist: 150, lane: -0.5, active: true },
-    { dist: 150, lane: 0, active: true },
-    { dist: 150, lane: 0.5, active: true },
-    { dist: 450, lane: -0.4, active: true },
-    { dist: 450, lane: 0.4, active: true },
-    { dist: 750, lane: 0, active: true },
-  ]);
-
-  // Active hazards (Bananas & Shells)
-  const hazardsRef = useRef<{ type: 'banana' | 'shell'; dist: number; lane: number; speed: number }[]>([]);
-
-  // Opponents AI
-  const opponentsRef = useRef<KartOpponent[]>([]);
-
-  // Controls input state
-  const keysRef = useRef({
-    up: false,
-    down: false,
+  // Kart controls state
+  const keys = useRef<{ left: boolean; right: boolean; up: boolean; down: boolean; space: boolean }>({
     left: false,
     right: false,
-    useItem: false,
-    drift: false,
+    up: false,
+    down: false,
+    space: false,
   });
 
-  // Initialize Opponents
-  const initOpponents = () => {
-    const others = CHARACTERS.filter((c) => c.id !== selectedChar.id);
-    opponentsRef.current = others.map((char, idx) => ({
-      id: char.id,
-      char,
-      trackPos: 50 + idx * 80,
-      lane: (idx % 3 - 1) * 0.5,
-      speed: 85 + Math.random() * 25,
-    }));
-  };
-
-  // Start Countdown & Race
   const startRace = () => {
     try {
-      soundFx.playClick();
+      soundFx.playFanfare();
     } catch (e) {}
-
-    initOpponents();
-    playerRef.current = {
-      x: 0,
-      distance: 0,
-      speed: 0,
-      maxSpeed: selectedChar.speed * 1.35,
-      accel: selectedChar.accel * 0.008,
-      brake: 0.8,
-      angle: 0,
-      drift: 0,
-      spinOutTimer: 0,
-    };
-    hazardsRef.current = [];
-    setCurrentLap(1);
-    setPosition(8);
-    setHeldItem(null);
-    setInvincibleTimer(0);
-    setRaceTime(0);
-    setGameState('countdown');
-    setCountdown(3);
-
-    // 3, 2, 1, GO!
-    let cd = 3;
-    const interval = setInterval(() => {
-      cd -= 1;
-      setCountdown(cd);
-      try {
-        soundFx.playNotification();
-      } catch (e) {}
-
-      if (cd <= 0) {
-        clearInterval(interval);
-        setGameState('racing');
-        try {
-          soundFx.playFanfare();
-        } catch (e) {}
-      }
-    }, 900);
+    setLap(1);
+    setPosition(1);
+    setCoins(0);
+    setBoostTime(0);
+    setIsFinished(false);
+    setIsPlaying(true);
   };
 
-  // Keyboard Event Listeners
+  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keysRef.current.up = true;
-      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keysRef.current.down = true;
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keysRef.current.left = true;
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keysRef.current.right = true;
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        useItemAction();
-      }
-      if (e.key === 'Shift') keysRef.current.drift = true;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.current.left = true;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.current.right = true;
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.current.up = true;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.current.down = true;
+      if (e.code === 'Space') keys.current.space = true;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') keysRef.current.up = false;
-      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') keysRef.current.down = false;
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keysRef.current.left = false;
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keysRef.current.right = false;
-      if (e.key === 'Shift') keysRef.current.drift = false;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.current.left = false;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.current.right = false;
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.current.up = false;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.current.down = false;
+      if (e.code === 'Space') keys.current.space = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -201,429 +151,287 @@ export const KartGame: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [heldItem, gameState]);
+  }, []);
 
-  // Roll item roulette
-  const rollItem = () => {
-    if (heldItem || isItemRolling) return;
-    setIsItemRolling(true);
-    try {
-      soundFx.playPowerup();
-    } catch (e) {}
-
-    const possibleItems: ItemType[] = ['mushroom', 'banana', 'greenshell', 'redshell', 'star'];
-    let rolls = 0;
-    const interval = setInterval(() => {
-      rolls++;
-      const randomItem = possibleItems[Math.floor(Math.random() * possibleItems.length)];
-      setHeldItem(randomItem);
-
-      if (rolls > 12) {
-        clearInterval(interval);
-        setIsItemRolling(false);
-        try {
-          soundFx.playNotification();
-        } catch (e) {}
-      }
-    }, 100);
-  };
-
-  // Use currently held item
-  const useItemAction = () => {
-    if (!heldItem || isItemRolling || gameState !== 'racing') return;
-    try {
-      soundFx.playPowerup();
-    } catch (e) {}
-
-    if (heldItem === 'mushroom') {
-      try {
-        soundFx.playBoost();
-      } catch (e) {}
-      playerRef.current.speed = Math.min(playerRef.current.maxSpeed * 1.5, 175);
-    } else if (heldItem === 'banana') {
-      hazardsRef.current.push({
-        type: 'banana',
-        dist: playerRef.current.distance - 20,
-        lane: playerRef.current.x,
-        speed: 0,
-      });
-    } else if (heldItem === 'greenshell') {
-      hazardsRef.current.push({
-        type: 'shell',
-        dist: playerRef.current.distance + 30,
-        lane: playerRef.current.x,
-        speed: 160,
-      });
-    } else if (heldItem === 'redshell') {
-      hazardsRef.current.push({
-        type: 'shell',
-        dist: playerRef.current.distance + 30,
-        lane: 0,
-        speed: 180,
-      });
-    } else if (heldItem === 'star') {
-      try {
-        soundFx.playBoost();
-      } catch (e) {}
-      setInvincibleTimer(200); // frames of invincibility
-      playerRef.current.speed = playerRef.current.maxSpeed * 1.3;
-    }
-
-    setHeldItem(null);
-  };
-
-  // Main Game Loop
+  // Main Pseudo-3D Mode 7 Racing Engine
   useEffect(() => {
-    if (gameState !== 'racing') return;
+    if (!isPlaying || isFinished) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let playerX = 0; // -1 to 1 across track
+    let trackPos = 0; // Distance traveled
+    let speed = 0;
+    const maxSpeed = 16 + selectedChar.speedStat * 0.8;
+    const accel = 0.25 + selectedChar.accelStat * 0.05;
+
+    // AI competitors positions along track
+    const rivals = [
+      { id: 'rival-1', name: 'Bowser', x: -0.4, pos: 200, speed: 17, color: '#eab308' },
+      { id: 'rival-2', name: 'Luigi', x: 0.3, pos: 150, speed: 16.5, color: '#22c55e' },
+      { id: 'rival-3', name: 'Peach', x: -0.2, pos: 100, speed: 16.2, color: '#ec4899' },
+    ];
 
     let animId: number;
-    const TRACK_LENGTH = 1000;
 
     const gameLoop = () => {
-      const p = playerRef.current;
-      setRaceTime((t) => t + 0.016);
-
-      // Spinout penalty check
-      if (p.spinOutTimer > 0) {
-        p.spinOutTimer--;
-        p.speed *= 0.92;
+      // 1. Controls & Acceleration
+      if (keys.current.up) {
+        speed = Math.min(maxSpeed, speed + accel);
+      } else if (keys.current.down) {
+        speed = Math.max(0, speed - accel * 1.5);
       } else {
-        // Acceleration / Braking
-        if (keysRef.current.up) {
-          p.speed = Math.min(p.speed + p.accel, p.maxSpeed);
-        } else if (keysRef.current.down) {
-          p.speed = Math.max(p.speed - p.brake, -20);
-        } else {
-          p.speed = Math.max(0, p.speed - 0.2); // Friction
-        }
+        speed = Math.max(0, speed - 0.12);
+      }
 
-        // Steering
-        if (keysRef.current.left) {
-          p.x -= (0.025 * (p.speed / p.maxSpeed)) * (keysRef.current.drift ? 1.4 : 1);
-          p.angle = -0.15;
-        } else if (keysRef.current.right) {
-          p.x += (0.025 * (p.speed / p.maxSpeed)) * (keysRef.current.drift ? 1.4 : 1);
-          p.angle = 0.15;
-        } else {
-          p.angle = 0;
-        }
+      // Steering
+      if (keys.current.left) {
+        playerX -= 0.035 * (speed / maxSpeed);
+      }
+      if (keys.current.right) {
+        playerX += 0.035 * (speed / maxSpeed);
       }
 
       // Off-road penalty
-      if (Math.abs(p.x) > 0.9) {
-        p.speed = Math.min(p.speed, 45); // Slow down on grass/sand
+      if (Math.abs(playerX) > 0.85) {
+        speed = Math.min(speed, 6);
       }
 
-      // Keep player inside bounds
-      p.x = Math.max(-1.3, Math.min(1.3, p.x));
+      // Turbo boost item
+      if (keys.current.space && coins >= 3) {
+        setCoins((c) => Math.max(0, c - 3));
+        speed = maxSpeed * 1.35;
+        try {
+          soundFx.playBoost();
+        } catch (e) {}
+      }
 
-      // Advance distance
-      p.distance += p.speed * 0.08;
+      trackPos += speed;
 
-      // Update Track Curves dynamically
-      const curSegment = Math.floor(p.distance / 200) % 5;
-      if (curSegment === 1) trackCurveRef.current.targetCurve = 0.6; // Right turn
-      else if (curSegment === 3) trackCurveRef.current.targetCurve = -0.6; // Left turn
-      else trackCurveRef.current.targetCurve = 0; // Straight
+      // Check current curve
+      let currentCurve = 0;
+      selectedTrack.curves.forEach((c) => {
+        const dist = Math.abs((trackPos % selectedTrack.length) - c.pos);
+        if (dist < 300) {
+          currentCurve = c.curve * (1 - dist / 300);
+        }
+      });
 
-      trackCurveRef.current.curve += (trackCurveRef.current.targetCurve - trackCurveRef.current.curve) * 0.04;
+      playerX -= currentCurve * 0.015 * (speed / maxSpeed);
 
-      // Check Lap Completion
-      if (p.distance >= TRACK_LENGTH) {
-        p.distance -= TRACK_LENGTH;
-        if (currentLap >= TOTAL_LAPS) {
-          setGameState('finished');
-          try {
-            soundFx.playFanfare();
-          } catch (e) {}
-          confetti({ particleCount: 150, spread: 90 });
-          return;
-        } else {
-          setCurrentLap((l) => l + 1);
+      // Check Lap Finish
+      if (trackPos >= selectedTrack.length) {
+        trackPos = 0;
+        setLap((currLap) => {
+          if (currLap >= 3) {
+            setIsFinished(true);
+            setIsPlaying(false);
+            try {
+              soundFx.playFanfare();
+            } catch (e) {}
+            confetti({ particleCount: 150, spread: 90 });
+            return 3;
+          }
           try {
             soundFx.playNotification();
           } catch (e) {}
+          return currLap + 1;
+        });
+      }
+
+      // Update Rivals
+      rivals.forEach((r) => {
+        r.pos += r.speed;
+        if (r.pos > selectedTrack.length) r.pos -= selectedTrack.length;
+      });
+
+      // Calculate Position
+      let currentRank = 1;
+      rivals.forEach((r) => {
+        if (r.pos > trackPos) currentRank++;
+      });
+      setPosition(currentRank);
+
+      // 2. Render Pseudo 3D Mode-7 Track
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Sky Gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, 140);
+      skyGrad.addColorStop(0, selectedTrack.bgGrad[0]);
+      skyGrad.addColorStop(1, selectedTrack.bgGrad[1]);
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, canvas.width, 140);
+
+      // Mountain / Landscape Silhouette
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.moveTo(0, 140);
+      ctx.lineTo(80, 95);
+      ctx.lineTo(170, 130);
+      ctx.lineTo(260, 85);
+      ctx.lineTo(360, 140);
+      ctx.fill();
+
+      // Road Perspective Scanlines
+      const horizonY = 140;
+      for (let y = horizonY; y < canvas.height; y++) {
+        const perspective = (y - horizonY) / (canvas.height - horizonY);
+        const roadWidth = 280 * perspective;
+        const roadCenter = canvas.width / 2 + currentCurve * 80 * (1 - perspective) - playerX * 160 * perspective;
+
+        // Grass / Sand
+        const grassStrip = Math.floor((trackPos + (canvas.height - y) * 12) / 40) % 2 === 0;
+        ctx.fillStyle = grassStrip ? '#16a34a' : '#15803d';
+        ctx.fillRect(0, y, canvas.width, 1);
+
+        // Curbs (Red/White or Orange/White)
+        const curbWidth = 24 * perspective;
+        const curbStrip = Math.floor((trackPos + (canvas.height - y) * 12) / 20) % 2 === 0;
+        ctx.fillStyle = curbStrip ? selectedTrack.curbColor : '#ffffff';
+        ctx.fillRect(roadCenter - roadWidth / 2 - curbWidth, y, curbWidth, 1);
+        ctx.fillRect(roadCenter + roadWidth / 2, y, curbWidth, 1);
+
+        // Main Road Asfalt
+        ctx.fillStyle = selectedTrack.roadColor;
+        ctx.fillRect(roadCenter - roadWidth / 2, y, roadWidth, 1);
+
+        // Center White Dashed Lane Line
+        if (curbStrip) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(roadCenter - 1.5 * perspective, y, 3 * perspective, 1);
         }
       }
 
-      // Update Opponents
-      opponentsRef.current.forEach((opp) => {
-        opp.trackPos += opp.speed * 0.08;
-        if (opp.trackPos >= TRACK_LENGTH) opp.trackPos -= TRACK_LENGTH;
-      });
+      // 3. Render Player Kart (Super Mario Kart Sprite Style)
+      const kartScreenX = canvas.width / 2;
+      const kartScreenY = canvas.height - 35;
 
-      // Calculate Player Rank Position (1st to 8th)
-      const allRacers = [
-        { id: 'player', dist: (currentLap - 1) * TRACK_LENGTH + p.distance },
-        ...opponentsRef.current.map((opp) => ({ id: opp.id, dist: (currentLap - 1) * TRACK_LENGTH + opp.trackPos })),
-      ];
-      allRacers.sort((a, b) => b.dist - a.dist);
-      const playerRank = allRacers.findIndex((r) => r.id === 'player') + 1;
-      setPosition(playerRank);
+      ctx.save();
+      ctx.translate(kartScreenX, kartScreenY);
 
-      // Check Item Box Collisions
-      itemBoxesRef.current.forEach((box) => {
-        const distDiff = Math.abs(p.distance - box.dist);
-        const laneDiff = Math.abs(p.x - box.lane);
-        if (distDiff < 15 && laneDiff < 0.35 && box.active) {
-          box.active = false;
-          rollItem();
-          setTimeout(() => {
-            box.active = true;
-          }, 5000);
-        }
-      });
+      // Kart wheels
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(-22, 6, 9, 14);
+      ctx.fillRect(13, 6, 9, 14);
 
-      // Check Hazard Collisions
-      hazardsRef.current.forEach((h, idx) => {
-        h.dist += h.speed * 0.08;
-        const distDiff = Math.abs(p.distance - h.dist);
-        const laneDiff = Math.abs(p.x - h.lane);
+      // Kart chassis
+      ctx.fillStyle = selectedChar.kartColor;
+      ctx.fillRect(-17, -8, 34, 22);
 
-        if (distDiff < 18 && laneDiff < 0.25 && p.spinOutTimer === 0 && invincibleTimer === 0) {
-          p.spinOutTimer = 45; // Spin out!
-          try {
-            soundFx.playWindowClose();
-          } catch (e) {}
-          hazardsRef.current.splice(idx, 1);
-        }
-      });
+      // Kart exhaust pipe flame during acceleration
+      if (speed > 8) {
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.arc(0, 16, 4 + (speed / maxSpeed) * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      if (invincibleTimer > 0) setInvincibleTimer((t) => t - 1);
-      setSpeedKmh(Math.round(p.speed));
+      // Driver Character
+      ctx.fillStyle = selectedChar.color;
+      ctx.beginPath();
+      ctx.arc(0, -14, 12, 0, Math.PI * 2);
+      ctx.fill();
 
-      // Draw Canvas
-      renderRace();
+      // Driver Cap / Hat
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(selectedChar.avatar, 0, -8);
+
+      ctx.restore();
 
       animId = requestAnimationFrame(gameLoop);
     };
 
-    const renderRace = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const p = playerRef.current;
-      const t = selectedTrack;
-
-      // 1. Sky & Horizon
-      ctx.fillStyle = t.skyColor;
-      ctx.fillRect(0, 0, canvas.width, 110);
-
-      // Distant mountains / castle decor
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-      for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        const mx = ((i * 90) - (p.distance * 0.2)) % (canvas.width + 100);
-        ctx.moveTo(mx, 110);
-        ctx.lineTo(mx + 45, 60);
-        ctx.lineTo(mx + 90, 110);
-        ctx.fill();
-      }
-
-      // 2. Mode 7 / Pseudo 3D Road Perspective
-      const horizonY = 110;
-      const roadH = canvas.height - horizonY;
-
-      for (let y = 0; y < roadH; y += 4) {
-        const perspective = y / roadH; // 0 (horizon) to 1 (near bottom)
-        const screenY = horizonY + y;
-
-        // Ground color
-        const isGroundStripe = Math.floor((p.distance + y * 2) / 20) % 2 === 0;
-        ctx.fillStyle = isGroundStripe ? t.groundColor : '#0f5132';
-        ctx.fillRect(0, screenY, canvas.width, 4);
-
-        // Road Width at this perspective
-        const roadW = (120 + perspective * 340);
-        const curveOffset = Math.sin(perspective * Math.PI / 2) * trackCurveRef.current.curve * 120;
-        const roadCenterX = canvas.width / 2 + curveOffset - (p.x * 120 * perspective);
-
-        // Road asphalt
-        ctx.fillStyle = t.roadColor;
-        ctx.fillRect(roadCenterX - roadW / 2, screenY, roadW, 4);
-
-        // Curbs (Zebra stripes on sides)
-        const curbW = 10 + perspective * 18;
-        const isCurbStripe = Math.floor((p.distance + y * 3) / 16) % 2 === 0;
-        ctx.fillStyle = isCurbStripe ? t.curbColor1 : t.curbColor2;
-
-        // Left curb
-        ctx.fillRect(roadCenterX - roadW / 2 - curbW, screenY, curbW, 4);
-        // Right curb
-        ctx.fillRect(roadCenterX + roadW / 2, screenY, curbW, 4);
-      }
-
-      // 3. Render Item Boxes & Hazards on Track
-      itemBoxesRef.current.forEach((box) => {
-        const relDist = box.dist - (p.distance % 1000);
-        if (relDist > 0 && relDist < 250 && box.active) {
-          const depth = 1 - relDist / 250;
-          const boxY = horizonY + depth * roadH;
-          const boxX = canvas.width / 2 + (box.lane - p.x) * 220 * depth;
-          const size = 12 + depth * 16;
-
-          ctx.fillStyle = '#facc15';
-          ctx.fillRect(boxX - size / 2, boxY - size, size, size);
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(boxX - size / 2, boxY - size, size, size);
-          ctx.fillStyle = '#000000';
-          ctx.font = 'bold 10px monospace';
-          ctx.fillText('?', boxX - 3, boxY - size / 3);
-        }
-      });
-
-      // 4. Render Opponent Karts
-      opponentsRef.current.forEach((opp) => {
-        const relDist = opp.trackPos - (p.distance % 1000);
-        if (relDist > -30 && relDist < 300) {
-          const depth = 1 - relDist / 300;
-          if (depth > 0.1 && depth < 1.1) {
-            const oppY = horizonY + depth * roadH;
-            const oppX = canvas.width / 2 + (opp.lane - p.x) * 220 * depth;
-            const size = 16 + depth * 22;
-
-            // Opponent Kart Body
-            ctx.fillStyle = opp.char.kartColor;
-            ctx.fillRect(oppX - size / 2, oppY - size, size, size * 0.7);
-            ctx.fillStyle = opp.char.color;
-            ctx.beginPath();
-            ctx.arc(oppX, oppY - size * 0.8, Math.max(0.1, size * 0.3), 0, Math.PI * 2);
-            ctx.fill();
-            // Kart wheels
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(oppX - size * 0.6, oppY - size * 0.5, size * 0.25, size * 0.4);
-            ctx.fillRect(oppX + size * 0.35, oppY - size * 0.5, size * 0.25, size * 0.4);
-          }
-        }
-      });
-
-      // 5. Render Player's Kart (Centered near bottom)
-      ctx.save();
-      const playerScreenX = canvas.width / 2;
-      const playerScreenY = canvas.height - 35;
-
-      ctx.translate(playerScreenX, playerScreenY);
-      if (p.spinOutTimer > 0) {
-        ctx.rotate(p.spinOutTimer * 0.4);
-      } else {
-        ctx.rotate(p.angle);
-      }
-
-      // Kart Shadow
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.beginPath();
-      ctx.ellipse(0, 10, 24, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Kart Tires
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(-22, -8, 8, 16); // Left tire
-      ctx.fillRect(14, -8, 8, 16); // Right tire
-      ctx.fillRect(-20, 4, 7, 14); // Left rear
-      ctx.fillRect(13, 4, 7, 14); // Right rear
-
-      // Kart Body
-      ctx.fillStyle = selectedChar.kartColor;
-      ctx.fillRect(-16, -14, 32, 26);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(-16, -14, 32, 26);
-
-      // Character Hat / Head
-      ctx.fillStyle = selectedChar.color;
-      ctx.beginPath();
-      ctx.arc(0, -18, 10, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Steering wheel
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(-8, -10, 16, 4);
-
-      // Exhaust Boost Flames if speed high or star
-      if (p.speed > p.maxSpeed * 0.95 || invincibleTimer > 0) {
-        ctx.fillStyle = invincibleTimer > 0 ? '#facc15' : '#ef4444';
-        ctx.beginPath();
-        ctx.moveTo(-10, 12);
-        ctx.lineTo(-6, 24 + Math.random() * 8);
-        ctx.lineTo(-2, 12);
-        ctx.moveTo(2, 12);
-        ctx.lineTo(6, 24 + Math.random() * 8);
-        ctx.lineTo(10, 12);
-        ctx.fill();
-      }
-
-      ctx.restore();
-    };
-
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [gameState, currentLap, selectedTrack, selectedChar, heldItem, isItemRolling, invincibleTimer]);
+  }, [isPlaying, isFinished, selectedChar, selectedTrack, coins]);
 
   return (
-    <div className="bg-[#1e1b4b] p-4 md:p-5 border-2 border-white border-r-gray-900 border-b-gray-900 text-white space-y-4 rounded shadow-2xl font-sans select-none max-w-2xl mx-auto">
-      {/* Arcade Header */}
-      <div className="bg-gradient-to-r from-red-950 via-slate-900 to-indigo-950 p-3 rounded border border-red-500/40 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+    <div className="space-y-4 font-sans select-none text-slate-100 max-w-2xl mx-auto">
+      {/* Top Game Navigation Bar */}
+      <div className="bg-[#c0c0c0] p-2.5 border-2 border-white border-r-gray-800 border-b-gray-800 text-gray-900 flex flex-wrap items-center justify-between gap-3 shadow">
         <div className="flex items-center gap-2">
-          <span className="p-1 bg-red-600 text-white font-black rounded text-xs">SUPER KART 2000</span>
-          <span className="font-bold text-yellow-300">MARIO KART GP 2000</span>
+          {onBackToHub && (
+            <button
+              onClick={onBackToHub}
+              className="px-3 py-1.5 bg-[#d4d0c8] hover:bg-white text-gray-900 font-mono font-bold text-xs border-2 border-white border-r-gray-800 border-b-gray-800 cursor-pointer flex items-center gap-1.5 active:border-gray-800 active:border-r-white active:border-b-white transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>VOLTAR AOS JOGOS</span>
+            </button>
+          )}
+          <div className="font-mono font-black text-xs text-[#000080] flex items-center gap-1">
+            <span>🏎️ MARIO KART GP 2000</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-yellow-400 font-bold bg-black/60 px-2.5 py-0.5 rounded border border-yellow-500">
-            {gameState === 'racing' ? `VOLTA: ${currentLap} / ${TOTAL_LAPS}` : 'PRONTO PARA CORRER'}
-          </span>
+        <div className="flex items-center gap-2">
           <button
             onClick={startRace}
-            className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white font-bold rounded flex items-center gap-1 border border-white cursor-pointer text-[11px] shadow"
+            className="px-3 py-1.5 bg-[#d4d0c8] hover:bg-white text-black font-mono font-bold text-xs border-2 border-white border-r-gray-800 border-b-gray-800 cursor-pointer flex items-center gap-1 shadow"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>{gameState === 'racing' ? 'Reiniciar' : 'Iniciar Corrida'}</span>
+            <span>REINICIAR</span>
           </button>
         </div>
       </div>
 
-      {/* Character & Track Selectors */}
-      {gameState === 'menu' && (
-        <div className="space-y-3 bg-slate-900/90 p-4 rounded-lg border border-slate-700 font-mono text-xs">
+      {/* Instructions Banner */}
+      <div className="bg-[#000080] text-yellow-300 px-3 py-1.5 border border-white text-xs font-mono flex flex-wrap items-center justify-between gap-2 shadow-inner">
+        <span>
+          <strong>CONTROLES:</strong> <code className="bg-black/60 px-1 py-0.5 rounded text-white">▲ / W</code> Acelerar | <code className="bg-black/60 px-1 py-0.5 rounded text-white">◄ ►</code> Direção | <code className="bg-black/60 px-1 py-0.5 rounded text-white">ESPAÇO</code> Turbo
+        </span>
+        <span className="text-white">
+          Volta: <strong className="text-yellow-300">{lap} / 3</strong> | Posição: <strong className="text-yellow-300">{position}º / 4</strong>
+        </span>
+      </div>
+
+      {/* Track & Character Selector (When idle) */}
+      {!isPlaying && (
+        <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-4 shadow-xl">
           <div>
-            <span className="text-yellow-300 font-bold block mb-1">1. Escolha seu Piloto:</span>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+            <label className="text-xs font-mono font-bold text-cyan-400 block mb-2">
+              1. ESCOLHA O PILOTO:
+            </label>
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
               {CHARACTERS.map((char) => (
                 <button
                   key={char.id}
                   onClick={() => setSelectedChar(char)}
-                  className={`p-2 rounded border flex flex-col items-center gap-1 cursor-pointer transition ${
+                  className={`p-2 rounded-lg border flex flex-col items-center gap-1 cursor-pointer transition ${
                     selectedChar.id === char.id
-                      ? 'bg-red-600 border-yellow-300 ring-2 ring-yellow-400 font-bold scale-105'
-                      : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                      ? 'bg-blue-600 border-yellow-300 ring-2 ring-yellow-400 scale-105 shadow-lg'
+                      : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
                   }`}
                 >
-                  <span className="text-xl">{char.icon}</span>
-                  <span className="text-[11px]">{char.name}</span>
+                  <span className="text-2xl">{char.avatar}</span>
+                  <span className="text-[11px] font-mono font-bold">{char.name}</span>
                 </button>
               ))}
             </div>
           </div>
 
           <div>
-            <span className="text-yellow-300 font-bold block mb-1">2. Escolha o Grande Prêmio:</span>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {TRACKS.map((tr) => (
+            <label className="text-xs font-mono font-bold text-cyan-400 block mb-2">
+              2. ESCOLHA O CIRCUITO:
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {TRACKS.map((t) => (
                 <button
-                  key={tr.id}
-                  onClick={() => setSelectedTrack(tr)}
-                  className={`p-2 rounded border text-center cursor-pointer transition text-[11px] ${
-                    selectedTrack.id === tr.id
-                      ? 'bg-indigo-600 border-yellow-300 ring-2 ring-yellow-400 font-bold'
-                      : 'bg-slate-800 border-slate-600 hover:bg-slate-700'
+                  key={t.id}
+                  onClick={() => setSelectedTrack(t)}
+                  className={`p-3 rounded-lg border text-left cursor-pointer transition ${
+                    selectedTrack.id === t.id
+                      ? 'bg-indigo-900 border-yellow-300 ring-2 ring-yellow-400 shadow-lg'
+                      : 'bg-slate-800 border-slate-700 hover:bg-slate-700'
                   }`}
                 >
-                  {tr.name}
+                  <div className="font-mono font-bold text-xs text-yellow-300">{t.name}</div>
+                  <div className="text-[10px] text-slate-300">{t.theme}</div>
                 </button>
               ))}
             </div>
@@ -631,167 +439,110 @@ export const KartGame: React.FC = () => {
 
           <button
             onClick={startRace}
-            className="w-full py-3.5 bg-gradient-to-r from-red-600 via-amber-500 to-yellow-500 hover:from-red-500 hover:to-amber-400 text-slate-950 font-black text-sm rounded-lg shadow-xl flex items-center justify-center gap-2 cursor-pointer transition transform active:scale-98"
+            className="w-full py-4 bg-gradient-to-r from-red-600 via-amber-500 to-yellow-500 hover:brightness-110 text-slate-950 font-black font-mono text-sm rounded-xl shadow-2xl cursor-pointer active:scale-98 transition flex items-center justify-center gap-2"
           >
             <Play className="w-5 h-5 fill-current" />
-            <span>LARGADA! INICIAR CORRIDA GP</span>
+            <span>LARGADA! INICIAR CORRIDA 2000</span>
           </button>
         </div>
       )}
 
-      {/* Main Race Canvas Screen */}
-      <div className="relative flex justify-center bg-black p-2 rounded-lg border-2 border-indigo-500 shadow-2xl">
+      {/* Main Track Canvas Screen */}
+      <div className="flex justify-center bg-black p-2 rounded-lg border-2 border-slate-700 shadow-2xl relative">
         <canvas
           ref={canvasRef}
-          width={380}
+          width={360}
           height={260}
-          className="border border-indigo-400/40 bg-black rounded"
+          className="border border-slate-800 bg-black rounded"
         />
 
-        {/* In-Game HUD Overlays */}
-        {gameState === 'racing' && (
-          <>
-            {/* Top-Left: Position Rank (1st, 2nd, etc.) */}
-            <div className="absolute top-4 left-4 bg-black/80 px-3 py-1.5 rounded-lg border-2 border-yellow-400 font-mono shadow-lg flex items-center gap-1.5">
-              <span className="text-2xl font-black text-yellow-300 leading-none">{position}º</span>
-              <span className="text-[10px] text-slate-300 uppercase">LUGAR</span>
-            </div>
-
-            {/* Top-Right: Item Box Slot */}
-            <div className="absolute top-4 right-4 bg-black/80 p-2 rounded-lg border-2 border-yellow-400 font-mono shadow-lg flex flex-col items-center">
-              <span className="text-[9px] text-yellow-300 font-bold mb-0.5">ITEM [ESPAÇO]</span>
-              <div
-                onClick={useItemAction}
-                className="w-10 h-10 bg-slate-900 border border-slate-600 rounded flex items-center justify-center text-xl cursor-pointer hover:scale-105 active:scale-95 transition"
-                title="Clique ou aperte Espaço para usar item"
-              >
-                {isItemRolling ? (
-                  <span className="animate-spin text-yellow-300">🎲</span>
-                ) : heldItem === 'mushroom' ? (
-                  '🍄'
-                ) : heldItem === 'banana' ? (
-                  '🍌'
-                ) : heldItem === 'greenshell' ? (
-                  '🐢'
-                ) : heldItem === 'redshell' ? (
-                  '🔴'
-                ) : heldItem === 'star' ? (
-                  '⭐'
-                ) : (
-                  <span className="text-slate-600 text-xs">VAZIO</span>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom-Right: Speedometer */}
-            <div className="absolute bottom-4 right-4 bg-black/85 px-3 py-1 rounded border border-slate-600 font-mono text-right shadow">
-              <div className="text-lg font-black text-emerald-400 leading-none">{speedKmh} <span className="text-[10px]">KM/H</span></div>
-              <div className="text-[9px] text-slate-400">VOLTA {currentLap}/{TOTAL_LAPS}</div>
-            </div>
-          </>
-        )}
-
-        {/* Countdown Overlay */}
-        {gameState === 'countdown' && (
-          <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center font-mono">
-            <div className="text-6xl font-black text-yellow-400 animate-bounce">{countdown}</div>
-            <div className="text-sm font-bold text-white tracking-widest mt-2">PREPARE OS MOTORES!</div>
-          </div>
-        )}
-
-        {/* Race Finished Podium Overlay */}
-        {gameState === 'finished' && (
-          <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center font-mono text-center p-4 space-y-3">
-            <Trophy className="w-12 h-12 text-yellow-400 animate-bounce" />
-            <div className="text-2xl font-black text-yellow-300">
-              {position === 1 ? '🥇 1º LUGAR! CAMPEÃO DO GP!' : `${position}º LUGAR NO PÓDIO!`}
-            </div>
-            <p className="text-xs text-slate-300">
-              Piloto: <strong className="text-white">{selectedChar.name}</strong> | Pista: <strong className="text-white">{selectedTrack.name}</strong>
+        {isFinished && (
+          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-4 text-center rounded animate-fadeIn">
+            <Trophy className="w-12 h-12 text-yellow-400 animate-bounce mb-2" />
+            <h3 className="text-lg font-black font-mono text-yellow-300">
+              CORRIDA FINALIZADA!
+            </h3>
+            <p className="text-xs font-mono text-slate-200 mt-1">
+              Você terminou em <span className="font-bold text-yellow-400">{position}º LUGAR</span> com {selectedChar.name}!
             </p>
-            <div className="flex gap-2">
-              <button
-                onClick={startRace}
-                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xs rounded cursor-pointer shadow"
-              >
-                Correr Novamente
-              </button>
-              <button
-                onClick={() => setGameState('menu')}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded border border-slate-600 cursor-pointer"
-              >
-                Mudar Piloto / Pista
-              </button>
-            </div>
+            <button
+              onClick={startRace}
+              className="mt-4 px-6 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-mono font-black text-xs rounded-lg shadow-lg cursor-pointer transition"
+            >
+              Correr Novamente
+            </button>
           </div>
         )}
       </div>
 
-      {/* On-Screen Touch / Keyboard Controls */}
-      <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 flex flex-wrap items-center justify-between gap-3 font-mono text-xs">
-        {/* Virtual Directional D-Pad */}
-        <div className="flex items-center gap-1">
+      {/* Mobile Touch Controls for Kart */}
+      {isPlaying && !isFinished && (
+        <div className="grid grid-cols-4 gap-2 pt-1 font-mono text-xs">
           <button
-            onMouseDown={() => (keysRef.current.left = true)}
-            onMouseUp={() => (keysRef.current.left = false)}
-            onTouchStart={() => (keysRef.current.left = true)}
-            onTouchEnd={() => (keysRef.current.left = false)}
-            className="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:bg-yellow-500 active:text-black rounded border border-slate-600 flex items-center justify-center font-bold text-base cursor-pointer"
+            onMouseDown={() => (keys.current.left = true)}
+            onMouseUp={() => (keys.current.left = false)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              keys.current.left = true;
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              keys.current.left = false;
+            }}
+            className="py-4 bg-slate-800 active:bg-slate-700 text-white rounded-lg border border-slate-600 flex items-center justify-center select-none shadow"
           >
-            ◄
-          </button>
-          <div className="flex flex-col gap-1">
-            <button
-              onMouseDown={() => (keysRef.current.up = true)}
-              onMouseUp={() => (keysRef.current.up = false)}
-              onTouchStart={() => (keysRef.current.up = true)}
-              onTouchEnd={() => (keysRef.current.up = false)}
-              className="w-10 h-8 bg-slate-800 hover:bg-slate-700 active:bg-green-500 active:text-black rounded border border-slate-600 flex items-center justify-center font-bold text-xs cursor-pointer"
-            >
-              ▲ ACEL
-            </button>
-            <button
-              onMouseDown={() => (keysRef.current.down = true)}
-              onMouseUp={() => (keysRef.current.down = false)}
-              onTouchStart={() => (keysRef.current.down = true)}
-              onTouchEnd={() => (keysRef.current.down = false)}
-              className="w-10 h-8 bg-slate-800 hover:bg-slate-700 active:bg-red-500 active:text-black rounded border border-slate-600 flex items-center justify-center font-bold text-xs cursor-pointer"
-            >
-              ▼ FREIO
-            </button>
-          </div>
-          <button
-            onMouseDown={() => (keysRef.current.right = true)}
-            onMouseUp={() => (keysRef.current.right = false)}
-            onTouchStart={() => (keysRef.current.right = true)}
-            onTouchEnd={() => (keysRef.current.right = false)}
-            className="w-10 h-10 bg-slate-800 hover:bg-slate-700 active:bg-yellow-500 active:text-black rounded border border-slate-600 flex items-center justify-center font-bold text-base cursor-pointer"
-          >
-            ►
-          </button>
-        </div>
-
-        {/* Action Button: Use Item */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={useItemAction}
-            className="px-4 py-3 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-slate-950 font-black rounded-lg shadow-lg flex items-center gap-1.5 cursor-pointer text-xs active:scale-95"
-          >
-            <Zap className="w-4 h-4 fill-current" />
-            <span>USAR PODER / ITEM</span>
+            <ChevronLeft className="w-6 h-6" />
           </button>
 
           <button
-            onMouseDown={() => (keysRef.current.drift = true)}
-            onMouseUp={() => (keysRef.current.drift = false)}
-            onTouchStart={() => (keysRef.current.drift = true)}
-            onTouchEnd={() => (keysRef.current.drift = false)}
-            className="px-3 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg border border-indigo-400 cursor-pointer text-xs active:scale-95"
+            onMouseDown={() => (keys.current.right = true)}
+            onMouseUp={() => (keys.current.right = false)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              keys.current.right = true;
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              keys.current.right = false;
+            }}
+            className="py-4 bg-slate-800 active:bg-slate-700 text-white rounded-lg border border-slate-600 flex items-center justify-center select-none shadow"
           >
-            DRIFT
+            <ChevronRight className="w-6 h-6" />
+          </button>
+
+          <button
+            onMouseDown={() => (keys.current.down = true)}
+            onMouseUp={() => (keys.current.down = false)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              keys.current.down = true;
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              keys.current.down = false;
+            }}
+            className="py-4 bg-red-900 active:bg-red-800 text-white font-black rounded-lg border border-red-700 flex items-center justify-center select-none shadow"
+          >
+            <span>FREIO</span>
+          </button>
+
+          <button
+            onMouseDown={() => (keys.current.up = true)}
+            onMouseUp={() => (keys.current.up = false)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              keys.current.up = true;
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              keys.current.up = false;
+            }}
+            className="py-4 bg-emerald-600 active:bg-emerald-500 text-slate-950 font-black rounded-lg border border-emerald-400 flex items-center justify-center select-none shadow"
+          >
+            <span>ACELERAR</span>
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -28,7 +28,7 @@ export const EducationApp: React.FC = () => {
       </div>
 
       {/* 1. GRADUAÇÃO */}
-      <div className="bg-white border-2 border-gray-700 shadow-sm p-4 space-y-3">
+      <div className="bg-[#F5F4ED] border-2 border-gray-400 shadow-xs p-4 space-y-3">
         <div className="flex items-center gap-2 border-b-2 border-blue-900 pb-2">
           <GraduationCap className="w-5 h-5 text-blue-900" />
           <h2 className="text-sm font-bold font-mono text-blue-950 uppercase tracking-wide">
@@ -37,22 +37,22 @@ export const EducationApp: React.FC = () => {
         </div>
 
         {graduacao.map((edu) => (
-          <div key={edu.id} className="p-3 bg-blue-50/50 border border-blue-300 rounded space-y-1.5 text-xs">
+          <div key={edu.id} className="p-3.5 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 space-y-1.5 text-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <h3 className="text-sm font-bold font-mono text-blue-950">{edu.degree}</h3>
-              <span className="px-2 py-0.5 bg-green-700 text-white font-mono text-[10px] font-bold rounded w-fit">
+              <span className="px-2 py-0.5 bg-emerald-800 text-white font-mono text-[10px] font-bold border border-emerald-950 w-fit">
                 {edu.status}
               </span>
             </div>
-            <div className="font-bold text-gray-800 text-[11.5px]">{edu.institution}</div>
-            <p className="text-gray-700 text-[11.5px] leading-relaxed">{edu.description}</p>
+            <div className="font-bold text-blue-900 text-[11.5px]">{edu.institution}</div>
+            <p className="text-gray-800 text-[11.5px] leading-relaxed">{edu.description}</p>
           </div>
         ))}
       </div>
 
       {/* 2. MBAs */}
-      <div className="bg-white border-2 border-gray-700 shadow-sm p-4 space-y-3">
-        <div className="flex items-center gap-2 border-b-2 border-yellow-600 pb-2">
+      <div className="bg-[#F5F4ED] border-2 border-gray-400 shadow-xs p-4 space-y-3">
+        <div className="flex items-center gap-2 border-b-2 border-yellow-700 pb-2">
           <Award className="w-5 h-5 text-yellow-700" />
           <h2 className="text-sm font-bold font-mono text-blue-950 uppercase tracking-wide">
             2. Especializações Executivas (MBAs)
@@ -61,16 +61,16 @@ export const EducationApp: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
           {mbas.map((edu) => (
-            <div key={edu.id} className="p-3 bg-gray-50 border border-gray-300 rounded space-y-2 flex flex-col justify-between">
+            <div key={edu.id} className="p-3 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 space-y-2 flex flex-col justify-between">
               <div className="space-y-1">
-                <div className="font-mono text-[10px] font-bold text-blue-900 bg-blue-100 px-1.5 py-0.5 rounded w-fit">
+                <div className="font-mono text-[10px] font-bold text-blue-950 bg-[#F1F0E8] border border-gray-400 px-1.5 py-0.5 w-fit">
                   {edu.institution}
                 </div>
                 <h3 className="font-bold font-mono text-blue-950 text-xs leading-snug">{edu.degree}</h3>
-                <p className="text-gray-700 text-[11px] leading-relaxed">{edu.description}</p>
+                <p className="text-gray-800 text-[11px] leading-relaxed">{edu.description}</p>
               </div>
-              <div className="pt-2 border-t border-gray-200 text-[10.5px] font-mono text-green-800 font-bold flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" />
+              <div className="pt-2 border-t border-gray-300 text-[10.5px] font-mono text-emerald-900 font-bold flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 text-emerald-700" />
                 <span>{edu.status}</span>
               </div>
             </div>
@@ -79,9 +79,9 @@ export const EducationApp: React.FC = () => {
       </div>
 
       {/* 3. PÓS-GRADUAÇÃO / ESPECIALIZAÇÕES */}
-      <div className="bg-white border-2 border-gray-700 shadow-sm p-4 space-y-3">
-        <div className="flex items-center gap-2 border-b-2 border-gray-700 pb-2">
-          <FileCheck className="w-5 h-5 text-gray-800" />
+      <div className="bg-[#F5F4ED] border-2 border-gray-400 shadow-xs p-4 space-y-3">
+        <div className="flex items-center gap-2 border-b-2 border-gray-600 pb-2">
+          <FileCheck className="w-5 h-5 text-blue-950" />
           <h2 className="text-sm font-bold font-mono text-blue-950 uppercase tracking-wide">
             3. Pós-Graduação & Especializações
           </h2>
@@ -89,22 +89,22 @@ export const EducationApp: React.FC = () => {
 
         <div className="space-y-2 text-xs">
           {posGraduacoes.map((edu) => (
-            <div key={edu.id} className="p-3 bg-gray-50 border border-gray-300 rounded space-y-1">
+            <div key={edu.id} className="p-3 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 space-y-1">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold font-mono text-blue-950 text-xs">{edu.degree}</h3>
-                <span className="px-2 py-0.5 bg-gray-200 text-gray-800 font-mono text-[10px] font-bold rounded">
+                <span className="px-2 py-0.5 bg-[#FFFDE7] text-amber-950 border border-amber-400 font-mono text-[10px] font-bold">
                   {edu.status}
                 </span>
               </div>
-              <p className="text-gray-700 text-[11.5px]">{edu.description}</p>
+              <p className="text-gray-800 text-[11.5px]">{edu.description}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* 4. CURSOS ADICIONAIS */}
-      <div className="bg-white border-2 border-gray-700 shadow-sm p-4 space-y-3">
-        <div className="flex items-center gap-2 border-b-2 border-emerald-700 pb-2">
+      <div className="bg-[#F5F4ED] border-2 border-gray-400 shadow-xs p-4 space-y-3">
+        <div className="flex items-center gap-2 border-b-2 border-emerald-800 pb-2">
           <BookOpen className="w-5 h-5 text-emerald-800" />
           <h2 className="text-sm font-bold font-mono text-blue-950 uppercase tracking-wide">
             4. Cursos Adicionais & Capacitação Técnica
@@ -115,24 +115,24 @@ export const EducationApp: React.FC = () => {
           {COURSES_DATA.map((course) => (
             <div
               key={course.id}
-              className={`p-2.5 border rounded flex items-start justify-between gap-2 ${
+              className={`p-2.5 border-2 flex items-start justify-between gap-2 ${
                 course.id === 'course-1'
-                  ? 'bg-yellow-50/80 border-yellow-400 font-medium'
-                  : 'bg-gray-50 border-gray-300'
+                  ? 'bg-[#E3F2FD] border-blue-600 font-medium'
+                  : 'bg-[#ECE9D8] border-white border-r-gray-800 border-b-gray-800'
               }`}
             >
               <div className="space-y-0.5">
                 <div className="font-bold text-blue-950 text-[11.5px] flex items-center gap-1.5">
                   <span>{course.name}</span>
                   {course.id === 'course-1' && (
-                    <span className="px-1.5 py-0.2 bg-yellow-400 text-black text-[9px] font-bold rounded">
+                    <span className="px-1.5 py-0.2 bg-[#000080] text-yellow-300 text-[9px] font-bold">
                       ★ DESTAQUE
                     </span>
                   )}
                 </div>
-                <div className="text-gray-600 text-[10.5px]">Instituição: <span className="font-bold text-gray-800">{course.issuer}</span></div>
+                <div className="text-gray-700 text-[10.5px]">Instituição: <span className="font-bold text-blue-950">{course.issuer}</span></div>
               </div>
-              <div className="text-right font-mono text-[10.5px] text-gray-700 font-bold shrink-0">
+              <div className="text-right font-mono text-[10.5px] text-blue-950 font-bold shrink-0">
                 {course.hours}
               </div>
             </div>

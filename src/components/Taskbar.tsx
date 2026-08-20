@@ -26,10 +26,12 @@ import {
   Moon,
   Info,
   Layers,
-  BookOpen
+  BookOpen,
+  Eye
 } from 'lucide-react';
 import { WindowAppId, WindowState, NotificationItem } from '../types';
 import { soundFx } from '../utils/soundEffects';
+import { subscribeToSiteStatistics, SiteStatistics } from '../lib/firebase';
 
 interface TaskbarProps {
   windows: WindowState[];
@@ -63,7 +65,16 @@ export const Taskbar: React.FC<TaskbarProps> = ({
   const [isStartOpen, setIsStartOpen] = useState<boolean>(false);
   const [activeSubmenu, setActiveSubmenu] = useState<'programs' | 'documents' | 'games' | 'settings' | 'help' | null>(null);
   const [currentTime, setCurrentTime] = useState<string>('2:26 PM');
+  const [siteStats, setSiteStats] = useState<SiteStatistics>({ totalVisits: 1, totalSignatures: 0 });
   const startRef = useRef<HTMLDivElement>(null);
+
+  // Subscribe to real-time site stats in Taskbar
+  useEffect(() => {
+    const unsub = subscribeToSiteStatistics((st) => {
+      setSiteStats(st);
+    });
+    return () => unsub();
+  }, []);
 
   // Clock format
   useEffect(() => {
@@ -110,6 +121,7 @@ export const Taskbar: React.FC<TaskbarProps> = ({
       case 'skills': return <Cpu className="w-3.5 h-3.5 text-indigo-600 shrink-0" />;
       case 'now': return <Clock className="w-3.5 h-3.5 text-lime-600 shrink-0" />;
       case 'contact': return <Mail className="w-3.5 h-3.5 text-rose-600 shrink-0" />;
+      case 'guestbook': return <BookOpen className="w-3.5 h-3.5 text-blue-700 shrink-0" />;
       case 'resume': return <FileText className="w-3.5 h-3.5 text-red-600 shrink-0" />;
       case 'paint': return <Palette className="w-3.5 h-3.5 text-pink-600 shrink-0" />;
       case 'quiz': return <HelpCircle className="w-3.5 h-3.5 text-yellow-600 shrink-0" />;
@@ -183,7 +195,30 @@ export const Taskbar: React.FC<TaskbarProps> = ({
 
       {/* RIGHT SECTION: SYSTEM TRAY */}
       <div className="flex items-center gap-2 h-full py-1 shrink-0">
-        <div className="bg-[#c0c0c0] border-bevel-in px-2.5 h-full flex items-center gap-2 text-gray-800 font-mono text-[11px]">
+        <div className="bg-[#c0c0c0] border-bevel-in px-2.5 h-full flex items-center gap-2.5 text-gray-800 font-mono text-[11px]">
+          {/* Real-time Visitor Counter Pill */}
+          <button
+            onClick={() => onOpenApp('guestbook')}
+            className="flex items-center gap-1.5 px-1.5 py-0.5 bg-black text-lime-400 font-mono text-[10px] font-bold border border-gray-600 rounded-xs shadow-inner cursor-pointer hover:border-lime-400"
+            title={`Contador de Visitas Reais: ${siteStats.totalVisits} | Assinaturas: ${siteStats.totalSignatures}`}
+          >
+            <Eye className="w-3 h-3 text-emerald-400 shrink-0" />
+            <span className="tracking-wider">{String(siteStats.totalVisits).padStart(5, '0')}</span>
+          </button>
+
+          {/* Quick Travel Portal Button in Tray with Rainbow Energy Glow */}
+          <button
+            onClick={() => {
+              soundFx.playClick();
+              onLaunchTimeTravel();
+            }}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-xs bg-[#0a0f24] text-white font-mono text-[10px] font-bold border border-cyan-400 shadow-inner cursor-pointer animate-travel-glow hover:scale-105 active:scale-95 transition"
+            title="Iniciar Viagem Temporal (TRAVEL 2000 → 2026)"
+          >
+            <span className="text-[10px]">🌀</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-cyan-300 to-amber-300 font-black tracking-wider">TRAVEL</span>
+          </button>
+
           {/* Audio Toggle */}
           <button
             onClick={onToggleSound}
@@ -279,6 +314,13 @@ export const Taskbar: React.FC<TaskbarProps> = ({
                   >
                     <Mail className="w-3.5 h-3.5 text-rose-700" />
                     <span>Contato Direto</span>
+                  </div>
+                  <div
+                    onClick={() => openAndCloseMenu('guestbook')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-blue-800" />
+                    <span>Livro de Visitas (Guestbook.exe)</span>
                   </div>
                 </div>
               )}

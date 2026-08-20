@@ -20,36 +20,49 @@ export const NowApp: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 font-sans-ui text-slate-200">
+    <div className="space-y-4 font-sans text-gray-900 select-none max-w-4xl mx-auto">
+      {/* Retro Directory Header */}
+      <div className="bg-[#ECE9D8] p-2 border-2 border-white border-r-gray-800 border-b-gray-800 flex items-center justify-between text-xs font-mono">
+        <div className="flex items-center gap-2 font-bold">
+          <Clock className="w-4 h-4 text-blue-900" />
+          <span className="text-blue-950 font-bold">C:\MATEUS\STATUS_ATUAL_NOW.LOG</span>
+        </div>
+        <span className="text-[11px] text-gray-700">FEED EM TEMPO REAL</span>
+      </div>
+
       {/* App Banner */}
-      <div className="bg-slate-900/90 p-5 rounded-xl border border-slate-800 flex items-center justify-between">
+      <div className="bg-[#F1F0E8] p-4 border-2 border-gray-400 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-950 border border-emerald-800 rounded-lg text-emerald-400">
-            <Clock className="w-6 h-6" />
+          <div className="p-2 bg-[#000080] text-white border border-blue-950 rounded-xs">
+            <Clock className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white font-vt323 text-2xl">ATUALMENTE / NOW PAGE</h1>
-            <p className="text-xs text-slate-400">Status em tempo real do que Mateus está estudando, construindo e projetando</p>
+            <h1 className="text-lg sm:text-xl font-bold text-blue-950 font-mono">
+              ATUALMENTE / NOW PAGE (2026)
+            </h1>
+            <p className="text-xs text-gray-700">
+              Status do que Mateus está estudando, construindo e projetando atualmente
+            </p>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-2 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-3 py-1 rounded text-xs font-mono-code">
-          <Compass className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="hidden sm:flex items-center gap-2 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 text-blue-950 px-3 py-1 text-xs font-mono font-bold">
+          <Compass className="w-3.5 h-3.5 text-blue-800" />
           <span>FOCO 2026</span>
         </div>
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* ESTUDANDO */}
-        <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-emerald-400 pb-2 border-b border-slate-800">
-            <BookOpen className="w-4 h-4" />
-            <h2 className="text-sm font-bold font-mono-code uppercase">01. ESTUDANDO</h2>
+        <div className="bg-[#F5F4ED] p-4 sm:p-5 border-2 border-gray-400 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 text-blue-950 pb-2 border-b-2 border-emerald-800">
+            <BookOpen className="w-4 h-4 text-emerald-800" />
+            <h2 className="text-xs font-bold font-mono uppercase tracking-wide">01. ESTUDANDO</h2>
           </div>
-          <ul className="space-y-2 text-xs text-slate-300">
+          <ul className="space-y-2 text-xs text-gray-800">
             {nowData.studying.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2 leading-relaxed">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+              <li key={idx} className="flex items-start gap-2 leading-relaxed bg-[#ECE9D8] p-2 border border-gray-300">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
                 <span>{item}</span>
               </li>
             ))}
@@ -57,15 +70,15 @@ export const NowApp: React.FC = () => {
         </div>
 
         {/* CONSTRUINDO */}
-        <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-amber-400 pb-2 border-b border-slate-800">
-            <Hammer className="w-4 h-4" />
-            <h2 className="text-sm font-bold font-mono-code uppercase">02. CONSTRUINDO</h2>
+        <div className="bg-[#F5F4ED] p-4 sm:p-5 border-2 border-gray-400 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 text-blue-950 pb-2 border-b-2 border-amber-800">
+            <Hammer className="w-4 h-4 text-amber-800" />
+            <h2 className="text-xs font-bold font-mono uppercase tracking-wide">02. CONSTRUINDO</h2>
           </div>
-          <ul className="space-y-2 text-xs text-slate-300">
+          <ul className="space-y-2 text-xs text-gray-800">
             {nowData.building.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2 leading-relaxed">
-                <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <li key={idx} className="flex items-start gap-2 leading-relaxed bg-[#ECE9D8] p-2 border border-gray-300">
+                <CheckCircle2 className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
                 <span>{item}</span>
               </li>
             ))}
@@ -73,15 +86,15 @@ export const NowApp: React.FC = () => {
         </div>
 
         {/* APRENDENDO */}
-        <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-blue-400 pb-2 border-b border-slate-800">
-            <Sparkles className="w-4 h-4" />
-            <h2 className="text-sm font-bold font-mono-code uppercase">03. APRENDENDO</h2>
+        <div className="bg-[#F5F4ED] p-4 sm:p-5 border-2 border-gray-400 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 text-blue-950 pb-2 border-b-2 border-blue-800">
+            <Sparkles className="w-4 h-4 text-blue-800" />
+            <h2 className="text-xs font-bold font-mono uppercase tracking-wide">03. APRENDENDO</h2>
           </div>
-          <ul className="space-y-2 text-xs text-slate-300">
+          <ul className="space-y-2 text-xs text-gray-800">
             {nowData.learning.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2 leading-relaxed">
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+              <li key={idx} className="flex items-start gap-2 leading-relaxed bg-[#ECE9D8] p-2 border border-gray-300">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-700 shrink-0 mt-0.5" />
                 <span>{item}</span>
               </li>
             ))}
@@ -89,15 +102,15 @@ export const NowApp: React.FC = () => {
         </div>
 
         {/* OBJETIVOS 2026 */}
-        <div className="bg-slate-900/80 p-5 rounded-xl border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2 text-purple-400 pb-2 border-b border-slate-800">
-            <Target className="w-4 h-4" />
-            <h2 className="text-sm font-bold font-mono-code uppercase">04. OBJETIVOS 2026</h2>
+        <div className="bg-[#F5F4ED] p-4 sm:p-5 border-2 border-gray-400 space-y-3 shadow-xs">
+          <div className="flex items-center gap-2 text-blue-950 pb-2 border-b-2 border-purple-800">
+            <Target className="w-4 h-4 text-purple-800" />
+            <h2 className="text-xs font-bold font-mono uppercase tracking-wide">04. OBJETIVOS 2026</h2>
           </div>
-          <ul className="space-y-2 text-xs text-slate-300">
+          <ul className="space-y-2 text-xs text-gray-800">
             {nowData.goals2026.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2 leading-relaxed">
-                <CheckCircle2 className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
+              <li key={idx} className="flex items-start gap-2 leading-relaxed bg-[#ECE9D8] p-2 border border-gray-300">
+                <CheckCircle2 className="w-3.5 h-3.5 text-purple-700 shrink-0 mt-0.5" />
                 <span>{item}</span>
               </li>
             ))}
@@ -106,18 +119,18 @@ export const NowApp: React.FC = () => {
       </div>
 
       {/* Interactive Quick Add Item */}
-      <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-        <h3 className="text-xs font-bold text-slate-400 font-mono-code uppercase">Adicionar Novo Foco Interativo</h3>
+      <div className="bg-[#ECE9D8] p-4 border-2 border-white border-r-gray-800 border-b-gray-800 space-y-2.5">
+        <h3 className="text-xs font-bold text-blue-950 font-mono uppercase">Adicionar Novo Foco Interativo</h3>
         <form onSubmit={handleAddItem} className="flex flex-col sm:flex-row gap-2">
           <select
             value={activeCategory}
             onChange={(e) => setActiveCategory(e.target.value as keyof typeof CURRENTLY_NOW_DATA)}
-            className="bg-slate-900 text-slate-200 border border-slate-800 rounded px-3 py-2 text-xs font-mono-code focus:outline-none focus:border-emerald-500"
+            className="bg-white text-gray-900 border-2 border-gray-500 border-r-white border-b-white px-3 py-1.5 text-xs font-mono font-bold focus:outline-none"
           >
-            <option value="studying">Estudando</option>
-            <option value="building">Construindo</option>
-            <option value="learning">Aprendendo</option>
-            <option value="goals2026">Objetivos</option>
+            <option value="studying">01. Estudando</option>
+            <option value="building">02. Construindo</option>
+            <option value="learning">03. Aprendendo</option>
+            <option value="goals2026">04. Objetivos</option>
           </select>
 
           <input
@@ -125,18 +138,25 @@ export const NowApp: React.FC = () => {
             value={newItemText}
             onChange={(e) => setNewItemText(e.target.value)}
             placeholder="Digite aqui o novo objetivo ou foco..."
-            className="flex-1 bg-slate-900 text-slate-200 px-3 py-2 rounded border border-slate-800 text-xs focus:outline-none focus:border-emerald-500 font-sans-ui"
+            className="flex-1 bg-white text-gray-900 px-3 py-1.5 border-2 border-gray-500 border-r-white border-b-white text-xs focus:outline-none"
           />
 
           <button
             type="submit"
-            className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded text-xs transition cursor-pointer"
+            className="flex items-center justify-center gap-1.5 bg-[#000080] hover:bg-blue-800 text-white font-bold px-4 py-1.5 text-xs border-2 border-white border-r-gray-800 border-b-gray-800 cursor-pointer active:border-inset"
           >
             <Plus className="w-4 h-4" />
             <span>Adicionar</span>
           </button>
         </form>
       </div>
+
+      {/* Retro Status Bar */}
+      <div className="bg-[#ECE9D8] p-1.5 border border-gray-400 text-[11px] font-mono text-gray-800 flex items-center justify-between">
+        <span>STATUS: FEED SINCRONIZADO</span>
+        <span>MATEUS OS 2000</span>
+      </div>
     </div>
   );
 };
+

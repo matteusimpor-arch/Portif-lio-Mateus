@@ -15,24 +15,24 @@ export const ExperienceApp: React.FC = () => {
       </div>
 
       {EXPERIENCE_DATA.map((item) => (
-        <div key={item.id} className="bg-white border-2 border-gray-700 shadow-sm p-4 sm:p-5 space-y-4 text-xs">
+        <div key={item.id} className="bg-[#F5F4ED] border-2 border-gray-400 shadow-xs p-4 sm:p-5 space-y-4 text-xs">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-green-800 pb-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-green-800 text-white font-mono text-[10.5px] font-bold rounded">
+                <span className="px-2 py-0.5 bg-emerald-800 text-white font-mono text-[10.5px] font-bold border border-emerald-950">
                   ATUAÇÃO INSTITUCIONAL
                 </span>
                 <h2 className="text-base font-bold font-mono text-blue-950">{item.organization}</h2>
               </div>
               <p className="text-xs font-bold text-gray-800 font-mono mt-1">
-                Posto / Graduação: <span className="text-green-900 font-bold">{item.role}</span>
+                Posto / Graduação: <span className="text-emerald-900 font-bold">{item.role}</span>
               </p>
             </div>
 
-            <div className="flex items-center gap-3 font-mono text-[11px] text-gray-700 bg-gray-100 px-2.5 py-1 border border-gray-300 rounded w-fit">
+            <div className="flex items-center gap-3 font-mono text-[11px] text-blue-950 bg-[#ECE9D8] px-2.5 py-1 border-2 border-white border-r-gray-800 border-b-gray-800 w-fit">
               <span className="flex items-center gap-1 font-bold text-blue-950">
-                <Calendar className="w-3.5 h-3.5 text-blue-800" />
+                <Calendar className="w-3.5 h-3.5 text-blue-900" />
                 {item.period}
               </span>
             </div>
@@ -43,7 +43,7 @@ export const ExperienceApp: React.FC = () => {
             <h3 className="font-bold font-mono text-blue-950 text-xs uppercase">
               Principais Atribuições e Rotinas Administrativas:
             </h3>
-            <div className="bg-gray-50 border border-gray-300 p-3 rounded space-y-2">
+            <div className="bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 p-3.5 space-y-2">
               <ul className="space-y-1.5 text-[11.5px] text-gray-800 leading-relaxed list-disc pl-5">
                 {item.description.map((desc, idx) => (
                   <li key={idx}>
@@ -56,15 +56,15 @@ export const ExperienceApp: React.FC = () => {
 
           {/* Highlights Box */}
           {item.highlights && (
-            <div className="bg-yellow-50 border border-yellow-300 p-3 rounded space-y-1.5">
+            <div className="bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 p-3.5 space-y-1.5">
               <div className="font-bold font-mono text-blue-950 text-xs flex items-center gap-1.5">
-                <Award className="w-4 h-4 text-yellow-700" />
+                <Award className="w-4 h-4 text-amber-700" />
                 <span>DESTAQUES DE DESEMPENHO E CONFORMIDADE:</span>
               </div>
               {item.highlights.map((hl, idx) => (
                 <div key={idx} className="flex items-start gap-1.5 text-[11.5px] text-gray-800">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-700 shrink-0 mt-0.5" />
-                  <span>{hl}</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                  <span className="font-medium">{hl}</span>
                 </div>
               ))}
             </div>
@@ -72,12 +72,12 @@ export const ExperienceApp: React.FC = () => {
 
           {/* Competências Aplicadas */}
           <div className="space-y-1.5">
-            <h4 className="font-bold font-mono text-gray-800 text-[11px]">Competências & Habilidades Exercidas:</h4>
+            <h4 className="font-bold font-mono text-blue-950 text-[11px]">Competências & Habilidades Exercidas:</h4>
             <div className="flex flex-wrap gap-1.5">
               {item.skillsUsed.map((skill, idx) => (
                 <span
                   key={idx}
-                  className="px-2 py-0.5 bg-gray-100 border border-gray-400 text-gray-800 font-mono text-[10.5px] rounded"
+                  className="px-2 py-0.5 bg-[#F1F0E8] border border-gray-400 text-gray-800 font-mono text-[10.5px]"
                 >
                   {skill}
                 </span>

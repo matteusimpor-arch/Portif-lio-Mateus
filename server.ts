@@ -1,10 +1,80 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+// Persistent Guestbook Data Storage Helper
+interface GuestbookEntry {
+  id: string;
+  name: string;
+  message: string;
+  createdAt: string; // ISO string
+  dateFormatted: string;
+  timeFormatted: string;
+  status: "approved" | "pending" | "hidden";
+  avatarLetter: string;
+}
+
+const GUESTBOOK_FILE = path.join(process.cwd(), "guestbook_data.json");
+const STATS_FILE = path.join(process.cwd(), "stats_data.json");
+
+interface SiteStats {
+  totalVisits: number;
+  totalSignatures: number;
+  updatedAt: string;
+}
+
+function loadStats(): SiteStats {
+  try {
+    if (fs.existsSync(STATS_FILE)) {
+      const data = fs.readFileSync(STATS_FILE, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Erro ao carregar estatísticas:", err);
+  }
+  return { totalVisits: 1, totalSignatures: 0, updatedAt: new Date().toISOString() };
+}
+
+function saveStats(stats: SiteStats): boolean {
+  try {
+    fs.writeFileSync(STATS_FILE, JSON.stringify(stats, null, 2), "utf-8");
+    return true;
+  } catch (err) {
+    console.error("Erro ao salvar estatísticas:", err);
+    return false;
+  }
+}
+
+function loadGuestbook(): GuestbookEntry[] {
+  try {
+    if (fs.existsSync(GUESTBOOK_FILE)) {
+      const data = fs.readFileSync(GUESTBOOK_FILE, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error("Erro ao carregar guestbook:", err);
+  }
+  return [];
+}
+
+function saveGuestbook(entries: GuestbookEntry[]): boolean {
+  try {
+    fs.writeFileSync(GUESTBOOK_FILE, JSON.stringify(entries, null, 2), "utf-8");
+    return true;
+  } catch (err) {
+    console.error("Erro ao salvar guestbook:", err);
+    return false;
+  }
+}
+
+// In-memory cache synced with file
+let guestbookEntries: GuestbookEntry[] = loadGuestbook();
+let siteStats: SiteStats = loadStats();
 
 async function startServer() {
   const app = express();
@@ -21,33 +91,158 @@ async function startServer() {
     });
   });
 
-  // Contact form endpoint
-  app.post("/api/contact", (req, res) => {
-    const { name, email, message } = req.body || {};
+  // =========================================================================
+  // ANALYTICS & STATS ENDPOINTS (ATOMIC VISIT COUNTING & REAL SIGNATURES)
+  // =========================================================================
+  app.get("/api/analytics/stats", (_req, res) => {
+    try {
+      siteStats = loadStats();
+      guestbookEntries = loadGuestbook();
+      const approvedSignaturesCount = guestbookEntries.filter((e) => e.status !== "hidden").length;
+      
+      return res.json({
+        success: true,
+        totalVisits: Math.max(1, siteStats.totalVisits),
+        totalSignatures: approvedSignaturesCount,
+        updatedAt: siteStats.updatedAt
+      });
+    } catch (err) {
+      console.error("Erro ao obter estatísticas:", err);
+      return res.status(500).json({ success: false, error: "Erro ao obter estatísticas." });
+    }
+  });
 
-    if (!name || !email || !message) {
-      return res.status(400).json({
+  app.post("/api/analytics/visit", (_req, res) => {
+    try {
+      siteStats = loadStats();
+      siteStats.totalVisits = (siteStats.totalVisits || 0) + 1;
+      siteStats.updatedAt = new Date().toISOString();
+      saveStats(siteStats);
+
+      return res.json({
+        success: true,
+        totalVisits: siteStats.totalVisits
+      });
+    } catch (err) {
+      console.error("Erro ao registrar visita:", err);
+      return res.status(500).json({ success: false, error: "Erro ao registrar visita." });
+    }
+  });
+
+  // =========================================================================
+  // GUESTBOOK / LIVRO DE VISITAS ENDPOINTS (PERSISTENT & REAL-TIME)
+  // =========================================================================
+  app.get("/api/guestbook", (_req, res) => {
+    try {
+      // Reload from disk to keep any external updates synced
+      guestbookEntries = loadGuestbook();
+      
+      // Filter out hidden entries for public visitors
+      const publicEntries = guestbookEntries
+        .filter((entry) => entry.status !== "hidden")
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      return res.json({
+        success: true,
+        count: publicEntries.length,
+        signatures: publicEntries
+      });
+    } catch (err) {
+      console.error("Erro ao listar guestbook:", err);
+      return res.status(500).json({ success: false, error: "Erro ao ler livro de visitas." });
+    }
+  });
+
+  app.post("/api/guestbook", (req, res) => {
+    try {
+      const { name, message } = req.body || {};
+
+      // 1. Validation
+      if (!name || typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: "Por favor, informe seu nome ou apelido."
+        });
+      }
+
+      if (!message || typeof message !== "string" || !message.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: "Por favor, escreva uma mensagem antes de assinar."
+        });
+      }
+
+      // 2. Strict Sanitization: Strip HTML tags and control chars
+      const sanitizedName = name
+        .replace(/<[^>]*>?/gm, "")
+        .replace(/[^\p{L}\p{N}\s.,!?'"()\-@_#]/gu, "")
+        .trim()
+        .slice(0, 50);
+
+      const sanitizedMessage = message
+        .replace(/<[^>]*>?/gm, "")
+        .trim()
+        .slice(0, 200);
+
+      if (sanitizedName.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Nome inválido."
+        });
+      }
+
+      if (sanitizedMessage.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Mensagem vazia após formatação."
+        });
+      }
+
+      // 3. Format Date and Time in Brasília / Local standard (DD/MM/YYYY • HH:mm)
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = now.getFullYear();
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+
+      const dateFormatted = `${day}/${month}/${year}`;
+      const timeFormatted = `${hours}:${minutes}`;
+
+      // Extract first valid letter for avatar
+      const firstLetter = sanitizedName.charAt(0).toUpperCase() || "M";
+
+      const newEntry: GuestbookEntry = {
+        id: `sig_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        name: sanitizedName,
+        message: sanitizedMessage,
+        createdAt: now.toISOString(),
+        dateFormatted,
+        timeFormatted,
+        status: "approved",
+        avatarLetter: firstLetter
+      };
+
+      // Reload fresh, append, and persist
+      guestbookEntries = loadGuestbook();
+      guestbookEntries.unshift(newEntry);
+      saveGuestbook(guestbookEntries);
+
+      console.log(`[GUESTBOOK] Nova assinatura de "${sanitizedName}": "${sanitizedMessage}"`);
+
+      return res.status(201).json({
+        success: true,
+        message: "Assinatura registrada!",
+        entry: newEntry,
+        totalCount: guestbookEntries.filter((e) => e.status !== "hidden").length
+      });
+    } catch (err) {
+      console.error("Erro ao registrar no guestbook:", err);
+      return res.status(500).json({
         success: false,
-        error: "Por favor, preencha todos os campos (nome, email, mensagem)."
+        error: "Falha ao salvar assinatura. Tente novamente."
       });
     }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: "Por favor, informe um endereço de email válido."
-      });
-    }
-
-    console.log(`[CONTACT RECEIVED] De: ${name} <${email}>: ${message}`);
-
-    return res.json({
-      success: true,
-      message: `Obrigado pelo contato, ${name}! Sua mensagem foi registrada com sucesso no sistema de Mateus Araujo.`,
-      ticketId: `TICK-${Math.floor(100000 + Math.random() * 900000)}`
-    });
   });
 
   // AI Prompt Engineer Assistant Endpoint

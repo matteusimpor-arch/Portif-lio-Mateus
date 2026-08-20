@@ -53,8 +53,8 @@ export const AboutApp: React.FC = () => {
       {/* Main Container with Sidebar + Content (Classic Windows Help / Properties style) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {/* Left Nav Menu */}
-        <div className="bg-[#dcdcdc] p-2 border-2 border-gray-600 space-y-1 md:col-span-1">
-          <div className="font-bold text-[11px] text-blue-950 px-2 py-1 bg-gray-300 border-b border-gray-400 font-mono mb-1">
+        <div className="bg-[#ECE9D8] p-2 border-2 border-white border-r-gray-800 border-b-gray-800 space-y-1 md:col-span-1">
+          <div className="font-bold text-[11px] text-blue-950 px-2 py-1 bg-[#D4D0C8] border-2 border-white border-r-gray-800 border-b-gray-800 font-mono mb-1">
             ÍNDICE DE TÓPICOS
           </div>
           {navItems.map((item) => {
@@ -64,16 +64,16 @@ export const AboutApp: React.FC = () => {
               <button
                 key={item.id}
                 onClick={() => {
-                  soundFx.playClick();
+                  try { soundFx.playClick(); } catch (e) {}
                   setActiveSection(item.id);
                 }}
-                className={`w-full text-left px-2 py-1.5 rounded text-xs flex items-center gap-2 cursor-pointer font-medium transition ${
+                className={`w-full text-left px-2 py-1.5 text-xs flex items-center gap-2 cursor-pointer font-medium transition ${
                   isActive
-                    ? 'bg-[#000080] text-white font-bold shadow-sm'
-                    : 'text-gray-800 hover:bg-gray-200'
+                    ? 'bg-[#000080] text-white font-bold border border-blue-950 shadow-xs'
+                    : 'text-gray-800 hover:bg-[#F5F4ED]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-yellow-300' : 'text-gray-600'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-yellow-300' : 'text-blue-900'}`} />
                 <span className="truncate">{item.label}</span>
               </button>
             );
@@ -81,21 +81,21 @@ export const AboutApp: React.FC = () => {
         </div>
 
         {/* Right Content Panel */}
-        <div className="bg-white border-2 border-gray-700 shadow-md p-4 md:col-span-3 min-h-[420px] text-xs leading-relaxed space-y-4">
+        <div className="bg-[#F5F4ED] border-2 border-gray-400 shadow-xs p-4 md:col-span-3 min-h-[420px] text-xs leading-relaxed space-y-4">
           {/* SECTION 1: PERFIL */}
           {activeSection === 'perfil' && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 border-b-2 border-yellow-500 pb-3">
-                <div className="w-12 h-12 bg-blue-900 text-white rounded border border-black flex items-center justify-center font-mono text-xl font-bold">
+              <div className="flex items-center gap-3 border-b-2 border-yellow-600 pb-3">
+                <div className="w-12 h-12 bg-[#000080] text-white border-2 border-white border-r-gray-800 border-b-gray-800 flex items-center justify-center font-mono text-xl font-bold">
                   MA
                 </div>
                 <div>
                   <h2 className="text-lg font-bold font-mono text-blue-950">{PROFILE_DATA.name}</h2>
-                  <p className="text-[11.5px] text-gray-700 font-bold">{PROFILE_DATA.title}</p>
+                  <p className="text-[11.5px] text-blue-900 font-bold">{PROFILE_DATA.title}</p>
                 </div>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-300 p-3 rounded space-y-2">
+              <div className="bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 p-3.5 space-y-2">
                 <h3 className="font-bold text-blue-950 font-mono text-xs">PERFIL PROFISSIONAL</h3>
                 <p className="text-gray-800 leading-relaxed text-[11.5px]">
                   {PROFILE_DATA.availability}
@@ -104,7 +104,7 @@ export const AboutApp: React.FC = () => {
                   {PROFILE_DATA.traits.map((t, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-0.5 bg-blue-100 border border-blue-400 text-blue-950 text-[10px] font-mono font-bold rounded"
+                      className="px-2 py-0.5 bg-[#F1F0E8] border border-gray-400 text-blue-950 text-[10px] font-mono font-bold"
                     >
                       {t}
                     </span>
@@ -113,13 +113,13 @@ export const AboutApp: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <h3 className="font-bold text-gray-900 font-mono">APRESENTAÇÃO</h3>
+                <h3 className="font-bold text-blue-950 font-mono">APRESENTAÇÃO</h3>
                 <p className="text-gray-800 leading-relaxed text-[11.5px]">
                   {PROFILE_DATA.bioLong}
                 </p>
               </div>
 
-              <div className="border-t border-gray-300 pt-3 italic text-gray-600 text-[11px]">
+              <div className="border-t-2 border-gray-300 pt-3 italic text-gray-700 text-[11px] bg-[#FFFDE7] p-2 border border-amber-300">
                 "{PROFILE_DATA.quote}"
               </div>
             </div>
@@ -136,14 +136,14 @@ export const AboutApp: React.FC = () => {
               </div>
 
               {graduacoes.map((edu) => (
-                <div key={edu.id} className="p-3 bg-gray-50 border border-gray-300 space-y-2">
+                <div key={edu.id} className="p-3.5 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-blue-950 font-mono">{edu.degree}</h3>
-                    <span className="px-2 py-0.5 bg-green-100 text-green-900 border border-green-400 text-[10px] font-mono font-bold">
+                    <span className="px-2 py-0.5 bg-[#E8F5E9] text-emerald-950 border border-emerald-500 text-[10px] font-mono font-bold">
                       {edu.status}
                     </span>
                   </div>
-                  <p className="font-bold text-gray-700">{edu.institution}</p>
+                  <p className="font-bold text-blue-900">{edu.institution}</p>
                   <p className="text-gray-800 leading-relaxed text-[11.5px]">{edu.description}</p>
                 </div>
               ))}
@@ -161,12 +161,12 @@ export const AboutApp: React.FC = () => {
               </div>
 
               <div className="space-y-3">
-                <div className="font-bold text-xs text-blue-900 font-mono">MBAs CONCLUÍDOS / ESPECIALIZAÇÕES:</div>
+                <div className="font-bold text-xs text-blue-950 font-mono">MBAs CONCLUÍDOS / ESPECIALIZAÇÕES:</div>
                 {mbas.map((edu) => (
-                  <div key={edu.id} className="p-3 bg-gray-50 border border-gray-300 space-y-1">
+                  <div key={edu.id} className="p-3 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 space-y-1">
                     <div className="flex items-center justify-between">
                       <h4 className="font-bold text-blue-950 text-xs font-mono">{edu.degree}</h4>
-                      <span className="px-1.5 py-0.2 bg-blue-100 text-blue-900 text-[10px] font-mono font-bold">
+                      <span className="px-1.5 py-0.2 bg-[#F1F0E8] text-blue-950 text-[10px] font-mono font-bold border border-gray-400">
                         {edu.institution}
                       </span>
                     </div>
@@ -174,12 +174,12 @@ export const AboutApp: React.FC = () => {
                   </div>
                 ))}
 
-                <div className="font-bold text-xs text-blue-900 font-mono pt-2">PÓS-GRADUAÇÃO:</div>
+                <div className="font-bold text-xs text-blue-950 font-mono pt-2">PÓS-GRADUAÇÃO:</div>
                 {posGraduacoes.map((edu) => (
-                  <div key={edu.id} className="p-3 bg-yellow-50/50 border border-yellow-300 space-y-1">
+                  <div key={edu.id} className="p-3 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 space-y-1">
                     <div className="flex items-center justify-between">
                       <h4 className="font-bold text-blue-950 text-xs font-mono">{edu.degree}</h4>
-                      <span className="px-1.5 py-0.2 bg-yellow-100 text-yellow-900 text-[10px] font-mono font-bold">
+                      <span className="px-1.5 py-0.2 bg-[#FFFDE7] text-amber-950 text-[10px] font-mono font-bold border border-amber-400">
                         {edu.institution}
                       </span>
                     </div>
@@ -204,24 +204,24 @@ export const AboutApp: React.FC = () => {
                 {COURSES_DATA.map((course) => (
                   <div
                     key={course.id}
-                    className={`p-2.5 border rounded flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11.5px] ${
+                    className={`p-2.5 border-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11.5px] ${
                       course.id === 'course-1'
-                        ? 'bg-blue-50 border-blue-400 font-medium'
-                        : 'bg-gray-50 border-gray-300'
+                        ? 'bg-[#E3F2FD] border-blue-600 font-medium'
+                        : 'bg-[#ECE9D8] border-white border-r-gray-800 border-b-gray-800'
                     }`}
                   >
                     <div className="space-y-0.5">
                       <div className="font-bold text-blue-950 flex items-center gap-1.5">
                         <span>{course.name}</span>
                         {course.id === 'course-1' && (
-                          <span className="px-1.5 py-0.2 bg-yellow-300 text-black text-[9px] font-bold rounded">
+                          <span className="px-1.5 py-0.2 bg-[#000080] text-yellow-300 text-[9px] font-bold">
                             ★ DESTAQUE
                           </span>
                         )}
                       </div>
-                      <div className="text-gray-600 text-[10.5px]">Instituição: {course.issuer}</div>
+                      <div className="text-gray-700 text-[10.5px]">Instituição: {course.issuer}</div>
                     </div>
-                    <div className="text-right font-mono text-[10.5px] text-gray-700 font-bold">
+                    <div className="text-right font-mono text-[10.5px] text-blue-950 font-bold">
                       {course.hours}
                     </div>
                   </div>
@@ -241,19 +241,19 @@ export const AboutApp: React.FC = () => {
               </div>
 
               {EXPERIENCE_DATA.map((exp) => (
-                <div key={exp.id} className="p-4 bg-gray-50 border-2 border-gray-400 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-300 pb-2">
+                <div key={exp.id} className="p-4 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-400 pb-2">
                     <div>
                       <h3 className="text-sm font-bold text-blue-950 font-mono">{exp.organization}</h3>
-                      <p className="text-xs font-bold text-green-900">Posto/Graduação: {exp.role}</p>
+                      <p className="text-xs font-bold text-emerald-900">Posto/Graduação: {exp.role}</p>
                     </div>
-                    <span className="px-2 py-0.5 bg-blue-900 text-white font-mono text-[10.5px] font-bold rounded mt-1 sm:mt-0">
+                    <span className="px-2 py-0.5 bg-[#000080] text-white font-mono text-[10.5px] font-bold mt-1 sm:mt-0">
                       {exp.period}
                     </span>
                   </div>
 
                   <div className="space-y-1.5 text-[11.5px] text-gray-800">
-                    <div className="font-bold text-gray-900">Principais Atribuições e Responsabilidades:</div>
+                    <div className="font-bold text-blue-950">Principais Atribuições e Responsabilidades:</div>
                     <ul className="list-disc pl-5 space-y-1 leading-relaxed">
                       {exp.description.map((item, idx) => (
                         <li key={idx}>{item}</li>
@@ -261,11 +261,11 @@ export const AboutApp: React.FC = () => {
                     </ul>
                   </div>
 
-                  <div className="pt-2 border-t border-gray-200 flex flex-wrap gap-1.5">
+                  <div className="pt-2 border-t border-gray-300 flex flex-wrap gap-1.5">
                     {exp.skillsUsed.map((sk, idx) => (
                       <span
                         key={idx}
-                        className="px-2 py-0.5 bg-gray-200 border border-gray-400 text-gray-800 text-[10px] font-mono rounded"
+                        className="px-2 py-0.5 bg-[#F1F0E8] border border-gray-400 text-gray-800 text-[10px] font-mono"
                       >
                         {sk}
                       </span>
@@ -288,18 +288,18 @@ export const AboutApp: React.FC = () => {
 
               <div className="space-y-3">
                 {SKILLS_DATA.map((cat, idx) => (
-                  <div key={idx} className="p-3 bg-gray-50 border border-gray-300 space-y-2">
-                    <h4 className="font-bold text-blue-950 font-mono text-xs border-b border-gray-200 pb-1">
+                  <div key={idx} className="p-3 bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 space-y-2">
+                    <h4 className="font-bold text-blue-950 font-mono text-xs border-b border-gray-300 pb-1">
                       {cat.category}
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                       {cat.skills.map((s, sIdx) => (
-                        <div key={sIdx} className="p-1.5 bg-white border border-gray-200 rounded space-y-0.5">
-                          <div className="font-bold text-gray-900 flex items-center justify-between">
+                        <div key={sIdx} className="p-2 bg-[#F5F4ED] border border-gray-400 space-y-0.5">
+                          <div className="font-bold text-blue-950 flex items-center justify-between">
                             <span>{s.name}</span>
-                            <span className="text-[10px] font-mono text-blue-800">{s.level}%</span>
+                            <span className="text-[10px] font-mono text-blue-800 font-bold">{s.level}%</span>
                           </div>
-                          <p className="text-gray-600 text-[10.5px] leading-tight">{s.description}</p>
+                          <p className="text-gray-700 text-[10.5px] leading-tight">{s.description}</p>
                         </div>
                       ))}
                     </div>
@@ -319,7 +319,7 @@ export const AboutApp: React.FC = () => {
                 </h2>
               </div>
 
-              <div className="bg-yellow-50 border border-yellow-300 p-3.5 space-y-2.5">
+              <div className="bg-[#ECE9D8] border-2 border-white border-r-gray-800 border-b-gray-800 p-3.5 space-y-2.5">
                 <h3 className="font-bold text-blue-950 font-mono text-xs">DIRECIONAMENTO PROFISSIONAL</h3>
                 <p className="text-gray-800 leading-relaxed text-[11.5px]">
                   {PROFILE_DATA.availability}
@@ -334,9 +334,9 @@ export const AboutApp: React.FC = () => {
                 </div>
               </div>
 
-              <div className="border border-gray-300 p-3 bg-gray-50 space-y-2 text-[11.5px]">
-                <div className="font-bold text-gray-900 font-mono">Estudos & Aprofundamento Ativo:</div>
-                <ul className="list-disc pl-5 space-y-1 text-gray-700">
+              <div className="border-2 border-gray-400 p-3 bg-[#F1F0E8] space-y-2 text-[11.5px]">
+                <div className="font-bold text-blue-950 font-mono">Estudos & Aprofundamento Ativo:</div>
+                <ul className="list-disc pl-5 space-y-1 text-gray-800">
                   {CURRENTLY_NOW_DATA.studying.map((st, idx) => (
                     <li key={idx}>{st}</li>
                   ))}

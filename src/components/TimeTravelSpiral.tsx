@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FastForward, Compass } from 'lucide-react';
+import { FastForward, Compass, Sparkles } from 'lucide-react';
 import { soundFx } from '../utils/soundEffects';
 
 interface TimeTravelSpiralProps {
@@ -7,14 +7,29 @@ interface TimeTravelSpiralProps {
   onSkip?: () => void;
 }
 
+interface VortexParticle {
+  angle: number;
+  radius: number;
+  speed: number;
+  radialSpeed: number;
+  size: number;
+  colorIndex: number;
+  alpha: number;
+  z: number;
+  vz: number;
+  streakLength: number;
+  isStreak: boolean;
+}
+
 export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, onSkip }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [currentYear, setCurrentYear] = useState<number>(2000);
   const [progress, setProgress] = useState<number>(0);
+  const [warpStatus, setWarpStatus] = useState<string>('INICIANDO VÓRTICE TEMPORAL');
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(Date.now());
-  const [isFragmenting, setIsFragmenting] = useState<boolean>(false);
 
+  // High-fidelity transition duration (approx 6.8s of cinematic warp flow)
   const TOTAL_DURATION_MS = 6800;
 
   useEffect(() => {
@@ -38,233 +53,325 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
     };
     window.addEventListener('resize', handleResize);
 
-    // Microparticles vortex evolving dynamically into Blue Space
-    const particleCount = 420;
-    const particles: {
-      angle: number;
-      distance: number;
-      speed: number;
-      size: number;
-      color: string;
-      alpha: number;
-      z: number;
-      isDigitalSquare: boolean;
-      burstVx: number;
-      burstVy: number;
-    }[] = [];
+    // RAINBOW COLOR PALETTE: Magenta, Violet, Blue, Cyan, Green, Yellow, Orange
+    const rainbowColors = [
+      { r: 236, g: 72, b: 153 },  // Magenta / Rosa (#ec4899)
+      { r: 168, g: 85, b: 247 },  // Violet / Roxo (#a855f7)
+      { r: 59, g: 130, b: 246 },  // Blue / Azul (#3b82f6)
+      { r: 6, g: 182, b: 212 },   // Cyan (#06b6d4)
+      { r: 34, g: 197, b: 94 },   // Green / Verde (#22c55e)
+      { r: 234, g: 179, b: 8 },   // Yellow / Amarelo (#eab308)
+      { r: 249, g: 115, b: 22 },  // Orange / Laranja (#f97316)
+    ];
+
+    // Deep Space Target Palette
+    const spaceDeepNavy = { r: 6, g: 43, b: 85 };     // #062B55
+    const spaceDarkBlue = { r: 3, g: 21, b: 45 };     // #03152D
+    const spaceDeepBlack = { r: 2, g: 8, b: 23 };     // #020817
+    const spacePureBlack = { r: 0, g: 0, b: 0 };      // #000000
+    const spaceElectricBlue = { r: 0, g: 140, b: 255 }; // #008CFF
+    const spaceLuminousCyan = { r: 53, g: 207, b: 255 }; // #35CFFF
+
+    // Initialize 600 particles for high-density light streaks and vortex depth
+    const particleCount = 550;
+    const particles: VortexParticle[] = [];
 
     for (let i = 0; i < particleCount; i++) {
-      const burstAngle = Math.random() * Math.PI * 2;
-      const burstSpeed = Math.random() * 8 + 2;
       particles.push({
         angle: Math.random() * Math.PI * 2,
-        distance: Math.random() * Math.max(width, height) * 0.9 + 20,
-        speed: 0.015 + Math.random() * 0.035,
-        size: 1 + Math.random() * 2.8,
-        color: '#38bdf8',
-        alpha: 0.3 + Math.random() * 0.7,
-        z: Math.random() * 1000,
-        isDigitalSquare: Math.random() > 0.45,
-        burstVx: Math.cos(burstAngle) * burstSpeed,
-        burstVy: Math.sin(burstAngle) * burstSpeed
+        radius: Math.random() * Math.max(width, height) * 0.95 + 10,
+        speed: (Math.random() * 0.04 + 0.015) * (Math.random() > 0.5 ? 1 : 1),
+        radialSpeed: Math.random() * 3 + 1,
+        size: Math.random() * 2.6 + 1.0,
+        colorIndex: Math.floor(Math.random() * rainbowColors.length),
+        alpha: Math.random() * 0.7 + 0.3,
+        z: Math.random() * 1000 + 10,
+        vz: Math.random() * 15 + 8,
+        streakLength: Math.random() * 30 + 10,
+        isStreak: Math.random() > 0.35,
       });
     }
 
-    let rotationAngle = 0;
-    let pulseWave = 0;
+    let spiralRotation = 0;
+    let cameraZoom = 1.0;
 
     const render = () => {
       const elapsed = Date.now() - startTimeRef.current;
-      const rawProgress = Math.min(1, elapsed / TOTAL_DURATION_MS);
-      setProgress(rawProgress);
-
-      // Nonlinear temporal progression: smooth acceleration through years
-      let calculatedYear = 2000;
-      if (rawProgress < 0.35) {
-        // 2000 - 2014 (Retro phase)
-        calculatedYear = Math.floor(2000 + (rawProgress / 0.35) * 14);
-      } else if (rawProgress < 0.6) {
-        // 2015 - 2019 (Deep Blue transformation begins at 2015)
-        const p = (rawProgress - 0.35) / 0.25;
-        calculatedYear = Math.floor(2015 + p * 4);
-      } else if (rawProgress < 0.85) {
-        // 2020 - 2023 (Deep Blue Space increases)
-        const p = (rawProgress - 0.6) / 0.25;
-        calculatedYear = Math.floor(2020 + p * 3);
-      } else {
-        // 2024 - 2026 (Electric Blue & Cyan Warp & 2026 Arrival)
-        const p = (rawProgress - 0.85) / 0.15;
-        calculatedYear = Math.min(2026, Math.floor(2024 + p * 2));
-      }
-
-      setCurrentYear(calculatedYear);
+      const rawP = Math.min(1, elapsed / TOTAL_DURATION_MS);
+      setProgress(rawP);
 
       const centerX = width / 2;
       const centerY = height / 2;
 
-      // 1. Background color palette evolution into Deep Blue Outer Space
-      if (calculatedYear < 2015) {
-        ctx.fillStyle = 'rgba(2, 6, 23, 0.28)';
-      } else if (calculatedYear < 2020) {
-        ctx.fillStyle = 'rgba(2, 12, 32, 0.28)';
-      } else if (calculatedYear < 2024) {
-        ctx.fillStyle = 'rgba(1, 8, 24, 0.28)';
+      // Nonlinear Year Progression with milestones
+      let year = 2000;
+      if (rawP < 0.25) {
+        year = Math.floor(2000 + (rawP / 0.25) * 8); // 2000 - 2008
+      } else if (rawP < 0.55) {
+        year = Math.floor(2008 + ((rawP - 0.25) / 0.30) * 10); // 2008 - 2018
+      } else if (rawP < 0.85) {
+        year = Math.floor(2018 + ((rawP - 0.55) / 0.30) * 6); // 2018 - 2024
       } else {
-        ctx.fillStyle = 'rgba(0, 3, 10, 0.26)';
+        year = Math.min(2026, Math.floor(2024 + ((rawP - 0.85) / 0.15) * 2)); // 2024 - 2026
+      }
+      setCurrentYear(year);
+
+      // Phase labels
+      if (rawP < 0.20) {
+        setWarpStatus('1. ATIVAÇÃO DO VÓRTICE & ESPIRAL MULTICOLOR');
+      } else if (rawP < 0.45) {
+        setWarpStatus('2. ZOOM CONTÍNUO & ACELERAÇÃO TEMPORAL');
+      } else if (rawP < 0.75) {
+        setWarpStatus('3. TÚNEL DE LUZ & HIPERESPAÇO');
+      } else if (rawP < 0.90) {
+        setWarpStatus('4. DESACELERAÇÃO & TRANSIÇÃO AZUL PROFUNDO');
+      } else {
+        setWarpStatus('5. CHEGADA AO MATEUS SPACE 2026');
+      }
+
+      // =========================================================================
+      // 1. BACKGROUND COLOR DYNAMICS & CONTINUOUS EVOLUTION:
+      // MULTICOLOR -> ROXO -> AZUL -> AZUL PROFUNDO -> AZUL ESCURO -> PRETO ESPACIAL
+      // =========================================================================
+      let bgAlpha = 0.28;
+      let bgHex = '#000206';
+
+      if (rawP < 0.25) {
+        // Early vortex: dark backdrop with subtle colorful cosmic smoke
+        const t = rawP / 0.25;
+        ctx.fillStyle = `rgba(${Math.floor(10 * (1 - t))}, ${Math.floor(4 + 8 * t)}, ${Math.floor(18 + 15 * t)}, 0.25)`;
+      } else if (rawP < 0.50) {
+        // Violet / Royal Blue stage
+        const t = (rawP - 0.25) / 0.25;
+        ctx.fillStyle = `rgba(${Math.floor(15 * (1 - t))}, ${Math.floor(10 + 12 * t)}, ${Math.floor(35 + 25 * t)}, 0.28)`;
+      } else if (rawP < 0.75) {
+        // Deep Blue / Cobalt tunnel
+        const t = (rawP - 0.50) / 0.25;
+        ctx.fillStyle = `rgba(${Math.floor(6 - 3 * t)}, ${Math.floor(22 - 10 * t)}, ${Math.floor(60 - 25 * t)}, 0.26)`;
+      } else if (rawP < 0.92) {
+        // Dark Blue (#03152D -> #020817)
+        const t = (rawP - 0.75) / 0.17;
+        ctx.fillStyle = `rgba(${Math.floor(3 - 1 * t)}, ${Math.floor(12 - 6 * t)}, ${Math.floor(35 - 18 * t)}, 0.24)`;
+      } else {
+        // Pure Space Black (#000000 / #020817)
+        ctx.fillStyle = 'rgba(0, 2, 8, 0.22)';
       }
       ctx.fillRect(0, 0, width, height);
 
-      // Deceleration and fragmentation near 2026 (rawProgress >= 0.92)
-      const isNearEnd = rawProgress >= 0.92;
-      if (isNearEnd && !isFragmenting) {
-        setIsFragmenting(true);
+      // Camera continuous forward zoom
+      if (rawP < 0.85) {
+        cameraZoom += 0.008 + rawP * 0.018;
+      } else {
+        // Smooth deceleration
+        cameraZoom += 0.002 * (1 - (rawP - 0.85) / 0.15);
       }
 
-      const rotSpeed = isNearEnd
-        ? 0.01 // Spiral decelerates
-        : calculatedYear >= 2024
-        ? 0.05
-        : calculatedYear >= 2020
-        ? 0.035
-        : 0.02;
+      // Spiral rotation speed progression
+      let rotSpeed = 0.02;
+      if (rawP < 0.25) {
+        rotSpeed = 0.02 + rawP * 0.12; // Accelerating
+      } else if (rawP < 0.75) {
+        rotSpeed = 0.05 + Math.sin(rawP * Math.PI) * 0.04; // Hyper speed
+      } else {
+        // Decelerating into zero-gravity float
+        const decelP = (rawP - 0.75) / 0.25;
+        rotSpeed = Math.max(0.004, 0.06 * (1 - decelP));
+      }
+      spiralRotation += rotSpeed;
 
-      rotationAngle += rotSpeed;
+      // =========================================================================
+      // 2. DRAW VORTEX SPIRAL FILAMENTS (MULTICOLOR TO DEEP BLUE SPACE)
+      // =========================================================================
+      const numArms = 6;
+      const maxSpiralRadius = Math.max(width, height) * (1.1 + cameraZoom * 0.3);
+      const spiralFade = rawP > 0.85 ? Math.max(0, 1 - (rawP - 0.85) / 0.15) : 1.0;
 
-      // 2. Draw Evolving Temporal Spiral Structure
-      const spiralArms = 4;
-      const maxRadius = Math.max(width, height) * 0.9;
-      const spiralAlpha = isNearEnd ? Math.max(0, 1 - (rawProgress - 0.92) / 0.08) : 1;
-
-      if (spiralAlpha > 0.02) {
-        for (let arm = 0; arm < spiralArms; arm++) {
+      if (spiralFade > 0.01) {
+        for (let arm = 0; arm < numArms; arm++) {
           ctx.beginPath();
-          const baseAngle = (arm * Math.PI * 2) / spiralArms + rotationAngle;
+          const baseArmAngle = (arm * Math.PI * 2) / numArms + spiralRotation;
 
-          for (let r = 18; r < maxRadius; r += 6) {
-            const theta = baseAngle + r * 0.0075;
-            const x = centerX + Math.cos(theta) * r;
-            const y = centerY + Math.sin(theta) * r;
+          // Color calculation per arm transitioning from Rainbow to Electric Blue / Cyan / Navy
+          const colObj = rainbowColors[arm % rainbowColors.length];
+          let r = colObj.r;
+          let g = colObj.g;
+          let b = colObj.b;
 
-            if (r === 18) {
-              ctx.moveTo(x, y);
+          // Color evolution logic:
+          if (rawP >= 0.25 && rawP < 0.55) {
+            // Shift towards Violet / Blue
+            const mix = (rawP - 0.25) / 0.30;
+            r = Math.floor(r * (1 - mix) + 90 * mix);
+            g = Math.floor(g * (1 - mix) + 120 * mix);
+            b = Math.floor(b * (1 - mix) + 250 * mix);
+          } else if (rawP >= 0.55 && rawP < 0.80) {
+            // Shift to Deep Blue & Electric Cyan
+            const mix = (rawP - 0.55) / 0.25;
+            r = Math.floor(r * (1 - mix) + spaceElectricBlue.r * mix);
+            g = Math.floor(g * (1 - mix) + spaceElectricBlue.g * mix);
+            b = Math.floor(b * (1 - mix) + spaceElectricBlue.b * mix);
+          } else if (rawP >= 0.80) {
+            // Shift to Luminous Cyan and Deep Navy
+            const mix = (rawP - 0.80) / 0.20;
+            r = Math.floor(r * (1 - mix) + spaceLuminousCyan.r * mix);
+            g = Math.floor(g * (1 - mix) + spaceLuminousCyan.g * mix);
+            b = Math.floor(b * (1 - mix) + spaceLuminousCyan.b * mix);
+          }
+
+          const armAlpha = (0.55 + Math.sin(spiralRotation + arm) * 0.2) * spiralFade;
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${armAlpha})`;
+          ctx.lineWidth = rawP > 0.5 ? 2.8 : 2.0;
+
+          let firstPoint = true;
+          for (let radius = 12; radius < maxSpiralRadius; radius += 8) {
+            // Logarithmic spiral with depth perspective expansion
+            const theta = baseArmAngle + (radius * 0.006) * (1 + (rawP * 0.8));
+            const px = centerX + Math.cos(theta) * radius;
+            const py = centerY + Math.sin(theta) * radius;
+
+            if (firstPoint) {
+              ctx.moveTo(px, py);
+              firstPoint = false;
             } else {
-              ctx.lineTo(x, y);
+              ctx.lineTo(px, py);
             }
           }
-
-          // Strict color rules per year:
-          if (calculatedYear < 2015) {
-            // 2000-2014: Retro cyan, purple, and classic digital blue
-            ctx.strokeStyle = arm % 2 === 0 ? `rgba(6, 182, 212, ${0.45 * spiralAlpha})` : `rgba(168, 85, 247, ${0.45 * spiralAlpha})`;
-            ctx.lineWidth = 1.5;
-          } else if (calculatedYear < 2020) {
-            // 2015-2019: Introduction of deep blue, midnight navy, and cyan lines
-            ctx.strokeStyle = arm % 2 === 0 ? `rgba(37, 99, 235, ${0.55 * spiralAlpha})` : `rgba(6, 182, 212, ${0.55 * spiralAlpha})`;
-            ctx.lineWidth = 1.8;
-          } else if (calculatedYear < 2024) {
-            // 2020-2023: Royal Blue, Electric Blue, Technological reflections
-            ctx.strokeStyle = arm % 2 === 0 ? `rgba(59, 130, 246, ${0.7 * spiralAlpha})` : `rgba(34, 211, 238, ${0.7 * spiralAlpha})`;
-            ctx.lineWidth = 2.2;
-          } else {
-            // 2024-2026: Deep Space Blue structure + Electric Blue + Luminous Cyan highlights
-            ctx.strokeStyle = arm % 2 === 0 ? `rgba(96, 165, 250, ${0.85 * spiralAlpha})` : `rgba(34, 211, 238, ${0.85 * spiralAlpha})`;
-            ctx.lineWidth = 2.8;
-          }
-
           ctx.stroke();
         }
       }
 
-      // 3. Swirling Microparticles and Digital Pixels
-      particles.forEach((p) => {
-        if (!isNearEnd) {
-          p.angle += p.speed * (calculatedYear >= 2024 ? 1.6 : 1.0);
-          p.distance -= (calculatedYear >= 2024 ? 4.8 : 2.4);
+      // =========================================================================
+      // 3. LIGHT STREAKS & WARP PARTICLES (TUNNEL DE LUZ)
+      // =========================================================================
+      const isHyperTunnel = rawP >= 0.35 && rawP < 0.85;
+      const isSpaceArrival = rawP >= 0.85;
 
-          if (p.distance < 12) {
-            p.distance = Math.max(width, height) * 0.85;
-            p.angle = Math.random() * Math.PI * 2;
+      particles.forEach((p) => {
+        if (!isSpaceArrival) {
+          // In Vortex & Tunnel mode: particles swirl and pull inwards, then shoot past camera
+          p.angle += p.speed * (1 + rawP * 2.5);
+          
+          if (isHyperTunnel) {
+            // Particle expands rapidly away from center creating light streaks
+            p.radius += (p.radialSpeed * 5 + rawP * 16);
+            if (p.radius > Math.max(width, height) * 0.9) {
+              p.radius = Math.random() * 40 + 5;
+              p.angle = Math.random() * Math.PI * 2;
+            }
+          } else {
+            // Suction vortex pulling towards center
+            p.radius -= (p.radialSpeed * 1.5 + rawP * 4);
+            if (p.radius < 8) {
+              p.radius = Math.max(width, height) * 0.85;
+              p.angle = Math.random() * Math.PI * 2;
+            }
           }
         } else {
-          // Fragmentation: particles release into the viewport
-          p.distance += Math.sqrt(p.burstVx * p.burstVx + p.burstVy * p.burstVy) * 3;
-          p.angle += 0.005;
+          // Zero-gravity gentle cosmic floating
+          p.angle += 0.002;
+          p.radius += Math.sin(p.angle) * 0.3;
         }
 
-        // Particle color evolution:
-        if (calculatedYear < 2015) {
-          // Retro cyan / purple / white
-          const retroPalette = ['#38bdf8', '#818cf8', '#c084fc', '#ffffff'];
-          p.color = retroPalette[Math.floor(Math.random() * retroPalette.length)];
-        } else if (calculatedYear < 2020) {
-          // Royal Blue / Deep Navy / Cyan
-          const transPalette = ['#2563eb', '#1d4ed8', '#0284c7', '#38bdf8', '#60a5fa'];
-          p.color = transPalette[Math.floor(Math.random() * transPalette.length)];
-        } else {
-          // 2020-2026: Electric Blue, Royal Blue, Luminous Cyan, White-Blue highlights
-          const spacePalette = ['#60a5fa', '#38bdf8', '#22d3ee', '#3b82f6', '#93c5fd', '#e0f2fe'];
-          p.color = spacePalette[Math.floor(Math.random() * spacePalette.length)];
+        // Particle Color Morphing:
+        const baseColor = rainbowColors[p.colorIndex];
+        let pr = baseColor.r;
+        let pg = baseColor.g;
+        let pb = baseColor.b;
+
+        if (rawP >= 0.30 && rawP < 0.65) {
+          // Morph to violet / royal blue
+          const m = (rawP - 0.30) / 0.35;
+          pr = Math.floor(pr * (1 - m) + 80 * m);
+          pg = Math.floor(pg * (1 - m) + 140 * m);
+          pb = Math.floor(pb * (1 - m) + 255 * m);
+        } else if (rawP >= 0.65) {
+          // Morph to Deep Space Cyan / White-Blue
+          const m = (rawP - 0.65) / 0.35;
+          pr = Math.floor(pr * (1 - m) + 53 * m);
+          pg = Math.floor(pg * (1 - m) + 207 * m);
+          pb = Math.floor(pb * (1 - m) + 255 * m);
         }
 
-        const spiralRadius = p.distance;
-        const spiralX = centerX + Math.cos(p.angle) * spiralRadius;
-        const spiralY = centerY + Math.sin(p.angle) * spiralRadius;
+        const posX = centerX + Math.cos(p.angle) * p.radius;
+        const posY = centerY + Math.sin(p.angle) * p.radius;
 
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.alpha;
+        // Draw light streak if in hyper speed tunnel
+        if (isHyperTunnel && p.isStreak) {
+          const streakLen = p.streakLength * (1 + rawP * 2);
+          const streakAngle = Math.atan2(posY - centerY, posX - centerX);
+          const tailX = posX - Math.cos(streakAngle) * streakLen;
+          const tailY = posY - Math.sin(streakAngle) * streakLen;
 
-        if (p.isDigitalSquare && calculatedYear >= 2018) {
-          ctx.fillRect(spiralX - p.size / 2, spiralY - p.size / 2, Math.max(1, p.size), Math.max(1, p.size));
-        } else {
+          const streakGrad = ctx.createLinearGradient(tailX, tailY, posX, posY);
+          streakGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          streakGrad.addColorStop(0.6, `rgba(${pr}, ${pg}, ${pb}, ${p.alpha * 0.4})`);
+          streakGrad.addColorStop(1, `rgba(255, 255, 255, ${p.alpha * 0.9})`);
+
+          ctx.strokeStyle = streakGrad;
+          ctx.lineWidth = Math.max(1, p.size * 0.9);
           ctx.beginPath();
-          ctx.arc(spiralX, spiralY, Math.max(0.1, p.size), 0, Math.PI * 2);
+          ctx.moveTo(tailX, tailY);
+          ctx.lineTo(posX, posY);
+          ctx.stroke();
+        } else {
+          // Circular particle with subtle halo
+          ctx.fillStyle = `rgba(${pr}, ${pg}, ${pb}, ${p.alpha})`;
+          ctx.beginPath();
+          ctx.arc(posX, posY, Math.max(0.6, p.size * (isSpaceArrival ? 0.9 : 1.2)), 0, Math.PI * 2);
           ctx.fill();
         }
       });
 
-      // 4. Center Singularity Vortex Glow & 2026 Energy Pulse
-      const coreRadius = isNearEnd ? 160 : 90;
-      const coreGlow = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, Math.max(10, coreRadius));
+      // =========================================================================
+      // 4. CENTRAL SINGULARITY & VORTEX DEPTH GLOW
+      // =========================================================================
+      const coreRadius = isSpaceArrival 
+        ? Math.max(20, 220 * (1 - (rawP - 0.85) / 0.15)) 
+        : Math.min(180, 50 + rawP * 120);
+
+      const coreGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(15, coreRadius));
       coreGlow.addColorStop(0, '#ffffff');
 
-      if (calculatedYear < 2015) {
-        coreGlow.addColorStop(0.3, '#38bdf8');
-        coreGlow.addColorStop(0.8, 'rgba(168, 85, 247, 0.25)');
-      } else if (calculatedYear < 2020) {
-        coreGlow.addColorStop(0.3, '#3b82f6');
-        coreGlow.addColorStop(0.8, 'rgba(29, 78, 216, 0.3)');
+      if (rawP < 0.30) {
+        // Rainbow singularity core
+        coreGlow.addColorStop(0.2, '#f472b6'); // Pink
+        coreGlow.addColorStop(0.5, '#38bdf8'); // Cyan
+        coreGlow.addColorStop(0.8, '#a855f7'); // Violet
+      } else if (rawP < 0.65) {
+        // Electric Blue / Violet core
+        coreGlow.addColorStop(0.25, '#38bdf8');
+        coreGlow.addColorStop(0.6, '#3b82f6');
+        coreGlow.addColorStop(0.9, 'rgba(30, 58, 138, 0.4)');
       } else {
-        coreGlow.addColorStop(0.3, '#38bdf8');
-        coreGlow.addColorStop(0.6, '#2563eb');
-        coreGlow.addColorStop(0.9, 'rgba(6, 182, 212, 0.35)');
+        // Deep Space Cyan / Navy opening
+        coreGlow.addColorStop(0.2, '#35CFFF');
+        coreGlow.addColorStop(0.55, '#008CFF');
+        coreGlow.addColorStop(0.85, 'rgba(6, 43, 85, 0.5)');
       }
       coreGlow.addColorStop(1, 'transparent');
 
       ctx.fillStyle = coreGlow;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, Math.max(0.1, coreRadius), 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, Math.max(10, coreRadius), 0, Math.PI * 2);
       ctx.fill();
 
-      // Energy Pulse at 2026
-      if (calculatedYear === 2026) {
-        pulseWave += 0.05;
-        const pulseR = (pulseWave * 80) % (Math.max(width, height) * 0.7);
-        if (pulseR > 0.5) {
-          ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(0, 0.65 - pulseR / 600)})`;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, Math.max(0.1, pulseR), 0, Math.PI * 2);
-          ctx.stroke();
-        }
+      // Energy pulse wave around singularity
+      const pulseWaveRadius = ((elapsed * 0.12) % (Math.max(width, height) * 0.75));
+      if (pulseWaveRadius > 10 && rawP < 0.92) {
+        ctx.strokeStyle = `rgba(53, 207, 255, ${Math.max(0, 0.6 - pulseWaveRadius / 600)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, pulseWaveRadius, 0, Math.PI * 2);
+        ctx.stroke();
       }
 
-      if (rawProgress < 1) {
+      if (rawP < 1) {
         animationFrameId.current = requestAnimationFrame(render);
       } else {
-        // Thousands of particles disperse smoothly into the Deep Blue Space background
+        // Transition gracefully into Space mode
         setTimeout(() => {
           onComplete();
-        }, 400);
+        }, 300);
       }
     };
 
@@ -290,56 +397,65 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
     <div className="fixed inset-0 z-50 bg-[#000206] text-white flex flex-col justify-between overflow-hidden select-none">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
 
-      {/* Top Minimalist Header */}
-      <div className="relative z-10 p-3.5 sm:p-5 flex items-center justify-between backdrop-blur-md bg-black/40 border-b border-sky-500/20 font-mono">
+      {/* Top HUD Status Bar */}
+      <div className="relative z-10 p-3 sm:p-4 flex items-center justify-between backdrop-blur-md bg-black/50 border-b border-cyan-500/20 font-mono">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-950/80 border border-sky-500/40 text-sky-300">
+          <div className="p-2 rounded-xl bg-blue-950/90 border border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.4)]">
             <Compass className="w-5 h-5 animate-spin" />
           </div>
           <div>
-            <div className="text-xs sm:text-sm font-bold text-sky-300 flex items-center gap-2">
-              <span>SALTO TEMPORAL</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-950 text-cyan-300 border border-blue-700">
-                {currentYear < 2015 ? 'RETRO 2000' : currentYear < 2024 ? 'TRANSFORMAÇÃO DIGITAL' : 'MATEUS SPACE 2026'}
+            <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-cyan-300 to-blue-400">
+                TRAVEL • TEMPORAL WARP
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-900/80 text-cyan-300 border border-cyan-500/40">
+                {currentYear}
               </span>
             </div>
-            <div className="text-[11px] text-slate-400">Origem: 2000 ➔ Destino: 2026</div>
+            <div className="text-[11px] text-slate-300 flex items-center gap-1.5 mt-0.5">
+              <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
+              <span>{warpStatus}</span>
+            </div>
           </div>
         </div>
 
         <button
           onClick={handleSkip}
-          className="px-3 py-1.5 rounded bg-black/60 hover:bg-blue-950 border border-sky-900 hover:border-sky-500 text-sky-300 text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition"
+          className="px-3.5 py-1.5 rounded-xl bg-black/70 hover:bg-blue-950 border border-cyan-500/50 hover:border-cyan-300 text-cyan-300 hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer shadow-lg active:scale-95 transition backdrop-blur-md"
         >
           <FastForward className="w-3.5 h-3.5 text-cyan-400" />
           <span>Avançar</span>
         </button>
       </div>
 
-      {/* Big Center Temporal Year Odometer with Dot Matrix & Micro Particles */}
-      <div className="relative z-10 flex flex-col items-center justify-center pointer-events-none my-auto space-y-3">
-        <div className="text-8xl sm:text-9xl md:text-[150px] font-black font-vt323 tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-white via-sky-300 to-cyan-400 drop-shadow-[0_0_55px_rgba(56,189,248,0.95)] animate-pulse">
+      {/* Center Year Odometer */}
+      <div className="relative z-10 flex flex-col items-center justify-center pointer-events-none my-auto space-y-3 px-4">
+        <div className="text-8xl sm:text-9xl md:text-[140px] font-black font-vt323 tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-200 to-blue-500 drop-shadow-[0_0_50px_rgba(53,207,255,0.9)] animate-pulse">
           {currentYear}
         </div>
 
-        <p className="text-xs sm:text-sm font-mono text-cyan-300 font-bold max-w-md text-center bg-black/80 px-4 py-2 rounded-xl border border-sky-500/30 backdrop-blur-md">
-          {currentYear < 2015
-            ? 'Origens nos anos 2000 • Início da curiosidade computacional'
-            : currentYear < 2020
-            ? 'Início da evolução tecnológica e novos horizontes digitais'
+        <p className="text-xs sm:text-sm font-mono text-cyan-200 font-semibold max-w-lg text-center bg-black/75 px-5 py-2.5 rounded-2xl border border-cyan-500/40 backdrop-blur-lg shadow-[0_0_30px_rgba(0,140,255,0.25)]">
+          {currentYear < 2008
+            ? 'Origens nos Anos 2000 • Curiosidade, computação clássica & criatividade'
+            : currentYear < 2018
+            ? 'Formação & Trajetória • Administração, Logística & Estrutura Operacional'
             : currentYear < 2024
-            ? 'Exército Brasileiro & Tecnologia em Logística'
+            ? 'Exército Brasileiro • Gestão de Suprimentos & Operações em Escala'
             : currentYear < 2026
-            ? 'Engenharia de Prompt & Automações com Inteligência Artificial'
-            : 'MATEUS SPACE 2026 • DEEP BLUE SPACE'}
+            ? 'Engenharia de Prompt, IA Aplicada & Arquitetura de Sistemas Digitais'
+            : 'MATEUS SPACE 2026 • ESPAÇO PROFUNDO & INTERFACES FUTURISTAS'}
         </p>
       </div>
 
       {/* Bottom Progress Bar */}
-      <div className="relative z-10 p-3.5 sm:p-5 backdrop-blur-md bg-black/40 border-t border-sky-500/20 font-mono space-y-2">
-        <div className="w-full bg-black/80 h-2.5 rounded-full border border-sky-900 overflow-hidden p-0.5">
+      <div className="relative z-10 p-3 sm:p-4 backdrop-blur-md bg-black/50 border-t border-cyan-500/20 font-mono space-y-2">
+        <div className="flex justify-between text-[11px] text-slate-300">
+          <span>Origem: 2000 (Retro OS)</span>
+          <span className="text-cyan-300 font-bold">Destino: 2026 (Deep Blue Space)</span>
+        </div>
+        <div className="w-full bg-black/80 h-2.5 rounded-full border border-cyan-900/80 overflow-hidden p-0.5">
           <div
-            className="h-full bg-gradient-to-r from-blue-600 via-sky-400 to-cyan-300 rounded-full transition-all duration-75 shadow-[0_0_15px_rgba(56,189,248,0.7)]"
+            className="h-full bg-gradient-to-r from-pink-500 via-cyan-400 to-blue-600 rounded-full transition-all duration-75 shadow-[0_0_15px_rgba(53,207,255,0.8)]"
             style={{ width: `${progress * 100}%` }}
           />
         </div>

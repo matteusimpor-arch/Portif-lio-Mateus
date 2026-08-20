@@ -30,7 +30,10 @@ export const SpaceSkillsApp: React.FC = () => {
   }).map(cat => {
     return {
       ...cat,
-      skills: cat.skills.filter(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
+      skills: cat.skills.filter(s => 
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        s.description.toLowerCase().includes(searchTerm.toLowerCase())
+      )
     };
   }).filter(cat => cat.skills.length > 0);
 

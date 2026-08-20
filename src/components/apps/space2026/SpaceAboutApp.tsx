@@ -271,7 +271,7 @@ export const SpaceAboutApp: React.FC = () => {
               {COURSES_DATA.map((c) => (
                 <div key={c.id} className="p-3 rounded-xl bg-black/40 border border-cyan-900/40 space-y-1">
                   <div className="text-xs font-bold text-slate-200">{c.name}</div>
-                  <div className="text-[11px] text-cyan-400 font-mono">{c.institution} • {c.hours}</div>
+                  <div className="text-[11px] text-cyan-400 font-mono">{c.issuer} • {c.hours}</div>
                 </div>
               ))}
             </div>
@@ -289,19 +289,23 @@ export const SpaceAboutApp: React.FC = () => {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h3 className="text-sm font-bold font-mono text-white">{exp.role}</h3>
-                    <p className="text-xs font-mono text-cyan-300">{exp.company} • {exp.location}</p>
+                    <p className="text-xs font-mono text-cyan-300">{exp.organization} • {exp.location}</p>
                   </div>
                   <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-600/60">
                     {exp.period}
                   </span>
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed">
-                  {exp.description}
-                </p>
-                {exp.achievements && (
+                <div className="text-xs text-slate-300 leading-relaxed space-y-1">
+                  {Array.isArray(exp.description) ? (
+                    exp.description.map((d, dIdx) => <p key={dIdx}>{d}</p>)
+                  ) : (
+                    <p>{exp.description}</p>
+                  )}
+                </div>
+                {exp.highlights && (
                   <div className="space-y-1.5 pt-2">
                     <div className="text-[11px] font-mono text-cyan-300 font-semibold">Destaques & Responsabilidades:</div>
-                    {exp.achievements.map((ach, aIdx) => (
+                    {exp.highlights.map((ach, aIdx) => (
                       <div key={aIdx} className="flex items-start gap-2 text-xs text-slate-300">
                         <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
                         <span>{ach}</span>
@@ -319,7 +323,7 @@ export const SpaceAboutApp: React.FC = () => {
       {activeTab === 'skills' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {SKILLS_DATA.map((cat, idx) => (
-            <div key={cat.id || idx} className="p-5 rounded-2xl bg-slate-900/80 border border-cyan-500/20 backdrop-blur-md space-y-3">
+            <div key={idx} className="p-5 rounded-2xl bg-slate-900/80 border border-cyan-500/20 backdrop-blur-md space-y-3">
               <h3 className="text-xs font-bold font-mono text-cyan-300 uppercase flex items-center justify-between">
                 <span>{cat.category}</span>
                 <span className="text-[10px] text-slate-400 font-normal">{cat.skills.length} competências</span>
@@ -330,7 +334,7 @@ export const SpaceAboutApp: React.FC = () => {
                     key={sIdx}
                     className="px-2.5 py-1 rounded-lg bg-cyan-950/40 border border-cyan-800/40 text-cyan-200 text-xs font-mono"
                   >
-                    {s}
+                    {s.name}
                   </span>
                 ))}
               </div>

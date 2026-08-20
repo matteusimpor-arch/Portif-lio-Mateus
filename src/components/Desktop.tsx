@@ -54,6 +54,7 @@ interface DesktopItem {
     | 'gamepad'
     | 'aims'
     | 'settings-screen'
+    | 'guestbook-book'
     | 'napster'
     | 'retro-tv'
     | 'time-spiral'
@@ -141,6 +142,7 @@ export const Desktop: React.FC<DesktopProps> = ({
     { id: 'settings', title: 'Fundos', column: 2, iconType: 'settings-screen' },
 
     // Column 3
+    { id: 'guestbook', title: 'Livro de Visitas', column: 3, iconType: 'guestbook-book', badge: '★ NOVO', badgeColor: 'bg-emerald-600 text-white' },
     { id: 'napster', title: 'Categoria: Napster', column: 3, iconType: 'napster' },
     { id: 'nostalgia', title: 'Momentos de Nostalgia', column: 3, iconType: 'retro-tv' },
     { id: 'timetravel', title: 'Viagem no tempo', column: 3, iconType: 'time-spiral' },
@@ -150,6 +152,10 @@ export const Desktop: React.FC<DesktopProps> = ({
   const handleIconClick = (appId: WindowAppId) => {
     try { soundFx.playClick(); } catch (e) {}
     setSelectedIcon(appId);
+    // On mobile screens, single tap opens the app directly for effortless navigation
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      handleIconDoubleClick(appId);
+    }
   };
 
   const handleIconDoubleClick = (appId: WindowAppId) => {
@@ -295,6 +301,28 @@ export const Desktop: React.FC<DesktopProps> = ({
           </div>
         );
 
+      case 'guestbook-book':
+        return (
+          <div className="w-12 h-12 relative flex items-center justify-center">
+            {/* Retro 2000 Book + Fountain Pen Icon */}
+            <div className="w-10 h-10 bg-[#e8e4c9] border-2 border-[#5c4033] shadow-md relative rounded-xs p-1 flex flex-col justify-between overflow-visible">
+              {/* Book Spine / Cover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-900 via-indigo-800 to-blue-900 border-2 border-amber-400 rounded-xs flex items-center justify-center">
+                <div className="w-6 h-7 bg-[#fffdf0] border border-amber-300 rounded-[1px] p-0.5 flex flex-col justify-around">
+                  <div className="w-full h-0.5 bg-blue-900" />
+                  <div className="w-3/4 h-0.5 bg-blue-900" />
+                  <div className="w-full h-0.5 bg-blue-900" />
+                  <div className="w-1/2 h-0.5 bg-blue-900" />
+                </div>
+              </div>
+              {/* Golden Quill / Pen overlay */}
+              <div className="absolute -top-1.5 -right-1 text-sm filter drop-shadow">
+                ✒️
+              </div>
+            </div>
+          </div>
+        );
+
       case 'napster':
         return (
           <div className="w-12 h-12 relative flex items-center justify-center">
@@ -315,9 +343,15 @@ export const Desktop: React.FC<DesktopProps> = ({
 
       case 'time-spiral':
         return (
-          <div className="w-12 h-12 relative flex items-center justify-center">
-            <div className="w-10 h-10 bg-indigo-950 border-2 border-purple-400 rounded-full flex items-center justify-center text-xl shadow-lg animate-pulse">
-              🌀
+          <div className="w-12 h-12 relative flex items-center justify-center group/travel">
+            {/* Pulsing energy aura glow in shifting colors (pink, purple, blue, cyan, green, yellow, orange) */}
+            <div className="absolute inset-0 rounded-full animate-travel-rainbow-border opacity-75 blur-xs p-0.5" />
+            <div className="w-10 h-10 bg-[#03071e] rounded-full flex items-center justify-center relative z-10 border border-white/40 shadow-[0_0_15px_rgba(168,85,247,0.7)] group-hover/travel:shadow-[0_0_25px_rgba(6,182,212,0.9)] transition-all duration-300">
+              <span className="text-xl inline-block transform group-hover/travel:scale-115 group-hover/travel:rotate-180 transition-transform duration-500">
+                🌀
+              </span>
+              {/* Subtle orbital spark */}
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-cyan-300 animate-ping opacity-75" />
             </div>
           </div>
         );
@@ -351,14 +385,14 @@ export const Desktop: React.FC<DesktopProps> = ({
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(rgba(255,255,255,0.4)_1px,transparent_1px)] [background-size:20px_20px]" />
 
-      {/* 3 Left Columns Desktop Grid Container */}
-      <div className="relative z-10 flex gap-6 sm:gap-10 h-full content-start items-start pointer-events-auto">
+      {/* Desktop Grid Container with Responsive Spacing */}
+      <div className="relative z-10 flex flex-wrap sm:flex-nowrap gap-4 sm:gap-6 md:gap-8 h-full content-start items-start pointer-events-auto overflow-y-auto sm:overflow-visible pb-16 sm:pb-4 max-w-full">
         {/* Column 1 */}
-        <div className="flex flex-col gap-4 sm:gap-5 w-24 sm:w-28">
+        <div className="flex flex-col gap-2 sm:gap-2.5 md:gap-3 w-20 sm:w-24 md:w-28 shrink-0">
           {col1Items.map((item) => {
             const isSelected = selectedIcon === item.id;
             return (
-              <div
+              <button
                 key={item.id}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -368,29 +402,31 @@ export const Desktop: React.FC<DesktopProps> = ({
                   e.stopPropagation();
                   handleIconDoubleClick(item.id);
                 }}
-                className={`flex flex-col items-center gap-1 group cursor-pointer p-1 transition ${
-                  isSelected
-                    ? 'bg-[#000080]/80 rounded border border-yellow-300'
-                    : 'hover:bg-white/10 rounded'
-                }`}
+                className="flex flex-col items-center gap-1 group cursor-pointer p-1 rounded-sm transition-all text-center select-none w-full min-h-[82px] hover:bg-white/10 active:bg-white/15"
               >
-                <div className="group-hover:scale-105 transition-transform duration-100">
+                <div className="group-hover:scale-105 group-active:scale-95 transition-transform duration-100 shrink-0">
                   {renderIconVisual(item.iconType)}
                 </div>
-                <span className="text-[11px] font-sans font-bold text-center leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] max-w-full truncate px-0.5">
+                <span
+                  className={`text-[11px] sm:text-[12px] font-sans font-bold text-center leading-snug max-w-full line-clamp-2 ${
+                    isSelected
+                      ? 'bg-[#000080] text-white px-1.5 py-0.5 border border-dotted border-white/80 shadow-xs rounded-[1px]'
+                      : 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] px-0.5'
+                  }`}
+                >
                   {item.title}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
 
         {/* Column 2 */}
-        <div className="flex flex-col gap-4 sm:gap-5 w-24 sm:w-28">
+        <div className="flex flex-col gap-2 sm:gap-2.5 md:gap-3 w-20 sm:w-24 md:w-28 shrink-0">
           {col2Items.map((item) => {
             const isSelected = selectedIcon === item.id;
             return (
-              <div
+              <button
                 key={item.id}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -400,34 +436,36 @@ export const Desktop: React.FC<DesktopProps> = ({
                   e.stopPropagation();
                   handleIconDoubleClick(item.id);
                 }}
-                className={`flex flex-col items-center gap-1 group cursor-pointer p-1 relative transition ${
-                  isSelected
-                    ? 'bg-[#000080]/80 rounded border border-yellow-300'
-                    : 'hover:bg-white/10 rounded'
-                }`}
+                className="flex flex-col items-center gap-1 group cursor-pointer p-1 rounded-sm relative transition-all text-center select-none w-full min-h-[82px] hover:bg-white/10 active:bg-white/15"
               >
                 {item.badge && (
-                  <span className="absolute -top-1 right-0 text-[8px] font-mono font-bold bg-blue-700 text-yellow-300 px-1 py-0.2 rounded border border-yellow-300 shadow">
+                  <span className="absolute top-0 right-1 text-[8px] font-mono font-bold bg-blue-700 text-yellow-300 px-1 py-0.2 rounded border border-yellow-300 shadow-xs">
                     {item.badge}
                   </span>
                 )}
-                <div className="group-hover:scale-105 transition-transform duration-100">
+                <div className="group-hover:scale-105 group-active:scale-95 transition-transform duration-100 shrink-0">
                   {renderIconVisual(item.iconType)}
                 </div>
-                <span className="text-[11px] font-sans font-bold text-center leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] max-w-full truncate px-0.5">
+                <span
+                  className={`text-[11px] sm:text-[12px] font-sans font-bold text-center leading-snug max-w-full line-clamp-2 ${
+                    isSelected
+                      ? 'bg-[#000080] text-white px-1.5 py-0.5 border border-dotted border-white/80 shadow-xs rounded-[1px]'
+                      : 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] px-0.5'
+                  }`}
+                >
                   {item.title}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>
 
         {/* Column 3 */}
-        <div className="flex flex-col gap-4 sm:gap-5 w-24 sm:w-28">
+        <div className="flex flex-col gap-2 sm:gap-2.5 md:gap-3 w-20 sm:w-24 md:w-28 shrink-0">
           {col3Items.map((item) => {
             const isSelected = selectedIcon === item.id;
             return (
-              <div
+              <button
                 key={item.id}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -437,19 +475,21 @@ export const Desktop: React.FC<DesktopProps> = ({
                   e.stopPropagation();
                   handleIconDoubleClick(item.id);
                 }}
-                className={`flex flex-col items-center gap-1 group cursor-pointer p-1 transition ${
-                  isSelected
-                    ? 'bg-[#000080]/80 rounded border border-yellow-300'
-                    : 'hover:bg-white/10 rounded'
-                }`}
+                className="flex flex-col items-center gap-1 group cursor-pointer p-1 rounded-sm transition-all text-center select-none w-full min-h-[82px] hover:bg-white/10 active:bg-white/15"
               >
-                <div className="group-hover:scale-105 transition-transform duration-100">
+                <div className="group-hover:scale-105 group-active:scale-95 transition-transform duration-100 shrink-0">
                   {renderIconVisual(item.iconType)}
                 </div>
-                <span className="text-[11px] font-sans font-bold text-center leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] max-w-full truncate px-0.5">
+                <span
+                  className={`text-[11px] sm:text-[12px] font-sans font-bold text-center leading-snug max-w-full line-clamp-2 ${
+                    isSelected
+                      ? 'bg-[#000080] text-white px-1.5 py-0.5 border border-dotted border-white/80 shadow-xs rounded-[1px]'
+                      : 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] px-0.5'
+                  }`}
+                >
                   {item.title}
                 </span>
-              </div>
+              </button>
             );
           })}
         </div>

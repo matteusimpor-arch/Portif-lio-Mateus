@@ -30,14 +30,21 @@ import { ClippyApp } from './components/apps/ClippyApp';
 import { NapsterApp } from './components/apps/NapsterApp';
 import { NostalgiaApp } from './components/apps/NostalgiaApp';
 import { AimsMessengerApp } from './components/apps/AimsMessengerApp';
+import { GuestbookApp } from './components/apps/GuestbookApp';
 
 import { soundFx } from './utils/soundEffects';
+import { recordSiteVisit } from './lib/firebase';
 
 export default function App() {
   const [isBootComplete, setIsBootComplete] = useState<boolean>(false);
   const [isShutdown, setIsShutdown] = useState<boolean>(false);
   const [activeWindowId, setActiveWindowId] = useState<WindowAppId | null>('welcome');
   const [highestZIndex, setHighestZIndex] = useState<number>(20);
+
+  // Auto-record site visit on initial page load (1 per browser session)
+  useEffect(() => {
+    recordSiteVisit();
+  }, []);
 
   // Screensaver State & Idle Timer
   const [isScreensaverActive, setIsScreensaverActive] = useState<boolean>(false);
@@ -57,6 +64,7 @@ export default function App() {
     { id: 'skills', title: 'O que eu faço / Competências (Skills.exe)', iconName: 'skills', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 100, y: 50, width: 750, height: 560 },
     { id: 'now', title: 'Agora (2026) / Focos & Metas (Now.exe)', iconName: 'now', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 80, y: 40, width: 720, height: 540 },
     { id: 'contact', title: 'Contato Direto (Contact.exe)', iconName: 'contact', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 140, y: 70, width: 740, height: 560 },
+    { id: 'guestbook', title: 'Livro de Visitas (Guestbook.exe)', iconName: 'guestbook', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 140, y: 60, width: 780, height: 600 },
     { id: 'resume', title: 'Currículo Oficial (Résumé.pdf)', iconName: 'resume', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 110, y: 55, width: 720, height: 580 },
     
     // Creative & Retro Apps
@@ -224,7 +232,8 @@ export default function App() {
       case 'resume': return <ResumeApp />;
       case 'logistics': return <LogisticsApp />;
       case 'now': return <NowApp />;
-      case 'contact': return <ContactApp />;
+      case 'contact': return <ContactApp mode="retro" />;
+      case 'guestbook': return <GuestbookApp mode="retro" />;
       case 'terminal': return <TerminalApp />;
       case 'games':
       case 'experiments': return <ExperimentsApp />;
