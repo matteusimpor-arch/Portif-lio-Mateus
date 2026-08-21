@@ -140,12 +140,24 @@ export const SpaceSkillsApp: React.FC = () => {
               {cat.skills.map((skill, sIdx) => (
                 <div
                   key={sIdx}
-                  className="flex items-center gap-2 p-2.5 rounded-xl bg-black/40 border border-cyan-900/40 hover:border-cyan-500/50 transition group"
+                  className="flex flex-col gap-1 p-2.5 rounded-xl bg-black/40 border border-cyan-900/40 hover:border-cyan-500/50 transition group"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 shrink-0" />
-                  <span className="text-xs font-mono text-slate-200 group-hover:text-white truncate">
-                    {skill}
-                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 shrink-0" />
+                      <span className="text-xs font-mono font-bold text-slate-200 group-hover:text-white truncate">
+                        {skill.name}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-cyan-400 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/60 shrink-0">
+                      {skill.level}%
+                    </span>
+                  </div>
+                  {skill.description && (
+                    <p className="text-[11px] text-slate-400 pl-5.5 leading-snug line-clamp-2">
+                      {skill.description}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

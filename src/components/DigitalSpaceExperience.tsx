@@ -8,18 +8,32 @@ import {
   Gamepad2,
   Clock,
   X,
-  ChevronRight,
+  Minus,
+  Maximize2,
+  Minimize2,
   Search,
   FileText,
   MessageSquare,
-  Sparkles,
   BookOpen,
-  HelpCircle
+  Volume2,
+  VolumeX,
+  LayoutGrid,
+  Palette,
+  Sparkles,
+  Trash2,
+  FolderPlus,
+  RefreshCw,
+  Edit2,
+  Info,
+  Layers,
+  AlertTriangle,
+  FolderOpen,
+  Check
 } from 'lucide-react';
 import { soundFx } from '../utils/soundEffects';
 import { ParticleTextCanvas } from './ParticleTextCanvas';
 import { SpaceBlueBackgroundCanvas } from './SpaceBlueBackgroundCanvas';
-import { ScreensaverCanvas } from './ScreensaverCanvas';
+import { SpaceThemeId, SpaceWallpaperId, DesktopFolderItem, TrashItem } from '../types';
 
 // Dedicated Space 2026 Futuristic Apps
 import { SpaceAboutApp } from './apps/space2026/SpaceAboutApp';
@@ -31,645 +45,1227 @@ import { SpaceAimsApp } from './apps/space2026/SpaceAimsApp';
 import { SpaceGamesApp } from './apps/space2026/SpaceGamesApp';
 import { SpaceContactApp } from './apps/space2026/SpaceContactApp';
 import { SpaceClippy } from './apps/space2026/SpaceClippy';
+import { SpacePersonalizationApp } from './apps/space2026/SpacePersonalizationApp';
+import { TrashApp } from './apps/TrashApp';
 import { GuestbookApp } from './apps/GuestbookApp';
+import { FolderWindow } from './FolderWindow';
 
 interface DigitalSpaceExperienceProps {
   onBackToRetro: () => void;
+  trashItems?: TrashItem[];
+  onTrashFolder?: (folder: DesktopFolderItem) => void;
+  onRestoreTrashItem?: (item: TrashItem) => void;
+  onPermanentDeleteTrashItem?: (id: string) => void;
+  onEmptyTrash?: () => void;
 }
 
-interface SpaceNode {
+export interface SpaceAppDefinition {
   id: string;
   title: string;
+  shortTitle: string;
   subtitle: string;
-  category: 'core' | 'interactive';
+  category: 'core' | 'interactive' | 'utility';
   icon: React.ElementType;
+  iconBg: string;
   color: string;
-  glowColor: string;
   accentHex: string;
-  badge?: string;
-  description: string;
-  revealThreshold: number; // scroll progress where this app activates
+  isPdf?: boolean;
+}
+
+interface OpenSpaceWindow {
+  id: string;
+  folderData?: DesktopFolderItem;
+  isMinimized: boolean;
+  isMaximized: boolean;
+  zIndex: number;
 }
 
 export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
   onBackToRetro,
+  trashItems = [],
+  onTrashFolder,
+  onRestoreTrashItem,
+  onPermanentDeleteTrashItem,
+  onEmptyTrash,
 }) => {
-  // Continuous Scroll Progress (0.0 = Hero, 1.0 = All Apps Materialized)
-  const [scrollProgress, setScrollProgress] = useState<number>(0);
-  const [scrollVelocity, setScrollVelocity] = useState<number>(0);
-  const targetScrollRef = useRef<number>(0);
-  const currentScrollRef = useRef<number>(0);
-  const velocityRef = useRef<number>(0);
-  const animFrameRef = useRef<number | null>(null);
+  // --- 1. PERSONALIZATION STATE (WALLPAPERS, THEMES, EFFECTS) ---
+  const [currentTheme, setCurrentTheme] = useState<SpaceThemeId>(() => {
+    try {
+      const saved = localStorage.getItem('mateus_space_theme');
+      if (saved) return saved as SpaceThemeId;
+    } catch (e) {}
+    return 'space-blue';
+  });
 
-  // Selected node expanded to center modal
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [isOpeningApp, setIsOpeningApp] = useState<boolean>(false);
-  const [isClosingApp, setIsClosingApp] = useState<boolean>(false);
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [reduceMotion, setReduceMotion] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentWallpaper, setCurrentWallpaper] = useState<SpaceWallpaperId>(() => {
+    try {
+      const saved = localStorage.getItem('mateus_space_wallpaper');
+      if (saved) return saved as SpaceWallpaperId;
+    } catch (e) {}
+    return 'deep-space';
+  });
 
-  // Automatic Idle Screensaver System (30 seconds)
-  const [isScreensaverActive, setIsScreensaverActive] = useState<boolean>(false);
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [effectsEnabled, setEffectsEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('mateus_space_effects');
+      if (saved !== null) return saved === 'true';
+    } catch (e) {}
+    return true;
+  });
 
-  const resetIdleTimer = useCallback(() => {
-    if (isScreensaverActive) {
-      setIsScreensaverActive(false);
+  const [personalizationTab, setPersonalizationTab] = useState<'wallpapers' | 'themes' | 'effects'>('wallpapers');
+
+  const handleSelectTheme = (t: SpaceThemeId) => {
+    setCurrentTheme(t);
+    try {
+      localStorage.setItem('mateus_space_theme', t);
+    } catch (e) {}
+  };
+
+  const handleSelectWallpaper = (wp: SpaceWallpaperId) => {
+    setCurrentWallpaper(wp);
+    try {
+      localStorage.setItem('mateus_space_wallpaper', wp);
+    } catch (e) {}
+  };
+
+  const handleToggleEffects = (enabled: boolean) => {
+    setEffectsEnabled(enabled);
+    try {
+      localStorage.setItem('mateus_space_effects', String(enabled));
+    } catch (e) {}
+  };
+
+  // --- 2. SPACE USER FOLDERS SYSTEM (INDEPENDENT FROM RETRO) ---
+  const [spaceFolders, setSpaceFolders] = useState<DesktopFolderItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('mateus_space_folders');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  const saveSpaceFolders = (folders: DesktopFolderItem[]) => {
+    setSpaceFolders(folders);
+    try {
+      localStorage.setItem('mateus_space_folders', JSON.stringify(folders));
+    } catch (e) {}
+  };
+
+  // Folder Renaming State
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState<string>('');
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Folder Delete Confirmation Modal
+  const [folderToDelete, setFolderToDelete] = useState<DesktopFolderItem | null>(null);
+
+  // Dragging State for Custom Space Folders
+  const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Selected icon on desktop
+  const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
+
+  // Context Menu State
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    targetFolder?: DesktopFolderItem;
+  } | null>(null);
+
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Focus rename input on editing
+  useEffect(() => {
+    if (editingFolderId && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
     }
-    if (idleTimerRef.current) {
-      clearTimeout(idleTimerRef.current);
+  }, [editingFolderId]);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // --- 3. SPACE APP DEFINITIONS ---
+  const spaceApps: SpaceAppDefinition[] = useMemo(() => [
+    {
+      id: 'about',
+      title: 'SOBRE MIM',
+      shortTitle: 'Sobre Mim',
+      subtitle: 'Perfil Digital & Trajetória',
+      category: 'core',
+      icon: User,
+      iconBg: 'from-blue-600 to-cyan-500',
+      color: 'text-cyan-400',
+      accentHex: '#06b6d4',
+    },
+    {
+      id: 'skills',
+      title: 'O QUE EU FAÇO',
+      shortTitle: 'Competências',
+      subtitle: 'Capabilities & IA',
+      category: 'core',
+      icon: Cpu,
+      iconBg: 'from-blue-500 to-indigo-600',
+      color: 'text-blue-400',
+      accentHex: '#3b82f6',
+    },
+    {
+      id: 'projects',
+      title: 'TRABALHO SELECIONADO',
+      shortTitle: 'Projetos',
+      subtitle: 'Project Explorer',
+      category: 'core',
+      icon: Folder,
+      iconBg: 'from-cyan-500 to-blue-600',
+      color: 'text-cyan-300',
+      accentHex: '#22d3ee',
+    },
+    {
+      id: 'resume',
+      title: 'RESUMO.PDF',
+      shortTitle: 'RESUMO.PDF',
+      subtitle: 'Currículo Oficial PDF',
+      category: 'core',
+      icon: FileText,
+      iconBg: 'from-rose-600 to-red-500',
+      color: 'text-red-400',
+      accentHex: '#ef4444',
+      isPdf: true,
+    },
+    {
+      id: 'now',
+      title: 'AGORA (2026)',
+      shortTitle: 'Agora (2026)',
+      subtitle: 'Live Status & Metas',
+      category: 'core',
+      icon: Clock,
+      iconBg: 'from-indigo-500 to-blue-600',
+      color: 'text-indigo-400',
+      accentHex: '#6366f1',
+    },
+    {
+      id: 'aims',
+      title: 'AIMS',
+      shortTitle: 'AIMS',
+      subtitle: 'Neural Terminal',
+      category: 'interactive',
+      icon: MessageSquare,
+      iconBg: 'from-cyan-600 to-blue-800',
+      color: 'text-cyan-400',
+      accentHex: '#0891b2',
+    },
+    {
+      id: 'games',
+      title: 'SPACE ARCADE',
+      shortTitle: 'Space Arcade',
+      subtitle: 'Game Center',
+      category: 'interactive',
+      icon: Gamepad2,
+      iconBg: 'from-blue-600 to-sky-500',
+      color: 'text-sky-400',
+      accentHex: '#0284c7',
+    },
+    {
+      id: 'personalization',
+      title: 'PERSONALIZAÇÃO',
+      shortTitle: 'Personalização',
+      subtitle: 'Wallpapers, Temas & Efeitos',
+      category: 'utility',
+      icon: Palette,
+      iconBg: 'from-purple-600 to-cyan-500',
+      color: 'text-purple-400',
+      accentHex: '#a855f7',
+    },
+    {
+      id: 'contact',
+      title: 'CONTATO',
+      shortTitle: 'Contato',
+      subtitle: 'Direct Hub & WhatsApp',
+      category: 'core',
+      icon: Mail,
+      iconBg: 'from-emerald-500 to-teal-600',
+      color: 'text-emerald-400',
+      accentHex: '#10b981',
+    },
+    {
+      id: 'guestbook',
+      title: 'LIVRO DE VISITAS',
+      shortTitle: 'Livro de Visitas',
+      subtitle: 'Registro Firestore',
+      category: 'interactive',
+      icon: BookOpen,
+      iconBg: 'from-cyan-600 to-emerald-600',
+      color: 'text-teal-400',
+      accentHex: '#06b6d4',
+    },
+    {
+      id: 'trash',
+      title: 'LIXEIRA',
+      shortTitle: 'Lixeira',
+      subtitle: 'Arquivos Descartados',
+      category: 'utility',
+      icon: Trash2,
+      iconBg: 'from-slate-700 to-red-800',
+      color: 'text-red-400',
+      accentHex: '#dc2626',
     }
-    idleTimerRef.current = setTimeout(() => {
-      setIsScreensaverActive(true);
-    }, 30000);
-  }, [isScreensaverActive]);
+  ], []);
+
+  // Window State Management
+  const [openWindows, setOpenWindows] = useState<OpenSpaceWindow[]>([]);
+  const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
+  const [topZIndex, setTopZIndex] = useState<number>(30);
+
+  // Launcher Menu (Start Menu) State
+  const [isLauncherOpen, setIsLauncherOpen] = useState<boolean>(false);
+  const [launcherSearch, setLauncherSearch] = useState<string>('');
+
+  // Sound State
+  const [isSoundOn, setIsSoundOn] = useState<boolean>(true);
+
+  // Time Display (2026 Future Clock)
+  const [currentTime, setCurrentTime] = useState<string>('');
 
   useEffect(() => {
-    resetIdleTimer();
-
-    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'wheel'];
-    const handleUserActivity = () => resetIdleTimer();
-
-    activityEvents.forEach((evt) => {
-      window.addEventListener(evt, handleUserActivity, { passive: true });
-    });
-
-    return () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      activityEvents.forEach((evt) => {
-        window.removeEventListener(evt, handleUserActivity);
-      });
+    const updateTime = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      setCurrentTime(`${hours}:${minutes}:${seconds}`);
     };
-  }, [resetIdleTimer]);
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-  // Smooth Spring / Lerp Animation Loop for Scroll Progress
-  useEffect(() => {
-    let lastTime = performance.now();
+  // Bring Window to Front
+  const bringToFront = (appId: string) => {
+    const newZ = topZIndex + 1;
+    setTopZIndex(newZ);
+    setActiveWindowId(appId);
+    setOpenWindows((prev) =>
+      prev.map((w) => (w.id === appId ? { ...w, zIndex: newZ, isMinimized: false } : w))
+    );
+  };
 
-    const animateScroll = (time: number) => {
-      const dt = Math.min(32, time - lastTime) / 1000;
-      lastTime = time;
+  // Open App in Window
+  const handleOpenApp = (appId: string, initialTab?: 'wallpapers' | 'themes' | 'effects') => {
+    setIsLauncherOpen(false);
+    if (initialTab) setPersonalizationTab(initialTab);
+    try {
+      soundFx.playWindowOpen();
+    } catch (e) {}
 
-      const target = targetScrollRef.current;
-      const current = currentScrollRef.current;
-      const diff = target - current;
+    setOpenWindows((prev) => {
+      const exists = prev.find((w) => w.id === appId);
+      const newZ = topZIndex + 1;
+      setTopZIndex(newZ);
+      setActiveWindowId(appId);
 
-      if (Math.abs(diff) > 0.0005 || Math.abs(velocityRef.current) > 0.001) {
-        const ease = reduceMotion ? 0.25 : 0.085;
-        const newCurrent = current + diff * ease;
-        const vel = (newCurrent - current) / Math.max(0.001, dt);
-
-        currentScrollRef.current = Math.max(0, Math.min(1, newCurrent));
-        velocityRef.current = vel;
-
-        setScrollProgress(currentScrollRef.current);
-        setScrollVelocity(vel);
-      } else {
-        currentScrollRef.current = target;
-        velocityRef.current = 0;
-        setScrollProgress(target);
-        setScrollVelocity(0);
+      if (exists) {
+        return prev.map((w) =>
+          w.id === appId ? { ...w, isMinimized: false, zIndex: newZ } : w
+        );
       }
-
-      animFrameRef.current = requestAnimationFrame(animateScroll);
-    };
-
-    animFrameRef.current = requestAnimationFrame(animateScroll);
-
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    };
-  }, [reduceMotion]);
-
-  // Unified Scroll / Wheel Handler
-  const handleWheel = (e: React.WheelEvent) => {
-    if (selectedNodeId !== null) return;
-    resetIdleTimer();
-
-    const delta = e.deltaY * 0.00095;
-    targetScrollRef.current = Math.max(0, Math.min(1, targetScrollRef.current + delta));
+      return [
+        ...prev,
+        {
+          id: appId,
+          isMinimized: false,
+          isMaximized: false,
+          zIndex: newZ,
+        },
+      ];
+    });
   };
 
-  // Touch Gestures for Mobile
-  const touchStartYRef = useRef<number | null>(null);
+  // Open User Folder Window
+  const handleOpenFolderWindow = (folder: DesktopFolderItem) => {
+    const windowId = `folder-window-${folder.id}`;
+    try {
+      soundFx.playWindowOpen();
+    } catch (e) {}
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (selectedNodeId !== null) return;
-    touchStartYRef.current = e.touches[0].clientY;
+    setOpenWindows((prev) => {
+      const exists = prev.find((w) => w.id === windowId);
+      const newZ = topZIndex + 1;
+      setTopZIndex(newZ);
+      setActiveWindowId(windowId);
+
+      if (exists) {
+        return prev.map((w) =>
+          w.id === windowId ? { ...w, isMinimized: false, zIndex: newZ } : w
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: windowId,
+          folderData: folder,
+          isMinimized: false,
+          isMaximized: false,
+          zIndex: newZ,
+        },
+      ];
+    });
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (selectedNodeId !== null || touchStartYRef.current === null) return;
-    resetIdleTimer();
-    const currentY = e.touches[0].clientY;
-    const deltaY = (touchStartYRef.current - currentY) * 0.0028;
-    touchStartYRef.current = currentY;
+  // Close Window
+  const handleCloseWindow = (appId: string) => {
+    try {
+      soundFx.playWindowClose();
+    } catch (e) {}
+    setOpenWindows((prev) => prev.filter((w) => w.id !== appId));
+    if (activeWindowId === appId) {
+      setActiveWindowId(null);
+    }
+  };
 
-    targetScrollRef.current = Math.max(0, Math.min(1, targetScrollRef.current + deltaY));
+  // Minimize Window
+  const handleMinimizeWindow = (appId: string) => {
+    try {
+      soundFx.playClick();
+    } catch (e) {}
+    setOpenWindows((prev) =>
+      prev.map((w) => (w.id === appId ? { ...w, isMinimized: true } : w))
+    );
+    if (activeWindowId === appId) {
+      setActiveWindowId(null);
+    }
+  };
+
+  // Maximize / Restore Window
+  const handleToggleMaximize = (appId: string) => {
+    try {
+      soundFx.playClick();
+    } catch (e) {}
+    setOpenWindows((prev) =>
+      prev.map((w) => (w.id === appId ? { ...w, isMaximized: !w.isMaximized } : w))
+    );
+  };
+
+  // Taskbar Click
+  const handleTaskbarClick = (appId: string) => {
+    const target = openWindows.find((w) => w.id === appId);
+    if (!target) return;
+
+    if (target.isMinimized || activeWindowId !== appId) {
+      bringToFront(appId);
+    } else {
+      handleMinimizeWindow(appId);
+    }
+  };
+
+  // Sound Toggle
+  const toggleSound = () => {
+    const nextVal = !isSoundOn;
+    setIsSoundOn(nextVal);
+    soundFx.setEnabled(nextVal);
+  };
+
+  // --- 4. CONTEXT MENU & FOLDERS HANDLING ---
+  const handleContextMenu = (e: React.MouseEvent, folder?: DesktopFolderItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try { soundFx.playClick(); } catch (err) {}
+
+    const menuWidth = 220;
+    const menuHeight = folder ? 180 : 250;
+    const x = Math.min(e.clientX, window.innerWidth - menuWidth - 12);
+    const y = Math.min(e.clientY, window.innerHeight - menuHeight - 12);
+
+    setContextMenu({ visible: true, x, y, targetFolder: folder });
+    if (folder) {
+      setSelectedIconId(`folder-${folder.id}`);
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, folder?: DesktopFolderItem) => {
+    const touch = e.touches[0];
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
+
+    longPressTimerRef.current = setTimeout(() => {
+      try { soundFx.playClick(); } catch (err) {}
+      const menuWidth = 220;
+      const menuHeight = folder ? 180 : 250;
+      const x = Math.min(clientX, window.innerWidth - menuWidth - 12);
+      const y = Math.min(clientY, window.innerHeight - menuHeight - 12);
+
+      setContextMenu({ visible: true, x, y, targetFolder: folder });
+      if (folder) {
+        setSelectedIconId(`folder-${folder.id}`);
+      }
+    }, 600);
   };
 
   const handleTouchEnd = () => {
-    touchStartYRef.current = null;
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
   };
 
-  // Keyboard navigation
+  // Create New Space Folder
+  const handleCreateSpaceFolder = () => {
+    const count = spaceFolders.length;
+    const newName = count === 0 ? 'Nova pasta' : `Nova pasta (${count + 1})`;
+    const newFolder: DesktopFolderItem = {
+      id: `space-folder-${Date.now()}`,
+      name: newName,
+      origin: 'space',
+      createdAt: Date.now(),
+    };
+    const updated = [...spaceFolders, newFolder];
+    saveSpaceFolders(updated);
+    setEditingFolderId(newFolder.id);
+    setEditingFolderName(newName);
+    setContextMenu(null);
+    try { soundFx.playWindowOpen(); } catch (e) {}
+  };
+
+  const handleStartRename = (folder: DesktopFolderItem) => {
+    setEditingFolderId(folder.id);
+    setEditingFolderName(folder.name);
+    setContextMenu(null);
+  };
+
+  const handleSaveRename = () => {
+    if (editingFolderId) {
+      const trimmed = editingFolderName.trim() || 'Nova pasta';
+      const updated = spaceFolders.map((f) =>
+        f.id === editingFolderId ? { ...f, name: trimmed } : f
+      );
+      saveSpaceFolders(updated);
+    }
+    setEditingFolderId(null);
+  };
+
+  const handleConfirmDeleteFolder = () => {
+    if (folderToDelete) {
+      const updated = spaceFolders.filter((f) => f.id !== folderToDelete.id);
+      saveSpaceFolders(updated);
+      if (onTrashFolder) onTrashFolder(folderToDelete);
+      try { soundFx.playWindowClose(); } catch (e) {}
+    }
+    setFolderToDelete(null);
+  };
+
+  // Drag and Drop for Space Folders
+  const handleFolderMouseDown = (e: React.MouseEvent, folder: DesktopFolderItem) => {
+    if (editingFolderId === folder.id) return;
+    setSelectedIconId(`folder-${folder.id}`);
+    setDraggingFolderId(folder.id);
+
+    const folderElem = e.currentTarget.getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - folderElem.left,
+      y: e.clientY - folderElem.top,
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (draggingFolderId) {
+      const x = Math.max(10, Math.min(window.innerWidth - 110, e.clientX - dragOffset.x));
+      const y = Math.max(10, Math.min(window.innerHeight - 130, e.clientY - dragOffset.y));
+      const updated = spaceFolders.map((f) =>
+        f.id === draggingFolderId ? { ...f, x, y } : f
+      );
+      saveSpaceFolders(updated);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setDraggingFolderId(null);
+  };
+
+  // Keyboard Shortcuts for Space Desktop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (selectedNodeId !== null) {
-        if (e.key === 'Escape') {
-          handleCloseApp();
+      if (e.key === 'Escape') {
+        setContextMenu(null);
+        setEditingFolderId(null);
+        setFolderToDelete(null);
+        setIsLauncherOpen(false);
+      } else if (e.key === 'F2' && selectedIconId?.startsWith('folder-')) {
+        const folderId = selectedIconId.replace('folder-', '');
+        const target = spaceFolders.find((f) => f.id === folderId);
+        if (target) {
+          setEditingFolderId(target.id);
+          setEditingFolderName(target.name);
         }
-        return;
-      }
-
-      if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
-        resetIdleTimer();
-        targetScrollRef.current = Math.min(1, targetScrollRef.current + 0.25);
-      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-        resetIdleTimer();
-        targetScrollRef.current = Math.max(0, targetScrollRef.current - 0.25);
-      } else if (e.key === 'Home') {
-        resetIdleTimer();
-        targetScrollRef.current = 0;
-      } else if (e.key === 'End') {
-        resetIdleTimer();
-        targetScrollRef.current = 1;
+      } else if (e.key === 'Delete' && selectedIconId?.startsWith('folder-')) {
+        const folderId = selectedIconId.replace('folder-', '');
+        const target = spaceFolders.find((f) => f.id === folderId);
+        if (target) {
+          setFolderToDelete(target);
+        }
+      } else if (e.key === 'Enter' && selectedIconId) {
+        if (selectedIconId.startsWith('folder-')) {
+          const folderId = selectedIconId.replace('folder-', '');
+          const target = spaceFolders.find((f) => f.id === folderId);
+          if (target) handleOpenFolderWindow(target);
+        } else {
+          handleOpenApp(selectedIconId);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeId, resetIdleTimer]);
+  }, [selectedIconId, spaceFolders]);
 
-  // Jump to Apps / Jump to Hero buttons
-  const scrollToApps = () => {
-    try { soundFx.playClick(); } catch (e) {}
-    targetScrollRef.current = 1;
-  };
+  // Filter Launcher Apps
+  const filteredApps = useMemo(() => {
+    if (!launcherSearch.trim()) return spaceApps;
+    return spaceApps.filter(
+      (app) =>
+        app.title.toLowerCase().includes(launcherSearch.toLowerCase()) ||
+        app.subtitle.toLowerCase().includes(launcherSearch.toLowerCase()) ||
+        app.shortTitle.toLowerCase().includes(launcherSearch.toLowerCase())
+    );
+  }, [spaceApps, launcherSearch]);
 
-  const scrollToHero = () => {
-    try { soundFx.playClick(); } catch (e) {}
-    targetScrollRef.current = 0;
-  };
+  // Theme Design Token CSS Variables
+  const themeCssVariables = useMemo(() => {
+    let accent = '#22D3EE';
+    let sec = '#38BDF8';
+    let bg = '#020617';
+    let glow = 'rgba(34, 211, 238, 0.4)';
 
-  // MATEUS SPACE 2026 APPS WITH FUTURISTIC IDENTIFIERS
-  const spaceNodes: SpaceNode[] = useMemo(() => [
-    {
-      id: 'about',
-      title: 'SOBRE MIM',
-      subtitle: 'Perfil Digital & Trajetória',
-      category: 'core',
-      icon: User,
-      color: 'from-blue-600 to-cyan-500',
-      glowColor: 'shadow-cyan-500/50',
-      accentHex: '#06b6d4',
-      badge: 'PERFIL',
-      description: 'Formação acadêmica, MBAs, trajetória no Exército e pilares de liderança.',
-      revealThreshold: 0.25
-    },
-    {
-      id: 'skills',
-      title: 'O QUE EU FAÇO',
-      subtitle: 'Capabilities System',
-      category: 'core',
-      icon: Cpu,
-      color: 'from-blue-500 to-indigo-600',
-      glowColor: 'shadow-blue-500/50',
-      accentHex: '#3b82f6',
-      badge: 'MATRIZ',
-      description: 'Logística Avançada, Gestão Pública, Finanças e Engenharia de Prompt com IA.',
-      revealThreshold: 0.35
-    },
-    {
-      id: 'projects',
-      title: 'TRABALHO SELECIONADO',
-      subtitle: 'Project Explorer 2026',
-      category: 'core',
-      icon: Folder,
-      color: 'from-cyan-500 to-blue-600',
-      glowColor: 'shadow-cyan-500/50',
-      accentHex: '#22d3ee',
-      badge: 'PROJETOS',
-      description: 'Arquitetura front-end interativa, dot matrix particle engine e Web Audio API.',
-      revealThreshold: 0.45
-    },
-    {
-      id: 'resume',
-      title: 'RESUMO.PDF',
-      subtitle: 'Digital Resume Viewer',
-      category: 'core',
-      icon: FileText,
-      color: 'from-sky-500 to-blue-700',
-      glowColor: 'shadow-sky-500/50',
-      accentHex: '#38bdf8',
-      badge: 'PDF',
-      description: 'Visualizador de currículo com download em PDF e histórico profissional.',
-      revealThreshold: 0.55
-    },
-    {
-      id: 'now',
-      title: 'AGORA 2026',
-      subtitle: 'Live Status & Metas',
-      category: 'core',
-      icon: Clock,
-      color: 'from-indigo-500 to-blue-600',
-      glowColor: 'shadow-indigo-500/50',
-      accentHex: '#6366f1',
-      badge: 'AO VIVO',
-      description: 'Projetos em andamento, estudos ativos e objetivos estratégicos traçados.',
-      revealThreshold: 0.65
-    },
-    {
-      id: 'aims',
-      title: 'AIMS TERMINAL',
-      subtitle: 'Communication Terminal',
-      category: 'interactive',
-      icon: MessageSquare,
-      color: 'from-cyan-600 to-blue-800',
-      glowColor: 'shadow-cyan-600/50',
-      accentHex: '#0891b2',
-      badge: 'CHAT',
-      description: 'Comunicador neural para conversar e tirar dúvidas sobre a carreira de Mateus.',
-      revealThreshold: 0.75
-    },
-    {
-      id: 'games',
-      title: 'SPACE ARCADE',
-      subtitle: 'Game Center Futurista',
-      category: 'interactive',
-      icon: Gamepad2,
-      color: 'from-blue-600 to-sky-600',
-      glowColor: 'shadow-blue-600/50',
-      accentHex: '#2563eb',
-      badge: 'ARCADE',
-      description: 'Paciência Nebula, Cosmic Snake, Campo Minado Quântico e Pinball Espacial.',
-      revealThreshold: 0.85
-    },
-    {
-      id: 'contact',
-      title: 'CONTATO',
-      subtitle: 'Communication Hub',
-      category: 'core',
-      icon: Mail,
-      color: 'from-emerald-500 to-cyan-500',
-      glowColor: 'shadow-emerald-500/50',
-      accentHex: '#10b981',
-      badge: 'WHATSAPP',
-      description: 'Cards diretos para WhatsApp em destaque prioritário, LinkedIn, E-mail e GitHub.',
-      revealThreshold: 0.90
-    },
-    {
-      id: 'guestbook',
-      title: 'LIVRO DE VISITAS',
-      subtitle: 'Registro Comunitário',
-      category: 'interactive',
-      icon: BookOpen,
-      color: 'from-cyan-600 to-emerald-600',
-      glowColor: 'shadow-emerald-500/50',
-      accentHex: '#06b6d4',
-      badge: 'GUESTBOOK',
-      description: 'Deixe sua assinatura digital persistente no portfólio via Firebase Firestore.',
-      revealThreshold: 0.95
+    if (currentTheme === 'aurora') {
+      accent = '#00F5A0';
+      sec = '#22D3EE';
+      bg = '#020B0A';
+      glow = 'rgba(0, 245, 160, 0.4)';
+    } else if (currentTheme === 'void') {
+      accent = '#E2E8F0';
+      sec = '#64748B';
+      bg = '#000000';
+      glow = 'rgba(226, 232, 240, 0.2)';
+    } else if (currentTheme === 'violet') {
+      accent = '#8B5CF6';
+      sec = '#38BDF8';
+      bg = '#050816';
+      glow = 'rgba(139, 92, 246, 0.4)';
+    } else if (currentTheme === 'light-space') {
+      accent = '#0284C7';
+      sec = '#2563EB';
+      bg = '#F8FAFC';
+      glow = 'rgba(2, 132, 199, 0.3)';
     }
-  ], []);
 
-  // App Opening / Closing Handlers with Smooth Scale & Fade Transition
-  const handleOpenApp = (node: SpaceNode) => {
-    resetIdleTimer();
-    try { soundFx.playWindowOpen(); } catch (err) {}
-
-    setIsOpeningApp(true);
-    setSelectedNodeId(node.id);
-
-    setTimeout(() => {
-      setIsOpeningApp(false);
-    }, 280);
-  };
-
-  const handleCloseApp = () => {
-    resetIdleTimer();
-    try { soundFx.playWindowClose(); } catch (err) {}
-
-    setIsClosingApp(true);
-    setTimeout(() => {
-      setSelectedNodeId(null);
-      setIsClosingApp(false);
-    }, 240);
-  };
-
-  const handleDirectAppSwitch = (targetNode: SpaceNode) => {
-    if (targetNode.id === selectedNodeId) return;
-    resetIdleTimer();
-    try { soundFx.playClick(); } catch (err) {}
-    setSelectedNodeId(targetNode.id);
-  };
-
-  const filteredNodes = useMemo(() => {
-    return spaceNodes.filter((node) => {
-      const matchSearch =
-        node.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        node.subtitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        node.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchSearch;
-    });
-  }, [spaceNodes, searchQuery]);
-
-  // Render the Dedicated Futuristic Space Sub-Apps
-  const renderCenterApp = (nodeId: string) => {
-    switch (nodeId) {
-      case 'about': return <SpaceAboutApp />;
-      case 'skills': return <SpaceSkillsApp />;
-      case 'projects': return <SpaceProjectsApp />;
-      case 'resume': return <SpaceResumeApp />;
-      case 'now': return <SpaceNowApp />;
-      case 'aims': return <SpaceAimsApp />;
-      case 'games': return <SpaceGamesApp />;
-      case 'contact': return <SpaceContactApp />;
-      case 'guestbook': return <GuestbookApp mode="space" />;
-      default: return <SpaceAboutApp />;
-    }
-  };
-
-  const selectedNode = spaceNodes.find((n) => n.id === selectedNodeId);
-
-  // Progressive Visual Interpolations:
-  const heroOpacity = Math.max(0, 1 - scrollProgress * 2.5);
-  const heroScale = 1 + scrollProgress * 0.15;
-  const appsOpacity = Math.min(1, Math.max(0, (scrollProgress - 0.25) / 0.65));
-  const appsScale = 0.92 + appsOpacity * 0.08;
+    return {
+      '--space-accent': accent,
+      '--space-sec': sec,
+      '--space-bg': bg,
+      '--space-glow': glow,
+    } as React.CSSProperties;
+  }, [currentTheme]);
 
   return (
     <div
-      onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
+      style={themeCssVariables}
+      onContextMenu={(e) => handleContextMenu(e)}
+      onTouchStart={(e) => handleTouchStart(e)}
       onTouchEnd={handleTouchEnd}
-      className="fixed inset-0 z-50 bg-[#000206] text-white overflow-hidden select-none font-sans flex flex-col justify-between"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      className={`fixed inset-0 select-none overflow-hidden font-sans-ui ${
+        currentTheme === 'light-space' ? 'text-slate-800' : 'text-slate-100'
+      }`}
     >
-      {/* 3-LAYER PARALLAX DEEP BLUE SPACE BACKGROUND CANVAS (#020817, #03152D, #008CFF, #000000) */}
+      {/* Dynamic Multi-Wallpaper Procedural Background */}
       <SpaceBlueBackgroundCanvas
-        reduceMotion={reduceMotion}
-        scrollProgress={scrollProgress}
+        reduceMotion={false}
+        wallpaperId={currentWallpaper}
+        effectsEnabled={effectsEnabled}
       />
 
-      {/* =========================================================================
-          MAIN IN-PLACE ARENA (SEAMLESS SCROLL PROGRESSION)
-      ========================================================================== */}
-      <main
-        className={`relative z-20 flex-1 w-full h-full flex items-center justify-center overflow-hidden p-3 sm:p-4 transition-all duration-300 ${
-          selectedNodeId ? 'filter blur-[4px] scale-95 opacity-40 pointer-events-none' : ''
-        }`}
-      >
-        {/* 1. MATEUS ARAUJO BLUE DOT MATRIX HERO */}
-        {heroOpacity > 0.01 && (
-          <div
-            onClick={scrollToApps}
-            style={{
-              opacity: heroOpacity,
-              transform: `scale(${heroScale})`,
-              pointerEvents: heroOpacity > 0.6 ? 'auto' : 'none'
+      {/* --- DESKTOP CANVAS WORKSPACE --- */}
+      <div className="relative z-10 w-full h-[calc(100vh-64px)] p-6 md:p-8 flex flex-col justify-between pointer-events-none">
+        {/* TOP BAR / NAVIGATION / SYSTEM STATUS */}
+        <div className="w-full flex items-center justify-between pointer-events-auto">
+          {/* Back to Retro (OS 00) Button */}
+          <button
+            onClick={() => {
+              try { soundFx.playClick(); } catch (e) {}
+              onBackToRetro();
             }}
-            className="absolute inset-0 flex flex-col items-center justify-center transition-all duration-150 z-10 p-4 cursor-pointer"
+            className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-black/60 hover:bg-slate-900/80 border border-white/10 hover:border-cyan-400/50 text-slate-300 hover:text-white transition-all backdrop-blur-xl group cursor-pointer shadow-lg hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]"
           >
-            <div className="w-full max-w-6xl flex flex-col items-center justify-center">
-              <ParticleTextCanvas
-                isCompact={false}
-                reduceMotion={reduceMotion}
-              />
+            <ArrowLeft className="w-4 h-4 text-cyan-400 group-hover:-translate-x-0.5 transition-transform" />
+            <span className="font-mono text-xs font-bold tracking-wider">
+              RETORNAR AO MATEUS OS 00
+            </span>
+          </button>
+
+          {/* Quick System Indicators */}
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 backdrop-blur-xl text-[11px] font-mono text-cyan-400 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span>SPACE OS 2026 // {currentTheme.toUpperCase()}</span>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* 2. THE APPS MATERIALIZED IN-PLACE WITH ZERO-GRAVITY SPACE FLOATING */}
-        {appsOpacity > 0.02 && (
+        {/* --- CENTER AREA: SOPHISTICATED SIGNATURE & ICONS GRID --- */}
+        <div className="w-full flex-1 flex flex-col items-center justify-center my-auto pointer-events-auto">
+          {/* Central Name "Mateus Araujo" with Particle Glass / Digital Dust */}
+          <div className="w-full max-w-2xl text-center mb-6">
+            <ParticleTextCanvas
+              reduceMotion={!effectsEnabled}
+              theme={currentTheme}
+            />
+          </div>
+
+          {/* 3-Column Standard Space App Icons Matrix */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-3 sm:gap-4 max-w-5xl justify-items-center">
+            {spaceApps.map((app) => {
+              const IconComp = app.icon;
+              const isSelected = selectedIconId === app.id;
+
+              return (
+                <div
+                  key={app.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try { soundFx.playClick(); } catch (err) {}
+                    setSelectedIconId(app.id);
+                    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                      handleOpenApp(app.id);
+                    }
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenApp(app.id);
+                  }}
+                  className={`flex flex-col items-center justify-center p-2 rounded-2xl w-20 sm:w-22 text-center cursor-pointer transition-all duration-200 group ${
+                    isSelected
+                      ? 'bg-cyan-500/20 border border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105'
+                      : 'hover:bg-white/10 hover:border-white/20 border border-transparent'
+                  }`}
+                >
+                  {/* Modern Futuristic App Icon Badge */}
+                  <div
+                    className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${app.iconBg} p-2.5 flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all`}
+                  >
+                    <IconComp className="w-6 h-6" />
+                  </div>
+
+                  <span className="text-[11px] font-mono font-medium text-slate-200 mt-2 truncate w-full group-hover:text-cyan-300 transition-colors">
+                    {app.shortTitle}
+                  </span>
+                </div>
+              );
+            })}
+
+            {/* Custom User Folders in Space 2026 */}
+            {spaceFolders.map((folder) => {
+              const isSelected = selectedIconId === `folder-${folder.id}`;
+              const isEditing = editingFolderId === folder.id;
+              const hasCustomPos = folder.x !== undefined && folder.y !== undefined;
+
+              return (
+                <div
+                  key={folder.id}
+                  style={
+                    hasCustomPos
+                      ? { position: 'fixed', left: `${folder.x}px`, top: `${folder.y}px`, zIndex: 15 }
+                      : undefined
+                  }
+                  onMouseDown={(e) => handleFolderMouseDown(e, folder)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    try { soundFx.playClick(); } catch (err) {}
+                    setSelectedIconId(`folder-${folder.id}`);
+                    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                      handleOpenFolderWindow(folder);
+                    }
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenFolderWindow(folder);
+                  }}
+                  onContextMenu={(e) => handleContextMenu(e, folder)}
+                  onTouchStart={(e) => handleTouchStart(e, folder)}
+                  onTouchEnd={handleTouchEnd}
+                  className={`flex flex-col items-center justify-center p-2 rounded-2xl w-20 sm:w-22 text-center cursor-pointer transition-all duration-200 group ${
+                    isSelected
+                      ? 'bg-cyan-500/20 border border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105'
+                      : 'hover:bg-white/10 hover:border-white/20 border border-transparent'
+                  }`}
+                >
+                  {/* Modern Glass Folder Icon */}
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600/30 to-blue-700/40 border border-cyan-400/40 p-2.5 flex items-center justify-center text-cyan-300 shadow-lg group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all">
+                    <Folder className="w-6 h-6" />
+                  </div>
+
+                  {isEditing ? (
+                    <input
+                      ref={renameInputRef}
+                      type="text"
+                      value={editingFolderName}
+                      onChange={(e) => setEditingFolderName(e.target.value)}
+                      onBlur={handleSaveRename}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveRename();
+                        if (e.key === 'Escape') setEditingFolderId(null);
+                      }}
+                      className="w-full text-[11px] font-mono text-cyan-300 bg-slate-900/90 border border-cyan-400 text-center px-1 py-0.5 rounded outline-none mt-1"
+                      autoFocus
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className="text-[11px] font-mono font-medium text-slate-200 mt-2 truncate w-full group-hover:text-cyan-300 transition-colors">
+                      {folder.name}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Bottom subtle guidance */}
+        <div className="w-full flex items-center justify-end text-[11px] font-mono text-slate-500 pointer-events-auto">
+          <span className="hidden md:inline">MATEUS ARAUJO // SISTEMA INTEGRADO 2026</span>
+        </div>
+      </div>
+
+      {/* --- WINDOWS LAYER (MODERN 2026 GLASS WINDOWS) --- */}
+      {openWindows.map((win) => {
+        if (win.isMinimized) return null;
+
+        const appDef = spaceApps.find((a) => a.id === win.id);
+        const isFolderWindow = win.id.startsWith('folder-window-');
+        const folder = win.folderData;
+        const isActive = activeWindowId === win.id;
+
+        const title = isFolderWindow
+          ? folder?.name.toUpperCase() || 'PASTA'
+          : appDef?.title || 'APLICATIVO';
+
+        return (
           <div
-            style={{
-              opacity: appsOpacity,
-              transform: `scale(${appsScale})`,
-              pointerEvents: appsOpacity > 0.4 ? 'auto' : 'none'
-            }}
-            className="w-full max-w-5xl flex flex-col items-center gap-3 z-20 transition-all duration-150"
+            key={win.id}
+            onMouseDown={() => bringToFront(win.id)}
+            style={{ zIndex: win.zIndex }}
+            className={`fixed transition-all duration-200 flex flex-col shadow-[0_20px_50px_rgba(0,0,0,0.8)] backdrop-blur-2xl overflow-hidden ${
+              win.isMaximized
+                ? 'inset-0 pb-16 rounded-none'
+                : 'top-10 bottom-20 left-4 right-4 sm:left-12 sm:right-12 md:left-24 md:right-24 lg:left-36 lg:right-36 rounded-3xl'
+            } ${
+              isActive
+                ? 'border border-cyan-400/50 bg-slate-950/90 shadow-[0_0_40px_rgba(6,182,212,0.2)]'
+                : 'border border-white/10 bg-slate-950/80'
+            }`}
           >
-            {/* Top Navigation & Search Bar */}
-            <div className="w-full flex items-center justify-between px-1">
-              <button
-                onClick={scrollToHero}
-                className="text-[11px] font-mono text-cyan-400/90 hover:text-cyan-200 flex items-center gap-1 cursor-pointer transition hover:underline"
-              >
-                <span>↑ Retornar ao início</span>
-              </button>
+            {/* Window Glass Titlebar */}
+            <div className="h-12 px-4 bg-black/40 border-b border-white/10 flex items-center justify-between shrink-0 select-none">
+              <div className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
+                <span className="text-xs font-mono font-bold text-white tracking-wider">
+                  {title}
+                </span>
+              </div>
 
-              <div className="relative w-44 sm:w-60">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-cyan-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar módulo..."
-                  className="w-full bg-black/75 text-white text-xs pl-8 pr-3 py-1.5 rounded-xl border border-cyan-900/90 focus:outline-hidden focus:border-cyan-400 font-mono backdrop-blur-md shadow-inner"
-                />
+              {/* Window Controls */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMinimizeWindow(win.id);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+                  title="Minimizar"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleMaximize(win.id);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+                  title={win.isMaximized ? 'Restaurar' : 'Maximizar'}
+                >
+                  {win.isMaximized ? (
+                    <Minimize2 className="w-4 h-4" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4" />
+                  )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCloseWindow(win.id);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-red-950/80 text-slate-400 hover:text-red-400 transition cursor-pointer"
+                  title="Fechar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
             </div>
 
-            {/* Responsive App Grid with Glowing Hologram Borders & Hover Elevation */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4 w-full">
-              {filteredNodes.map((node, index) => {
-                const Icon = node.icon;
-                const isHovered = hoveredNodeId === node.id;
-                const isRevealed = scrollProgress >= node.revealThreshold || appsOpacity > 0.8;
-                const nodeOpacity = isRevealed ? 1 : Math.max(0.2, (scrollProgress / node.revealThreshold));
-                const floatAnimationClass = reduceMotion || isHovered ? '' : `animate-space-float-${index % 8}`;
+            {/* Window Content Container */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+              {isFolderWindow && folder ? (
+                <FolderWindow folder={folder} mode="space" />
+              ) : (
+                <>
+                  {win.id === 'about' && <SpaceAboutApp onOpenContact={() => handleOpenApp('contact')} />}
+                  {win.id === 'skills' && <SpaceSkillsApp onOpenContact={() => handleOpenApp('contact')} />}
+                  {win.id === 'projects' && <SpaceProjectsApp />}
+                  {win.id === 'resume' && <SpaceResumeApp />}
+                  {win.id === 'now' && <SpaceNowApp />}
+                  {win.id === 'aims' && <SpaceAimsApp />}
+                  {win.id === 'games' && <SpaceGamesApp />}
+                  {win.id === 'contact' && <SpaceContactApp />}
+                  {win.id === 'guestbook' && <GuestbookApp mode="retro" />}
+                  {win.id === 'personalization' && (
+                    <SpacePersonalizationApp
+                      currentTheme={currentTheme}
+                      currentWallpaper={currentWallpaper}
+                      effectsEnabled={effectsEnabled}
+                      onSelectTheme={handleSelectTheme}
+                      onSelectWallpaper={handleSelectWallpaper}
+                      onToggleEffects={handleToggleEffects}
+                      initialTab={personalizationTab}
+                    />
+                  )}
+                  {win.id === 'trash' && (
+                    <TrashApp
+                      mode="space"
+                      trashItems={trashItems}
+                      onRestoreItem={(item) => {
+                        if (onRestoreTrashItem) onRestoreTrashItem(item);
+                        // If folder belonged to space, add it back to spaceFolders
+                        if (item.originalFolder && item.origin === 'space') {
+                          saveSpaceFolders([...spaceFolders, item.originalFolder]);
+                        }
+                      }}
+                      onPermanentlyDeleteItem={(id) => {
+                        if (onPermanentDeleteTrashItem) onPermanentDeleteTrashItem(id);
+                      }}
+                      onEmptyTrash={() => {
+                        if (onEmptyTrash) onEmptyTrash();
+                      }}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })}
 
-                return (
-                  <div
-                    key={node.id}
-                    onClick={() => handleOpenApp(node)}
-                    onMouseEnter={() => {
-                      setHoveredNodeId(node.id);
-                      try { soundFx.playClick(); } catch (err) {}
-                    }}
-                    onMouseLeave={() => setHoveredNodeId(null)}
-                    style={{
-                      opacity: nodeOpacity,
-                      transform: isHovered ? 'translateY(-4px) scale(1.03)' : undefined
-                    }}
-                    className={`w-full p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col items-center text-center gap-2.5 group relative backdrop-blur-xl ${floatAnimationClass} ${
-                      isHovered
-                        ? 'bg-blue-950/90 border-cyan-400 shadow-[0_0_35px_rgba(6,182,212,0.6)] z-30'
-                        : 'bg-black/75 border-cyan-950/90 hover:border-cyan-700 shadow-[0_0_20px_rgba(0,10,30,0.6)]'
+      {/* Floating Futuristic Clippy Assistant */}
+      <SpaceClippy
+        onOpenAims={() => handleOpenApp('aims')}
+        onOpenGames={() => handleOpenApp('games')}
+        onOpenProjects={() => handleOpenApp('projects')}
+      />
+
+      {/* --- MODERN SPACE TASKBAR (FIXED BOTTOM) --- */}
+      <div className="fixed bottom-0 inset-x-0 h-16 bg-black/60 border-t border-white/10 backdrop-blur-2xl z-40 px-4 flex items-center justify-between select-none">
+        {/* Left: Start / Space Launcher Button */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              try { soundFx.playClick(); } catch (e) {}
+              setIsLauncherOpen(!isLauncherOpen);
+            }}
+            className={`flex items-center gap-2.5 px-4 py-2 rounded-2xl font-mono text-xs font-bold transition-all cursor-pointer ${
+              isLauncherOpen
+                ? 'bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.6)]'
+                : 'bg-white/10 hover:bg-white/20 text-white border border-white/10 hover:border-cyan-400/40'
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            <span>SPACE // MENU</span>
+          </button>
+
+          {/* Open Windows Tabs in Taskbar */}
+          <div className="hidden sm:flex items-center gap-2 overflow-x-auto max-w-md py-1">
+            {openWindows.map((win) => {
+              const appDef = spaceApps.find((a) => a.id === win.id);
+              const isFolder = win.id.startsWith('folder-window-');
+              const title = isFolder ? win.folderData?.name || 'Pasta' : appDef?.shortTitle || 'App';
+              const isActive = activeWindowId === win.id && !win.isMinimized;
+
+              return (
+                <button
+                  key={win.id}
+                  onClick={() => handleTaskbarClick(win.id)}
+                  className={`px-3 py-1.5 rounded-xl font-mono text-xs flex items-center gap-2 transition cursor-pointer truncate max-w-[140px] ${
+                    isActive
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/60 shadow-xs'
+                      : 'bg-black/40 text-slate-400 hover:text-white border border-white/5'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isActive ? 'bg-cyan-400' : 'bg-slate-600'
                     }`}
+                  />
+                  <span className="truncate">{title}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right: Quick Controls, Audio Toggle & 2026 Clock */}
+        <div className="flex items-center gap-3">
+          {/* Quick Personalization Shortcut */}
+          <button
+            onClick={() => handleOpenApp('personalization')}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-cyan-300 transition cursor-pointer"
+            title="Personalização (Wallpapers, Temas, Efeitos)"
+          >
+            <Palette className="w-4 h-4" />
+          </button>
+
+          {/* Sound Toggle */}
+          <button
+            onClick={toggleSound}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-cyan-300 transition cursor-pointer"
+            title={isSoundOn ? 'Desativar Som' : 'Ativar Som'}
+          >
+            {isSoundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-red-400" />}
+          </button>
+
+          {/* 2026 Digital HUD Clock */}
+          <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 font-mono text-xs font-bold text-cyan-300 shadow-inner">
+            {currentTime}
+          </div>
+        </div>
+      </div>
+
+      {/* --- START / SPACE LAUNCHER DRAWER --- */}
+      {isLauncherOpen && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="fixed bottom-20 left-4 w-88 sm:w-96 max-h-[520px] rounded-3xl bg-slate-950/95 border border-cyan-500/40 backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.9)] z-50 p-5 flex flex-col gap-4 animate-fadeIn"
+        >
+          {/* Search Box */}
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Buscar aplicativos ou ferramentas..."
+              value={launcherSearch}
+              onChange={(e) => setLauncherSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/60 border border-white/10 text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 transition"
+              autoFocus
+            />
+          </div>
+
+          {/* Apps List */}
+          <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+            {filteredApps.map((app) => {
+              const IconComp = app.icon;
+              return (
+                <button
+                  key={app.id}
+                  onClick={() => handleOpenApp(app.id)}
+                  className="w-full p-2.5 rounded-2xl hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/30 flex items-center gap-3.5 text-left transition group cursor-pointer"
+                >
+                  <div
+                    className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${app.iconBg} flex items-center justify-center text-white shrink-0 shadow-md group-hover:scale-105 transition-transform`}
                   >
-                    {/* Badge */}
-                    {node.badge && (
-                      <span className="absolute top-2.5 right-2.5 text-[9px] font-mono font-extrabold px-2 py-0.5 rounded-full bg-blue-950 text-cyan-300 border border-cyan-700/60 shadow-xs">
-                        {node.badge}
-                      </span>
-                    )}
-
-                    {/* Glowing Blue Space Icon */}
-                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${node.color} flex items-center justify-center text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-transform group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(6,182,212,0.7)]`}>
-                      <Icon className="w-6 h-6" />
+                    <IconComp className="w-5 h-5" />
+                  </div>
+                  <div className="truncate">
+                    <div className="text-xs font-mono font-bold text-white group-hover:text-cyan-300 transition-colors">
+                      {app.title}
                     </div>
-
-                    {/* Title & Subtitle */}
-                    <div className="w-full">
-                      <div className="font-bold text-xs sm:text-sm text-white truncate font-mono group-hover:text-cyan-300 transition-colors">
-                        {node.title}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                        {node.subtitle}
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed h-8 px-1">
-                      {node.description}
-                    </p>
-
-                    <div className="w-full pt-1.5 border-t border-cyan-950/80 text-[10px] font-mono text-cyan-400 flex items-center justify-center gap-1 group-hover:text-cyan-200 transition-colors">
-                      <span>Acessar Módulo</span>
-                      <ChevronRight className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" />
+                    <div className="text-[10px] font-mono text-slate-400 truncate">
+                      {app.subtitle}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </button>
+              );
+            })}
           </div>
-        )}
-      </main>
 
-      {/* CANTO INFERIOR ESQUERDO: OPÇÃO ÚNICA PARA RETORNAR AO MODO RETRÔ */}
-      <button
-        onClick={() => {
-          try { soundFx.playClick(); } catch (e) {}
-          onBackToRetro();
-        }}
-        className="fixed bottom-4 left-4 z-30 px-3.5 py-2 rounded-xl bg-black/80 hover:bg-blue-950 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 hover:text-white text-xs font-mono font-bold flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] active:scale-95 transition backdrop-blur-md"
-        title="Retornar ao Windows 2000 (Modo Retrô)"
-      >
-        <ArrowLeft className="w-3.5 h-3.5 text-cyan-400" />
-        <span>← Back OS 00</span>
-      </button>
-
-      {/* FLOATING SPACE CLIPPY ASSISTANT */}
-      {!selectedNodeId && (
-        <SpaceClippy
-          onOpenModule={(nodeId) => {
-            const target = spaceNodes.find(n => n.id === nodeId);
-            if (target) handleOpenApp(target);
-          }}
-          onBackToRetro={onBackToRetro}
-        />
-      )}
-
-      {/* =========================================================================
-          SELECTED NODE MODAL (FUTURISTIC HUD GLASS INTERFACE)
-      ========================================================================== */}
-      {selectedNodeId && selectedNode && (
-        <div
-          className={`fixed inset-2 sm:inset-5 z-40 bg-[#020817]/95 border-2 border-cyan-400/80 rounded-2xl shadow-[0_0_70px_rgba(6,182,212,0.35)] flex flex-col overflow-hidden backdrop-blur-2xl transition-all duration-300 ${
-            isOpeningApp
-              ? 'scale-95 opacity-0'
-              : isClosingApp
-              ? 'scale-95 opacity-0'
-              : 'scale-100 opacity-100'
-          }`}
-        >
-          {/* Modal Titlebar */}
-          <div className="bg-blue-950/90 p-2.5 sm:p-3.5 border-b border-cyan-500/30 flex flex-wrap items-center justify-between gap-2">
-            {/* Left: Active Module Identifier */}
-            <div className="flex items-center gap-2.5">
-              <div className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${selectedNode.color} flex items-center justify-center text-white shadow-md`}>
-                {React.createElement(selectedNode.icon, { className: "w-4 h-4" })}
-              </div>
-              <div>
-                <h3 className="font-bold text-xs sm:text-sm font-mono text-white flex items-center gap-1.5">
-                  <span>{selectedNode.title}</span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-900 text-cyan-300 border border-blue-700">
-                    2026
-                  </span>
-                </h3>
-                <p className="text-[10px] text-slate-300">{selectedNode.subtitle}</p>
-              </div>
-            </div>
-
-            {/* Center: DIRECT APP-TO-APP QUICK SWITCHER */}
-            <div className="hidden lg:flex items-center gap-1 bg-black/60 p-1 rounded-lg border border-cyan-950/90">
-              {spaceNodes.map((n) => {
-                const isCurrent = n.id === selectedNodeId;
-                const NIcon = n.icon;
-                return (
-                  <button
-                    key={n.id}
-                    onClick={() => handleDirectAppSwitch(n)}
-                    title={`Navegar para ${n.title}`}
-                    className={`px-2 py-1 rounded text-[10px] font-mono flex items-center gap-1 transition cursor-pointer ${
-                      isCurrent
-                        ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                        : 'text-slate-400 hover:text-cyan-200 hover:bg-blue-950/50'
-                    }`}
-                  >
-                    <NIcon className="w-3 h-3" />
-                    <span>{n.title.split(' ')[0]}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Right: Close Button */}
+          {/* Quick Footer Options */}
+          <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono">
             <button
-              onClick={handleCloseApp}
-              className="p-1.5 rounded-lg bg-slate-900/80 hover:bg-red-950 text-slate-300 hover:text-red-300 border border-cyan-900/80 hover:border-red-600 transition cursor-pointer flex items-center gap-1 text-xs font-mono"
-              title="Retornar ao Space (ESC)"
+              onClick={() => handleOpenApp('personalization')}
+              className="text-slate-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer"
             >
-              <X className="w-4 h-4" />
-              <span className="hidden sm:inline text-[10px]">Fechar</span>
+              <Palette className="w-3.5 h-3.5" />
+              <span>Personalizar</span>
             </button>
-          </div>
-
-          {/* Modal Content with Transparent Background allowing Cosmic Starfield Visibility */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-5 bg-[#010614]/90 text-slate-200">
-            {renderCenterApp(selectedNodeId)}
-          </div>
-
-          {/* Modal Footer with Module Quick Links */}
-          <div className="bg-blue-950/90 p-2.5 border-t border-cyan-900/60 flex items-center justify-between text-xs font-mono">
-            <span className="text-[11px] text-cyan-400/80 hidden sm:inline">
-              MATEUS SPACE 2026 • Navegue livremente pelos módulos
-            </span>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-              <div className="flex sm:hidden items-center gap-1 overflow-x-auto max-w-[200px] py-0.5">
-                {spaceNodes.map(n => (
-                  <button
-                    key={n.id}
-                    onClick={() => handleDirectAppSwitch(n)}
-                    className={`px-1.5 py-0.5 text-[9px] rounded ${n.id === selectedNodeId ? 'bg-cyan-700 text-white' : 'bg-black/50 text-slate-400'}`}
-                  >
-                    {n.title.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={handleCloseApp}
-                className="px-3 py-1 rounded bg-blue-900/80 hover:bg-blue-800 border border-cyan-400/50 text-cyan-200 text-[11px] font-bold cursor-pointer transition shadow-xs"
-              >
-                Voltar ao Space ✕
-              </button>
-            </div>
+            <button
+              onClick={() => onBackToRetro()}
+              className="text-slate-400 hover:text-white flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Modo Retrô</span>
+            </button>
           </div>
         </div>
       )}
 
-      {/* =========================================================================
-          AUTOMATIC IDLE SCREENSAVER OVERLAY (30s INACTIVITY)
-      ========================================================================== */}
-      {isScreensaverActive && (
-        <ScreensaverCanvas
-          onWakeUp={() => setIsScreensaverActive(false)}
-          reduceMotion={reduceMotion}
-        />
+      {/* --- SPACE 2026 CONTEXT MENU --- */}
+      {contextMenu?.visible && (
+        <div
+          style={{ top: `${contextMenu.y}px`, left: `${contextMenu.x}px` }}
+          className="fixed z-50 w-52 rounded-2xl bg-slate-950/95 border border-cyan-500/40 backdrop-blur-2xl shadow-[0_0_35px_rgba(6,182,212,0.3)] py-2 text-xs font-mono text-slate-200 select-none animate-fadeIn"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.targetFolder ? (
+            /* Folder Options */
+            <>
+              <button
+                onClick={() => {
+                  if (contextMenu.targetFolder) handleOpenFolderWindow(contextMenu.targetFolder);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition font-bold"
+              >
+                <FolderOpen className="w-4 h-4 text-cyan-400" />
+                <span>Abrir</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (contextMenu.targetFolder) handleStartRename(contextMenu.targetFolder);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <Edit2 className="w-4 h-4" />
+                <span>Renomear (F2)</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (contextMenu.targetFolder) setFolderToDelete(contextMenu.targetFolder);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-red-950/80 hover:text-red-300 text-red-400 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Excluir</span>
+              </button>
+              <div className="h-px bg-white/10 my-1.5 mx-2" />
+              <button
+                onClick={() => {
+                  alert(`CONTAINER QUANTUM // SPACE 2026\nNome: ${contextMenu.targetFolder?.name}\nStatus: Ativo\nArmazenamento: 0 KB`);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <Info className="w-4 h-4 text-cyan-400" />
+                <span>Propriedades</span>
+              </button>
+            </>
+          ) : (
+            /* Empty Desktop Options */
+            <>
+              <button
+                onClick={handleCreateSpaceFolder}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <FolderPlus className="w-4 h-4 text-cyan-400" />
+                <span>Nova pasta</span>
+              </button>
+              <div className="h-px bg-white/10 my-1.5 mx-2" />
+              <button
+                onClick={() => {
+                  try { soundFx.playClick(); } catch (e) {}
+                  const resetPositions = spaceFolders.map((f) => ({ ...f, x: undefined, y: undefined }));
+                  saveSpaceFolders(resetPositions);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span>Organizar ícones</span>
+              </button>
+              <button
+                onClick={() => {
+                  try { soundFx.playClick(); } catch (e) {}
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Atualizar</span>
+              </button>
+              <div className="h-px bg-white/10 my-1.5 mx-2" />
+              <button
+                onClick={() => {
+                  handleOpenApp('personalization', 'wallpapers');
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <Layers className="w-4 h-4 text-cyan-400" />
+                <span>Alterar wallpaper</span>
+              </button>
+              <button
+                onClick={() => {
+                  handleOpenApp('personalization', 'themes');
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                <span>Alterar tema</span>
+              </button>
+              <button
+                onClick={() => {
+                  handleOpenApp('personalization');
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"
+              >
+                <Palette className="w-4 h-4 text-cyan-400" />
+                <span>Personalização</span>
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Modern Folder Deletion Modal */}
+      {folderToDelete && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="p-6 rounded-3xl bg-slate-950 border border-red-500/40 max-w-sm w-full space-y-4 shadow-2xl text-center">
+            <div className="w-12 h-12 rounded-2xl bg-red-950/80 border border-red-500/50 flex items-center justify-center mx-auto text-red-400">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="font-mono font-bold text-base text-white">Mover para a Lixeira?</h3>
+            <p className="text-xs font-mono text-slate-400">
+              A pasta <span className="text-cyan-300 font-bold">"{folderToDelete.name}"</span> será enviada para a Lixeira do Space.
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-2 font-mono">
+              <button
+                onClick={() => setFolderToDelete(null)}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-xs text-slate-300 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDeleteFolder}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white shadow-lg cursor-pointer"
+              >
+                Mover para Lixeira
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

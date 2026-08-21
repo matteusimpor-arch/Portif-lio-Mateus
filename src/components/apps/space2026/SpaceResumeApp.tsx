@@ -12,11 +12,26 @@ import {
 } from 'lucide-react';
 import { PROFILE_DATA, EXPERIENCE_DATA, EDUCATION_DATA, CERTIFICATES_DATA } from '../../../data/portfolioData';
 import { soundFx } from '../../../utils/soundEffects';
+import { generateCurriculumPdf } from '../../../utils/generatePdf';
 
 export const SpaceResumeApp: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'all' | 'experience' | 'education' | 'certifications'>('all');
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   const handleDownloadPDF = () => {
+    try { soundFx.playClick(); } catch (e) {}
+    setIsGenerating(true);
+    try {
+      generateCurriculumPdf();
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      window.print();
+    } finally {
+      setTimeout(() => setIsGenerating(false), 800);
+    }
+  };
+
+  const handlePrint = () => {
     try { soundFx.playClick(); } catch (e) {}
     window.print();
   };
@@ -46,10 +61,17 @@ export const SpaceResumeApp: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownloadPDF}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-mono font-bold flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95 transition"
+              disabled={isGenerating}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-mono font-bold flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.4)] active:scale-95 transition disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
-              <span>Baixar / Imprimir PDF</span>
+              <span>{isGenerating ? 'Gerando PDF...' : 'Baixar Currículo em PDF'}</span>
+            </button>
+            <button
+              onClick={handlePrint}
+              className="hidden sm:flex px-3 py-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold items-center gap-1.5 cursor-pointer transition"
+            >
+              <span>Imprimir</span>
             </button>
           </div>
         </div>

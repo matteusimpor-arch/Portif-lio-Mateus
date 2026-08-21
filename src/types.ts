@@ -144,3 +144,35 @@ export interface NotificationItem {
   read?: boolean;
 }
 
+export type SpaceThemeId = 'space-blue' | 'aurora' | 'void' | 'violet' | 'light-space';
+
+export type SpaceWallpaperId =
+  | 'deep-space'
+  | 'blue-nebula'
+  | 'aurora-space'
+  | 'digital-void'
+  | 'violet-galaxy'
+  | 'cyber-grid';
+
+export interface DesktopFolderItem {
+  id: string;
+  name: string;
+  origin: 'retro' | 'space';
+  createdAt: number;
+  x?: number;
+  y?: number;
+  color?: string;
+  icon?: string;
+}
+
+export interface TrashItem {
+  id: string;
+  name: string;
+  desc?: string;
+  origin: 'retro' | 'space';
+  deletedAt: number;
+  originalFolder?: DesktopFolderItem;
+  type: 'folder' | 'file';
+}
+
+

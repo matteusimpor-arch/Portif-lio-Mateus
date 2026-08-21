@@ -374,6 +374,54 @@ class SoundSystem {
     osc.start(now);
     osc.stop(now + 0.22);
   }
+
+  /**
+   * Time Travel warp sound for cinematic transition
+   */
+  public playTimeTravelWarp() {
+    if (!this.enabled) return;
+    try {
+      this.initCtx();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      
+      // Deep sub-bass sweep
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(80, now);
+      osc1.frequency.exponentialRampToValueAtTime(440, now + 1.2);
+      osc1.frequency.exponentialRampToValueAtTime(880, now + 2.0);
+
+      gain1.gain.setValueAtTime(0.01, now);
+      gain1.gain.linearRampToValueAtTime(0.18, now + 0.8);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+
+      osc1.connect(gain1);
+      gain1.connect(this.ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 2.5);
+
+      // High resonance harmonic shimmer
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(523.25, now + 0.4);
+      osc2.frequency.exponentialRampToValueAtTime(1760, now + 2.2);
+
+      gain2.gain.setValueAtTime(0.001, now + 0.4);
+      gain2.gain.linearRampToValueAtTime(0.12, now + 1.4);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 2.6);
+
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+      osc2.start(now + 0.4);
+      osc2.stop(now + 2.6);
+    } catch (e) {
+      console.warn('playTimeTravelWarp error', e);
+    }
+  }
 }
 
 export const soundFx = new SoundSystem();

@@ -14,7 +14,8 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
   onLaunchTimeTravel,
   initialOpen = true,
 }) => {
-  const [isOpen, setIsOpen] = useState<boolean>(initialOpen);
+  const isMobileScreen = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [isOpen, setIsOpen] = useState<boolean>(isMobileScreen ? false : initialOpen);
   const [tipIndex, setTipIndex] = useState<number>(0);
   const [isBlinking, setIsBlinking] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -101,30 +102,30 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
       greeting: '💼 Trabalho Selecionado & Portfólio',
       text: (
         <>
-          Quer ver os estudos de caso em <strong>Logística</strong>, <strong>Engenharia de Prompt</strong> e automações com IA? Dê um duplo clique nos ícones do desktop!
+          Quer ver os estudos de caso em <strong>Logística</strong>, <strong>Engenharia de Prompt</strong> e automações com IA? Dê um toque nos ícones do desktop!
         </>
       ),
-      action: () => onOpenApp('projects'),
+      action: () => { onOpenApp('projects'); setIsOpen(false); },
       actionLabel: 'Abrir Trabalho Selecionado →',
     },
     {
       greeting: '🚀 Viagem no Tempo para 2026',
       text: (
         <>
-          Experimente o portal temporal e avance para o <strong>MATEUS SPACE 2026</strong>, onde as partículas cósmicas se transformam automaticamente em aplicativos!
+          Experimente o portal temporal e avance para o <strong>MATEUS SPACE 2026</strong>, onde as partículas cósmicas se transformam em aplicativos!
         </>
       ),
-      action: () => onLaunchTimeTravel(),
+      action: () => { onLaunchTimeTravel(); setIsOpen(false); },
       actionLabel: 'Iniciar Viagem no Tempo →',
     },
     {
       greeting: '🎮 Jogos Nostálgicos & Entretenimento',
       text: (
         <>
-          Relembre os clássicos: <strong>Paciência 2000</strong>, <strong>Snake 3310</strong>, <strong>Campo Minado</strong>, <strong>Pinball</strong> e muito mais na central de Jogos!
+          Relembre os clássicos: <strong>Paciência 2000</strong>, <strong>Snake 3310</strong>, <strong>Campo Minado</strong>, <strong>Pinball</strong> e muito mais!
         </>
       ),
-      action: () => onOpenApp('games'),
+      action: () => { onOpenApp('games'); setIsOpen(false); },
       actionLabel: 'Abrir Central de Jogos →',
     },
     {
@@ -134,7 +135,7 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
           Para baixar o PDF oficial de contratação ou enviar mensagem direta via WhatsApp/E-mail, acesse <strong>Résumé.pdf</strong> ou o <strong>AIMS Messenger</strong>!
         </>
       ),
-      action: () => onOpenApp('resume'),
+      action: () => { onOpenApp('resume'); setIsOpen(false); },
       actionLabel: 'Visualizar Résumé.pdf →',
     },
   ];
@@ -154,81 +155,90 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
   return (
     <div
       ref={clippyRef}
-      className="fixed bottom-14 right-4 z-40 flex items-end gap-3 select-none pointer-events-auto"
+      className="fixed bottom-12 sm:bottom-14 right-2 sm:right-4 z-40 flex items-end gap-3 select-none pointer-events-auto"
       style={{ filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.45))' }}
     >
-      {/* 1. RETRO SPEECH BUBBLE (Yellow Tooltip Post-It matching screenshot) */}
+      {/* 1. RETRO SPEECH BUBBLE / MOBILE BOTTOM SHEET */}
       {isOpen && (
-        <div className="w-72 sm:w-80 bg-[#ffffd2] text-gray-900 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,0.85)] p-3.5 font-sans relative text-xs leading-relaxed animate-fadeIn">
-          {/* Close button X */}
-          <button
-            onClick={() => {
-              try { soundFx.playClick(); } catch (e) {}
-              setIsOpen(false);
-            }}
-            className="absolute top-2 right-2 text-gray-600 hover:text-black font-bold p-0.5 cursor-pointer transition hover:bg-yellow-200 rounded"
-            title="Fechar dica"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+        <>
+          {/* Mobile Backdrop */}
+          <div
+            onClick={() => setIsOpen(false)}
+            className="sm:hidden fixed inset-0 bg-black/50 z-40"
+          />
 
-          {/* Heading */}
-          <div className="font-bold text-gray-950 text-xs mb-1.5 pr-4 flex items-center gap-1">
-            <span>{currentTip.greeting}</span>
-          </div>
-
-          {/* Body text */}
-          <div className="text-[11.5px] text-gray-800 mb-3 space-y-1">
-            <p>{currentTip.text}</p>
-          </div>
-
-          {/* Action Link & Next Tip Navigation */}
-          <div className="pt-2 border-t border-yellow-400/80 flex items-center justify-between gap-2">
-            {currentTip.action ? (
-              <button
-                onClick={() => {
-                  try { soundFx.playWindowOpen(); } catch (e) {}
-                  currentTip.action!();
-                }}
-                className="text-blue-900 hover:text-blue-700 font-bold underline text-[11px] cursor-pointer flex items-center gap-0.5"
-              >
-                <span>{currentTip.actionLabel}</span>
-              </button>
-            ) : (
-              <span className="text-[10px] text-gray-500 font-mono">Dica {tipIndex + 1} de {tips.length}</span>
-            )}
-
+          {/* Card Container: Bottom sheet on Mobile, Floating Post-it on Desktop */}
+          <div className="fixed sm:static bottom-10 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-auto z-50 w-full sm:w-80 bg-[#ffffd2] text-gray-900 border-t-2 sm:border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,0.85)] p-4 sm:p-3.5 font-sans relative text-xs leading-relaxed animate-slideUp sm:animate-fadeIn rounded-t-2xl sm:rounded-none">
+            {/* Close button X */}
             <button
-              onClick={handleNextTip}
-              className="text-blue-900 hover:text-blue-700 font-bold underline text-[11.5px] cursor-pointer ml-auto flex items-center gap-0.5 whitespace-nowrap"
+              onClick={() => {
+                try { soundFx.playClick(); } catch (e) {}
+                setIsOpen(false);
+              }}
+              className="absolute top-2 right-2 text-gray-600 hover:text-black font-bold p-1 cursor-pointer transition hover:bg-yellow-200 rounded min-w-[28px] min-h-[28px] flex items-center justify-center"
+              title="Fechar dica"
             >
-              <span>{tipIndex === tips.length - 1 ? 'Recomeçar tour ↺' : 'Next tip →'}</span>
+              <X className="w-4 h-4" />
             </button>
-          </div>
 
-          {/* Speech bubble pointy arrow pointing to Clippy on the right */}
-          <div
-            className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-black"
-          />
-          <div
-            className="absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-y-7 border-y-transparent border-l-7 border-l-[#ffffd2]"
-          />
-        </div>
+            {/* Heading */}
+            <div className="font-bold text-gray-950 text-xs sm:text-xs mb-1.5 pr-6 flex items-center gap-1">
+              <span>{currentTip.greeting}</span>
+            </div>
+
+            {/* Body text */}
+            <div className="text-xs sm:text-[11.5px] text-gray-800 mb-3 space-y-1">
+              <p>{currentTip.text}</p>
+            </div>
+
+            {/* Action Link & Next Tip Navigation */}
+            <div className="pt-2 border-t border-yellow-400/80 flex items-center justify-between gap-2">
+              {currentTip.action ? (
+                <button
+                  onClick={() => {
+                    try { soundFx.playWindowOpen(); } catch (e) {}
+                    currentTip.action!();
+                  }}
+                  className="text-blue-900 hover:text-blue-700 font-bold underline text-xs sm:text-[11px] cursor-pointer flex items-center gap-0.5 py-1"
+                >
+                  <span>{currentTip.actionLabel}</span>
+                </button>
+              ) : (
+                <span className="text-[11px] sm:text-[10px] text-gray-500 font-mono">Dica {tipIndex + 1} de {tips.length}</span>
+              )}
+
+              <button
+                onClick={handleNextTip}
+                className="text-blue-900 hover:text-blue-700 font-bold underline text-xs sm:text-[11.5px] cursor-pointer ml-auto flex items-center gap-0.5 whitespace-nowrap py-1 px-1"
+              >
+                <span>{tipIndex === tips.length - 1 ? 'Recomeçar ↺' : 'Próxima dica →'}</span>
+              </button>
+            </div>
+
+            {/* Speech bubble pointy arrow on Desktop */}
+            <div
+              className="hidden sm:block absolute top-1/2 -right-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-black"
+            />
+            <div
+              className="hidden sm:block absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-y-7 border-y-transparent border-l-7 border-l-[#ffffd2]"
+            />
+          </div>
+        </>
       )}
 
       {/* 2. CLIPPY CHARACTER (Vector SVG with Metallic Wire & Mouse-Tracking Eyes) */}
-      <div
+      <button
         onClick={handleToggleOpen}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="cursor-pointer group relative transition-transform hover:scale-105 active:scale-95"
+        className="cursor-pointer group relative transition-transform hover:scale-105 active:scale-95 focus:outline-hidden"
         title="Clique no Clippy para ver dicas!"
       >
         <svg
-          width="105"
-          height="135"
+          width="75"
+          height="95"
           viewBox="0 0 120 150"
-          className="drop-shadow-lg"
+          className="drop-shadow-lg sm:w-[95px] sm:h-[120px]"
         >
           {/* Metallic Paperclip Wire Body */}
           <defs>
@@ -355,7 +365,7 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
             ?
           </div>
         )}
-      </div>
+      </button>
     </div>
   );
 };

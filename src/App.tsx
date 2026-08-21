@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { WindowAppId, WindowState, ThemeConfig, NotificationItem, ViewMode } from './types';
+import { WindowAppId, WindowState, ThemeConfig, NotificationItem, ViewMode, DesktopFolderItem, TrashItem } from './types';
 import { BootScreen } from './components/BootScreen';
 import { ShutdownScreen } from './components/ShutdownScreen';
 import { Desktop } from './components/Desktop';
@@ -8,6 +8,7 @@ import { WindowFrame } from './components/WindowFrame';
 import { TimeTravelSpiral } from './components/TimeTravelSpiral';
 import { DigitalSpaceExperience } from './components/DigitalSpaceExperience';
 import { ScreensaverCanvas } from './components/ScreensaverCanvas';
+import { FolderWindow } from './components/FolderWindow';
 
 // Apps
 import { WelcomeApp } from './components/apps/WelcomeApp';
@@ -38,7 +39,7 @@ import { recordSiteVisit } from './lib/firebase';
 export default function App() {
   const [isBootComplete, setIsBootComplete] = useState<boolean>(false);
   const [isShutdown, setIsShutdown] = useState<boolean>(false);
-  const [activeWindowId, setActiveWindowId] = useState<WindowAppId | null>('welcome');
+  const [activeWindowId, setActiveWindowId] = useState<string | null>('welcome');
   const [highestZIndex, setHighestZIndex] = useState<number>(20);
 
   // Auto-record site visit on initial page load (1 per browser session)
@@ -53,6 +54,43 @@ export default function App() {
   // View Mode State (Retro 2000 vs Space 2026)
   const [viewMode, setViewMode] = useState<ViewMode>('retro');
   const [isTimeTraveling, setIsTimeTraveling] = useState<boolean>(false);
+
+  // --- RETRO CUSTOM FOLDERS STATE (PERSISTED) ---
+  const [retroFolders, setRetroFolders] = useState<DesktopFolderItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('mateus_retro_folders');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  const saveRetroFolders = (folders: DesktopFolderItem[]) => {
+    setRetroFolders(folders);
+    try {
+      localStorage.setItem('mateus_retro_folders', JSON.stringify(folders));
+    } catch (e) {}
+  };
+
+  // --- GLOBAL TRASH ITEMS STATE (PERSISTED) ---
+  const [trashItems, setTrashItems] = useState<TrashItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('mateus_trash_items');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  const saveTrashItems = (items: TrashItem[]) => {
+    setTrashItems(items);
+    try {
+      localStorage.setItem('mateus_trash_items', JSON.stringify(items));
+    } catch (e) {}
+  };
+
+  // Open Folder Windows in Retro Desktop
+  const [openFolderWindows, setOpenFolderWindows] = useState<
+    { folder: DesktopFolderItem; win: WindowState }[]
+  >([]);
 
   // Initial Window states matching the 16 desktop apps + Welcome
   const initialWindows: WindowState[] = [
@@ -103,7 +141,7 @@ export default function App() {
     };
   });
 
-  // Idle Timer (30 seconds of inactivity triggers the Screensaver)
+  // Idle Timer (35 seconds of inactivity triggers the Screensaver)
   useEffect(() => {
     if (!isBootComplete || isShutdown || isTimeTraveling || viewMode === 'space') {
       return;
@@ -115,7 +153,7 @@ export default function App() {
       }
       idleTimeoutRef.current = setTimeout(() => {
         setIsScreensaverActive(true);
-      }, 35000); // 35 seconds of inactivity
+      }, 35000);
     };
 
     resetIdleTimer();
@@ -150,11 +188,16 @@ export default function App() {
     setThemeConfig(prev => ({ ...prev, enableScanlines: !prev.enableScanlines }));
   };
 
-  const bringToFront = (appId: WindowAppId) => {
+  const bringToFront = (appId: string) => {
     const newZ = highestZIndex + 1;
     setHighestZIndex(newZ);
     setActiveWindowId(appId);
     setWindows(prev => prev.map(w => w.id === appId ? { ...w, zIndex: newZ, isMinimized: false } : w));
+    setOpenFolderWindows(prev =>
+      prev.map(f =>
+        f.win.id === appId ? { ...f, win: { ...f.win, zIndex: newZ, isMinimized: false } } : f
+      )
+    );
   };
 
   const handleOpenApp = (appId: WindowAppId) => {
@@ -162,26 +205,35 @@ export default function App() {
     setWindows(prev => prev.map(w => w.id === appId ? { ...w, isOpen: true, isMinimized: false } : w));
   };
 
-  const handleCloseWindow = (appId: WindowAppId) => {
+  const handleCloseWindow = (appId: string) => {
     setWindows(prev => prev.map(w => w.id === appId ? { ...w, isOpen: false } : w));
+    setOpenFolderWindows(prev => prev.filter(f => f.win.id !== appId));
     if (activeWindowId === appId) {
       setActiveWindowId(null);
     }
   };
 
-  const handleMinimizeWindow = (appId: WindowAppId) => {
+  const handleMinimizeWindow = (appId: string) => {
     setWindows(prev => prev.map(w => w.id === appId ? { ...w, isMinimized: true } : w));
+    setOpenFolderWindows(prev =>
+      prev.map(f => (f.win.id === appId ? { ...f, win: { ...f.win, isMinimized: true } } : f))
+    );
     if (activeWindowId === appId) {
       setActiveWindowId(null);
     }
   };
 
-  const handleMaximizeWindow = (appId: WindowAppId) => {
+  const handleMaximizeWindow = (appId: string) => {
     setWindows(prev => prev.map(w => w.id === appId ? { ...w, isMaximized: !w.isMaximized } : w));
+    setOpenFolderWindows(prev =>
+      prev.map(f =>
+        f.win.id === appId ? { ...f, win: { ...f.win, isMaximized: !f.win.isMaximized } } : f
+      )
+    );
   };
 
-  const handleToggleMinimizeTaskbar = (appId: WindowAppId) => {
-    const targetWin = windows.find(w => w.id === appId);
+  const handleToggleMinimizeTaskbar = (appId: string) => {
+    const targetWin = windows.find(w => w.id === appId) || openFolderWindows.find(f => f.win.id === appId)?.win;
     if (!targetWin) return;
 
     if (targetWin.isMinimized || activeWindowId !== appId) {
@@ -215,6 +267,106 @@ export default function App() {
     setIsScreensaverActive(true);
   };
 
+  // --- RETRO FOLDER ACTIONS ---
+  const handleCreateRetroFolder = () => {
+    const count = retroFolders.length;
+    const newName = count === 0 ? 'Nova pasta' : `Nova pasta (${count + 1})`;
+    const newFolder: DesktopFolderItem = {
+      id: `retro-folder-${Date.now()}`,
+      name: newName,
+      origin: 'retro',
+      createdAt: Date.now(),
+    };
+    saveRetroFolders([...retroFolders, newFolder]);
+  };
+
+  const handleRenameRetroFolder = (id: string, newName: string) => {
+    const updated = retroFolders.map(f => (f.id === id ? { ...f, name: newName } : f));
+    saveRetroFolders(updated);
+  };
+
+  const handleDeleteRetroFolder = (id: string) => {
+    const target = retroFolders.find(f => f.id === id);
+    if (!target) return;
+
+    // Move to trash
+    const trashItem: TrashItem = {
+      id: `trash-${Date.now()}`,
+      name: target.name,
+      origin: 'retro',
+      type: 'folder',
+      deletedAt: Date.now(),
+      originalFolder: target,
+    };
+    saveTrashItems([...trashItems, trashItem]);
+    saveRetroFolders(retroFolders.filter(f => f.id !== id));
+  };
+
+  const handleUpdateRetroFolderPos = (id: string, x: number, y: number) => {
+    const updated = retroFolders.map(f => (f.id === id ? { ...f, x, y } : f));
+    saveRetroFolders(updated);
+  };
+
+  const handleOpenRetroFolder = (folder: DesktopFolderItem) => {
+    const winId = `retro-folder-win-${folder.id}`;
+    const exists = openFolderWindows.find(f => f.win.id === winId);
+
+    if (exists) {
+      bringToFront(winId);
+    } else {
+      const newZ = highestZIndex + 1;
+      setHighestZIndex(newZ);
+      setActiveWindowId(winId);
+      const newWin: WindowState = {
+        id: winId as any,
+        title: `Pasta: ${folder.name}`,
+        iconName: 'folder',
+        isOpen: true,
+        isMinimized: false,
+        isMaximized: false,
+        zIndex: newZ,
+        x: 180 + openFolderWindows.length * 20,
+        y: 100 + openFolderWindows.length * 20,
+        width: 620,
+        height: 440,
+      };
+      setOpenFolderWindows([...openFolderWindows, { folder, win: newWin }]);
+    }
+  };
+
+  // --- TRASH RESTORATION & PURGING ---
+  const handleRestoreTrashItem = (item: TrashItem) => {
+    if (item.originalFolder) {
+      if (item.origin === 'retro') {
+        saveRetroFolders([...retroFolders, item.originalFolder]);
+      }
+    }
+    saveTrashItems(trashItems.filter(t => t.id !== item.id));
+    try { soundFx.playWindowOpen(); } catch (e) {}
+  };
+
+  const handlePermanentDeleteTrashItem = (id: string) => {
+    saveTrashItems(trashItems.filter(t => t.id !== id));
+    try { soundFx.playWindowClose(); } catch (e) {}
+  };
+
+  const handleEmptyTrash = () => {
+    saveTrashItems([]);
+    try { soundFx.playWindowClose(); } catch (e) {}
+  };
+
+  const handleTrashSpaceFolder = (folder: DesktopFolderItem) => {
+    const trashItem: TrashItem = {
+      id: `trash-${Date.now()}`,
+      name: folder.name,
+      origin: 'space',
+      type: 'folder',
+      deletedAt: Date.now(),
+      originalFolder: folder,
+    };
+    saveTrashItems([...trashItems, trashItem]);
+  };
+
   const renderAppContent = (appId: WindowAppId) => {
     switch (appId) {
       case 'welcome':
@@ -239,7 +391,7 @@ export default function App() {
       case 'experiments': return <ExperimentsApp />;
       case 'paint': return <PixPaintApp />;
       case 'quiz': return <PopQuizApp />;
-      case 'clippy': return <ClippyApp onOpenApp={handleOpenApp} />;
+      case 'clippy': return <ClippyApp onOpenApp={handleOpenApp} onLaunchTimeTravel={handleLaunchTimeTravel} />;
       case 'aims': return <AimsMessengerApp />;
       case 'napster': return <NapsterApp />;
       case 'nostalgia': return <NostalgiaApp />;
@@ -252,7 +404,16 @@ export default function App() {
             onTestScreensaver={handleTestScreensaver}
           />
         );
-      case 'trash': return <TrashApp />;
+      case 'trash':
+        return (
+          <TrashApp
+            mode="retro"
+            trashItems={trashItems}
+            onRestoreItem={handleRestoreTrashItem}
+            onPermanentlyDeleteItem={handlePermanentDeleteTrashItem}
+            onEmptyTrash={handleEmptyTrash}
+          />
+        );
       default: return <div>Conteúdo em carregamento...</div>;
     }
   };
@@ -270,7 +431,16 @@ export default function App() {
   }
 
   if (viewMode === 'space' || viewMode === 'modern') {
-    return <DigitalSpaceExperience onBackToRetro={handleBackToRetro} />;
+    return (
+      <DigitalSpaceExperience
+        onBackToRetro={handleBackToRetro}
+        trashItems={trashItems}
+        onTrashFolder={handleTrashSpaceFolder}
+        onRestoreTrashItem={handleRestoreTrashItem}
+        onPermanentDeleteTrashItem={handlePermanentDeleteTrashItem}
+        onEmptyTrash={handleEmptyTrash}
+      />
+    );
   }
 
   return (
@@ -281,9 +451,15 @@ export default function App() {
         themeConfig={themeConfig}
         onLaunchTimeTravel={handleLaunchTimeTravel}
         onTestScreensaver={handleTestScreensaver}
+        folders={retroFolders}
+        onCreateFolder={handleCreateRetroFolder}
+        onRenameFolder={handleRenameRetroFolder}
+        onDeleteFolder={handleDeleteRetroFolder}
+        onOpenFolder={handleOpenRetroFolder}
+        onUpdateFolderPosition={handleUpdateRetroFolderPos}
       />
 
-      {/* Render Open Windows */}
+      {/* Render Standard Open Windows */}
       {windows.map((win) => (
         <WindowFrame
           key={win.id}
@@ -298,11 +474,35 @@ export default function App() {
         </WindowFrame>
       ))}
 
+      {/* Render Open Retro Folder Windows */}
+      {openFolderWindows.map(({ folder, win }) => (
+        <WindowFrame
+          key={win.id}
+          windowState={win}
+          isActive={activeWindowId === win.id && !win.isMinimized}
+          onFocus={() => bringToFront(win.id)}
+          onClose={() => handleCloseWindow(win.id)}
+          onMinimize={() => handleMinimizeWindow(win.id)}
+          onMaximize={() => handleMaximizeWindow(win.id)}
+        >
+          <FolderWindow folder={folder} mode="retro" />
+        </WindowFrame>
+      ))}
+
       {/* Bottom Fixed Taskbar */}
       <Taskbar
-        windows={windows}
+        windows={[
+          ...windows,
+          ...openFolderWindows.map(f => f.win),
+        ]}
         activeWindowId={activeWindowId}
-        onOpenApp={handleOpenApp}
+        onOpenApp={(id) => {
+          if (id.startsWith('retro-folder-win-')) {
+            bringToFront(id);
+          } else {
+            handleOpenApp(id as WindowAppId);
+          }
+        }}
         onToggleMinimize={handleToggleMinimizeTaskbar}
         onShutdown={() => setIsShutdown(true)}
         isSoundEnabled={themeConfig.enableSound}

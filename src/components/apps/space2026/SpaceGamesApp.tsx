@@ -9,10 +9,10 @@ import { MinesweeperGame } from '../../games/MinesweeperGame';
 import { PinballGame } from '../../games/PinballGame';
 import { SnakeGame } from '../../games/SnakeGame';
 
-export type GameId = 'solitaire' | 'soccer' | 'kart' | 'minesweeper' | 'pinball' | 'snake' | null;
+export type GameId = 'solitaire' | 'snake' | 'minesweeper' | 'pinball' | 'soccer' | 'kart' | null;
 
 interface GameItem {
-  id: 'solitaire' | 'soccer' | 'kart' | 'minesweeper' | 'pinball' | 'snake';
+  id: 'solitaire' | 'snake' | 'minesweeper' | 'pinball' | 'soccer' | 'kart';
   title: string;
   category: string;
   categoryBadge: string;
@@ -24,57 +24,57 @@ interface GameItem {
 const SPACE_GAMES: GameItem[] = [
   {
     id: 'solitaire',
-    title: 'SOLITAIRE NEBULA',
+    title: 'PACIÊNCIA NEBULA',
     category: 'Cartas & Estratégia',
     categoryBadge: 'ESTRATÉGIA',
-    description: 'Paciência Klondike em ambiente digital com descarte quântico e movimentação suave.',
+    description: 'Paciência Klondike em ambiente cósmico com baralho holográfico, drag-and-drop e HUD futurista.',
     icon: '♠️',
     gradient: 'from-blue-600 to-cyan-600'
   },
   {
     id: 'snake',
-    title: 'COSMIC SNAKE 2026',
-    category: 'Arcade Cósmico',
+    title: 'COSMIC SNAKE',
+    category: 'Arcade Espacial',
     categoryBadge: 'ARCADE',
-    description: 'A clássica serpente em modo aceleração cósmica, coletando orbes de energia.',
+    description: 'Serpente luminosa com grade digital, núcleos de energia quântica e rastro de luz suave.',
     icon: '🐍',
     gradient: 'from-emerald-500 to-cyan-600'
   },
   {
     id: 'minesweeper',
-    title: 'MINESWEEPER QUANTUM',
-    category: 'Raciocínio & Dedução',
+    title: 'MINESWEEPER // 2026',
+    category: 'Raciocínio Quântico',
     categoryBadge: 'DEDUÇÃO',
-    description: 'Desarme campos de minas quânticas com contadores digitais e grade responsiva.',
+    description: 'Desarme campos de minas com estética quântica, seleções Fácil/Médio/Difícil e contadores digitais.',
     icon: '💣',
     gradient: 'from-purple-600 to-blue-700'
   },
   {
+    id: 'pinball',
+    title: 'NEON PINBALL',
+    category: 'Física & Metal',
+    categoryBadge: 'FLIPERAMA',
+    description: 'Mesa espacial de alta velocidade com bumpers holográficos, física precisa e efeitos de impacto.',
+    icon: '🚀',
+    gradient: 'from-pink-600 to-purple-800'
+  },
+  {
     id: 'soccer',
-    title: 'CYBER SOCCER STRIKER',
-    category: 'Esporte Futurista',
+    title: 'FUTEBOL 2026',
+    category: 'Esporte Cibernético',
     categoryBadge: 'ESPORTE',
-    description: 'Cobranças de falta e pênaltis com mira holográfica e cálculo de trajetória.',
+    description: 'Gramado digital holográfico, goleiro inteligente e cálculo de curva de trajetória.',
     icon: '⚽',
     gradient: 'from-cyan-500 to-blue-800'
   },
   {
     id: 'kart',
-    title: 'SPACE RACER 3D',
+    title: 'MARIO KART',
     category: 'Velocidade & Reflexo',
     categoryBadge: 'CORRIDA',
-    description: 'Corrida em túneis espaciais e curvas pseudo-3D com turbos de fótons.',
+    description: 'Circuito espacial pseudo-3D com pilotos lendários, turbos de fótons e velocímetro digital.',
     icon: '🏎️',
     gradient: 'from-amber-500 to-red-600'
-  },
-  {
-    id: 'pinball',
-    title: 'SPACE CADET PINBALL',
-    category: 'Física & Arcade',
-    categoryBadge: 'PINBALL',
-    description: 'O lendário fliperama espacial com bumpers holográficos e pontuação quântica.',
-    icon: '🚀',
-    gradient: 'from-pink-600 to-purple-800'
   }
 ];
 
@@ -105,79 +105,91 @@ export const SpaceGamesApp: React.FC = () => {
               className="px-3 py-1.5 rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-cyan-400/40 text-cyan-300 hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition shadow-xs"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Voltar ao Game Center</span>
+              <span>← VOLTAR AO SPACE ARCADE</span>
             </button>
 
             <div className="flex items-center gap-2 font-mono">
               <span className="text-base">{activeGame?.icon}</span>
-              <span className="text-xs font-bold text-white">{activeGame?.title}</span>
+              <span className="text-xs font-bold text-white tracking-wide">{activeGame?.title}</span>
             </div>
           </div>
 
           {/* Render Game Inside Glass Container */}
-          <div className="p-4 rounded-2xl bg-black/90 border border-cyan-500/20 backdrop-blur-xl shadow-2xl flex items-center justify-center min-h-[420px]">
-            {selectedGameId === 'solitaire' && <SolitaireGame />}
-            {selectedGameId === 'soccer' && <SoccerGame />}
-            {selectedGameId === 'kart' && <KartGame />}
-            {selectedGameId === 'minesweeper' && <MinesweeperGame />}
-            {selectedGameId === 'pinball' && <PinballGame />}
-            {selectedGameId === 'snake' && <SnakeGame />}
+          <div className="p-4 rounded-2xl bg-black/90 border border-cyan-500/20 backdrop-blur-xl shadow-2xl flex items-center justify-center min-h-[440px]">
+            {selectedGameId === 'solitaire' && <SolitaireGame onBackToHub={handleBackToArcade} mode="space" />}
+            {selectedGameId === 'snake' && <SnakeGame onBackToHub={handleBackToArcade} mode="space" />}
+            {selectedGameId === 'minesweeper' && <MinesweeperGame onBackToHub={handleBackToArcade} mode="space" />}
+            {selectedGameId === 'pinball' && <PinballGame onBackToHub={handleBackToArcade} mode="space" />}
+            {selectedGameId === 'soccer' && <SoccerGame onBackToHub={handleBackToArcade} mode="space" />}
+            {selectedGameId === 'kart' && <KartGame onBackToHub={handleBackToArcade} mode="space" />}
           </div>
         </div>
       ) : (
-        /* Arcade Games Selection Hub */
+        /* Arcade Game Hub (Grid of 6 Games) */
         <div className="space-y-6">
-          {/* 2026 Futuristic Header */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-950/80 via-slate-900/90 to-cyan-950/70 border border-cyan-500/30 p-6 backdrop-blur-xl shadow-[0_0_40px_rgba(6,182,212,0.15)]">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-white shadow-[0_0_20px_rgba(6,182,212,0.5)]">
-                  <Gamepad2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl font-bold font-mono text-white">SPACE ARCADE CENTER 2026</h1>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                      INTERACTIVE GAMES
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Seleção de Clássicos Recriados com Visual Deep Blue Space & Física Aprimorada
-                  </p>
-                </div>
+          {/* Top Banner */}
+          <div className="p-6 rounded-2xl bg-black/60 border border-white/10 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-[0_0_25px_rgba(6,182,212,0.5)]">
+                <Gamepad2 className="w-7 h-7" />
               </div>
+              <div>
+                <h1 className="text-2xl font-bold font-mono text-white tracking-wide">
+                  SPACE ARCADE // 2026
+                </h1>
+                <p className="text-xs text-slate-400 font-mono">
+                  Game Center com versões visuais futuristas dos clássicos interativos
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-300">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span>6 TÍTULOS DISPONÍVEIS</span>
             </div>
           </div>
 
           {/* Games Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {SPACE_GAMES.map((game) => (
               <div
                 key={game.id}
                 onClick={() => handleLaunchGame(game.id)}
-                className="p-4 rounded-2xl bg-black/75 hover:bg-blue-950/80 border border-cyan-950/90 hover:border-cyan-400 transition-all duration-300 cursor-pointer flex flex-col justify-between group backdrop-blur-xl shadow-[0_0_15px_rgba(0,10,30,0.5)] hover:shadow-[0_0_30px_rgba(6,182,212,0.4)]"
+                className="group relative p-5 rounded-2xl bg-black/40 hover:bg-slate-900/60 border border-white/10 hover:border-cyan-400/60 backdrop-blur-xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden shadow-lg hover:shadow-[0_0_30px_rgba(6,182,212,0.25)] hover:-translate-y-1"
               >
+                {/* Background ambient glow on hover */}
+                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${game.gradient} opacity-10 group-hover:opacity-20 blur-2xl transition-opacity rounded-full`} />
+
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-900 to-cyan-500 flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
+                  {/* Top line badge */}
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-2xl p-2.5 rounded-xl bg-slate-900/80 border border-white/10 group-hover:scale-110 transition-transform">
                       {game.icon}
-                    </div>
-                    <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-950 text-cyan-300 border border-cyan-700/60 font-bold">
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-bold">
                       {game.categoryBadge}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-sm text-white font-mono group-hover:text-cyan-300 transition-colors">
+                  {/* Title & category */}
+                  <h3 className="text-base font-bold font-mono text-white group-hover:text-cyan-300 transition-colors">
                     {game.title}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                  <div className="text-xs text-slate-400 font-mono mt-0.5">{game.category}</div>
+
+                  {/* Description */}
+                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
                     {game.description}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-cyan-950/80 flex items-center justify-between text-xs font-mono text-cyan-400 group-hover:text-cyan-200">
-                  <span>Jogar Agora</span>
-                  <ChevronRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+                {/* Launch Button */}
+                <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-cyan-400 group-hover:text-white transition-colors">
+                  <span className="font-bold flex items-center gap-1.5">
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>JOGAR AGORA</span>
+                  </span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             ))}
