@@ -537,7 +537,7 @@ export const Desktop: React.FC<DesktopProps> = ({
       className={`fixed inset-0 select-none overflow-hidden pb-12 transition-colors duration-500 ${getWallpaperBackground()}`}
     >
       {/* Desktop Grid Layout */}
-      <div className="relative w-full h-full p-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-y-4 gap-x-2 content-start z-10 pointer-events-auto">
+      <div className="relative w-full h-full p-4 overflow-y-auto custom-scrollbar grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-y-4 gap-x-2 content-start z-10 pointer-events-auto pb-16">
         {/* Standard Desktop Apps */}
         {desktopItems.map((item) => {
           const isSelected = selectedIcon === item.id;

@@ -691,7 +691,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       />
 
       {/* --- DESKTOP CANVAS WORKSPACE --- */}
-      <div className="relative z-10 w-full h-[calc(100vh-64px)] p-6 md:p-8 flex flex-col justify-between pointer-events-none">
+      <div className="relative z-10 w-full h-[calc(100vh-64px)] p-4 sm:p-6 md:p-8 flex flex-col justify-between pointer-events-none overflow-y-auto custom-scrollbar pb-20">
         {/* TOP BAR / NAVIGATION / SYSTEM STATUS */}
         <div className="w-full flex items-center justify-between pointer-events-auto">
           {/* Back to Retro (OS 00) Button */}
