@@ -49,6 +49,7 @@ import { SpacePersonalizationApp } from './apps/space2026/SpacePersonalizationAp
 import { TrashApp } from './apps/TrashApp';
 import { GuestbookApp } from './apps/GuestbookApp';
 import { FolderWindow } from './FolderWindow';
+import { getFolderFiles, formatFileSize } from '../utils/folderStorage';
 
 interface DigitalSpaceExperienceProps {
   onBackToRetro: () => void;
@@ -1161,7 +1162,11 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
               <div className="h-px bg-white/10 my-1.5 mx-2" />
               <button
                 onClick={() => {
-                  alert(`CONTAINER QUANTUM // SPACE 2026\nNome: ${contextMenu.targetFolder?.name}\nStatus: Ativo\nArmazenamento: 0 KB`);
+                  if (contextMenu.targetFolder) {
+                    const fFiles = getFolderFiles(contextMenu.targetFolder.id);
+                    const totalBytes = fFiles.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
+                    alert(`CONTAINER QUANTUM // SPACE 2026\n------------------------------------\nDiretório: ${contextMenu.targetFolder?.name.toUpperCase()}\nConteúdo: ${fFiles.length} arquivo(s) salvos\nArmazenamento: ${formatFileSize(totalBytes)}\nSegurança: Criptografia Local Ativa`);
+                  }
                   setContextMenu(null);
                 }}
                 className="w-full text-left px-4 py-2 hover:bg-cyan-500/20 hover:text-cyan-300 flex items-center gap-2.5 cursor-pointer transition"

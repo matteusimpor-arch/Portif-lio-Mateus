@@ -34,6 +34,7 @@ import { WindowAppId, ThemeConfig, DesktopFolderItem } from '../types';
 import { soundFx } from '../utils/soundEffects';
 import { DID_YOU_KNOW_FACTS } from '../data/portfolioData';
 import { ClippyFloatingAssistant } from './ClippyFloatingAssistant';
+import { getFolderFiles, formatFileSize } from '../utils/folderStorage';
 
 interface DesktopProps {
   onOpenApp: (appId: WindowAppId) => void;
@@ -734,7 +735,11 @@ export const Desktop: React.FC<DesktopProps> = ({
               <div className="h-px bg-gray-400 my-1 mx-1 border-b border-white" />
               <button
                 onClick={() => {
-                  alert(`Propriedades da Pasta:\nNome: ${contextMenu.targetFolder?.name}\nLocal: C:\\Desktop\nTamanho: 0 bytes`);
+                  if (contextMenu.targetFolder) {
+                    const fFiles = getFolderFiles(contextMenu.targetFolder.id);
+                    const totalBytes = fFiles.reduce((sum, f) => sum + (f.sizeBytes || 0), 0);
+                    alert(`Propriedades da Pasta:\n------------------------------------\nNome: ${contextMenu.targetFolder.name}\nLocal: C:\\Desktop\\${contextMenu.targetFolder.name}\nConteúdo: ${fFiles.length} arquivo(s) salvos\nTamanho Total: ${formatFileSize(totalBytes)}\nStatus: Pronto para leitura/escrita`);
+                  }
                   setContextMenu(null);
                 }}
                 className="w-full text-left px-3 py-1 hover:bg-blue-800 hover:text-white flex items-center gap-2 cursor-pointer"

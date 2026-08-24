@@ -175,4 +175,20 @@ export interface TrashItem {
   type: 'folder' | 'file';
 }
 
+export type FolderFileType = 'text' | 'image' | 'file' | 'link' | 'paint' | 'code';
+
+export interface FolderFileItem {
+  id: string;
+  folderId: string;
+  name: string;
+  type: FolderFileType;
+  extension: string;
+  content: string; // text content, base64 data url, or external link url
+  sizeBytes: number;
+  createdAt: number;
+  updatedAt: number;
+  icon?: string;
+  color?: string;
+}
+
 

@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Palette, Eraser, Download, Trash2, Brush, Circle, Square, Sparkles, Undo2 } from 'lucide-react';
+import { Palette, Eraser, Download, Trash2, Brush, FolderPlus, Check, X } from 'lucide-react';
 import { soundFx } from '../../utils/soundEffects';
+import { DesktopFolderItem } from '../../types';
+import { addFolderFile } from '../../utils/folderStorage';
 
 export const PixPaintApp: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -9,6 +11,13 @@ export const PixPaintApp: React.FC = () => {
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const [tool, setTool] = useState<'brush' | 'eraser' | 'stamp'>('brush');
   const [stamp, setStamp] = useState<string>('⭐');
+
+  // Save to folder state
+  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+  const [saveFileName, setSaveFileName] = useState<string>('Minha_Arte.png');
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('');
+  const [availableFolders, setAvailableFolders] = useState<DesktopFolderItem[]>([]);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
 
   const palette = [
     '#000000', '#787878', '#790300', '#757a01', '#007902', '#007778', '#0a0078', '#7b0077',
@@ -24,6 +33,19 @@ export const PixPaintApp: React.FC = () => {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }, []);
+
+  // Load available folders
+  useEffect(() => {
+    try {
+      const retro = JSON.parse(localStorage.getItem('mateus_os_retro_folders') || '[]');
+      const space = JSON.parse(localStorage.getItem('mateus_space_folders') || '[]');
+      const combined = [...retro, ...space];
+      setAvailableFolders(combined);
+      if (combined.length > 0) {
+        setSelectedFolderId(combined[0].id);
+      }
+    } catch (e) {}
+  }, [showSaveModal]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -96,8 +118,41 @@ export const PixPaintApp: React.FC = () => {
     try { soundFx.playNotification(); } catch (e) {}
   };
 
+  const handleSaveToFolder = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (!selectedFolderId) {
+      alert('Nenhuma pasta selecionada. Por favor, crie uma pasta na área de trabalho primeiro!');
+      return;
+    }
+
+    let finalName = saveFileName.trim() || 'Arte_Pix.png';
+    if (!finalName.endsWith('.png') && !finalName.endsWith('.jpg')) {
+      finalName += '.png';
+    }
+
+    const dataUrl = canvas.toDataURL();
+    const size = new Blob([dataUrl]).size;
+
+    addFolderFile({
+      folderId: selectedFolderId,
+      name: finalName,
+      type: 'image',
+      extension: 'png',
+      content: dataUrl,
+      sizeBytes: size,
+    });
+
+    try { soundFx.playFanfare(); } catch (e) {}
+    setSaveSuccessMsg(`Salvo com sucesso na pasta selecionada!`);
+    setTimeout(() => {
+      setSaveSuccessMsg('');
+      setShowSaveModal(false);
+    }, 1800);
+  };
+
   return (
-    <div className="bg-[#c0c0c0] p-3 text-black font-sans text-xs space-y-3 select-none">
+    <div className="bg-[#c0c0c0] p-3 text-black font-sans text-xs space-y-3 select-none relative">
       {/* Title / Toolbar Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-gray-400 pb-2 bg-gray-200 p-2 border-bevel-out">
         <div className="flex items-center gap-2 font-bold font-vt323 text-lg">
@@ -115,12 +170,23 @@ export const PixPaintApp: React.FC = () => {
             <span>Limpar</span>
           </button>
           <button
+            onClick={() => {
+              soundFx.playClick();
+              setShowSaveModal(true);
+            }}
+            className="btn-retro px-2.5 py-1 flex items-center gap-1 cursor-pointer bg-blue-100 font-bold text-blue-950"
+            title="Salvar desenho em uma pasta"
+          >
+            <FolderPlus className="w-3.5 h-3.5 text-blue-800" />
+            <span>Salvar na Pasta</span>
+          </button>
+          <button
             onClick={handleDownload}
             className="btn-retro px-2.5 py-1 flex items-center gap-1 cursor-pointer bg-emerald-100"
-            title="Salvar Arte"
+            title="Baixar para o Computador"
           >
             <Download className="w-3.5 h-3.5 text-emerald-700" />
-            <span>Salvar Imagem</span>
+            <span>Baixar (.png)</span>
           </button>
         </div>
       </div>
@@ -226,6 +292,86 @@ export const PixPaintApp: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Save to Folder Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3">
+          <div className="bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 w-full max-w-sm shadow-2xl p-4 space-y-3">
+            <div className="bg-gradient-to-r from-blue-900 to-blue-700 text-white px-2 py-1 flex items-center justify-between font-bold text-xs">
+              <div className="flex items-center gap-1.5">
+                <FolderPlus className="w-3.5 h-3.5" />
+                <span>SALVAR DESENHO NA PASTA</span>
+              </div>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="p-0.5 hover:bg-red-600 rounded cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {saveSuccessMsg ? (
+              <div className="p-4 bg-emerald-100 border border-emerald-500 rounded text-center text-emerald-900 font-bold text-xs flex items-center justify-center gap-2">
+                <Check className="w-4 h-4 text-emerald-700" />
+                <span>{saveSuccessMsg}</span>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-800">Escolha a Pasta:</label>
+                  {availableFolders.length === 0 ? (
+                    <p className="text-xs text-red-600 bg-red-50 p-2 border border-red-300">
+                      Nenhuma pasta encontrada. Crie uma pasta na área de trabalho primeiro clicando com o botão direito!
+                    </p>
+                  ) : (
+                    <select
+                      value={selectedFolderId}
+                      onChange={(e) => setSelectedFolderId(e.target.value)}
+                      className="w-full bg-white border border-gray-600 px-2 py-1 text-xs focus:outline-none"
+                    >
+                      {availableFolders.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          📁 {f.name} ({f.origin === 'space' ? 'Space 2026' : 'Retro OS'})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-800">Nome do Arquivo:</label>
+                  <input
+                    type="text"
+                    value={saveFileName}
+                    onChange={(e) => setSaveFileName(e.target.value)}
+                    placeholder="Minha_Obra_De_Arte.png"
+                    className="w-full bg-white border border-gray-600 px-2 py-1 text-xs focus:outline-none font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-400">
+                  <button
+                    type="button"
+                    onClick={() => setShowSaveModal(false)}
+                    className="btn-retro px-3 py-1 text-xs text-gray-800 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    disabled={availableFolders.length === 0}
+                    onClick={handleSaveToFolder}
+                    className="btn-retro px-4 py-1 text-xs font-bold text-blue-950 bg-yellow-200 border-2 border-yellow-600 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <Check className="w-3.5 h-3.5 text-green-800" />
+                    <span>Salvar na Pasta</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
