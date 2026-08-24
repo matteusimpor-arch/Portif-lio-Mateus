@@ -17,16 +17,6 @@ interface WarpStar {
   layer: 'distant' | 'mid' | 'near';
 }
 
-interface GlyphParticle {
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  color: string;
-  size: number;
-  alpha: number;
-}
-
 export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, onSkip }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [currentYear, setCurrentYear] = useState<number>(2000);
@@ -34,8 +24,8 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(Date.now());
 
-  // Total duration: 7.2 seconds of deep space travel
-  const TOTAL_DURATION_MS = 7200;
+  // Duration: 5.8 seconds of clean, cinematic warp space travel
+  const TOTAL_DURATION_MS = 5800;
 
   useEffect(() => {
     try {
@@ -59,64 +49,11 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
     window.addEventListener('resize', handleResize);
 
     // =========================================================================
-    // 1. GENERATE "Mateus Araujo" GLYPH TARGET COORDINATES
+    // INITIALIZE 3D DEEP SPACE STARFIELD
     // =========================================================================
-    const generateNameTargets = (): { x: number; y: number }[] => {
-      const offscreen = document.createElement('canvas');
-      offscreen.width = width;
-      offscreen.height = height;
-      const offCtx = offscreen.getContext('2d');
-      if (!offCtx) return [];
-
-      offCtx.fillStyle = '#ffffff';
-      offCtx.textAlign = 'center';
-      offCtx.textBaseline = 'middle';
-
-      const fontSize = Math.min(width / 13.5, Math.min(height * 0.44, 52));
-      offCtx.font = `700 ${fontSize}px 'Orbitron', 'Space Grotesk', 'Michroma', -apple-system, sans-serif`;
-
-      const text = 'Mateus Araujo';
-      const letterSpacing = Math.max(2, fontSize * 0.08);
-      let totalWidth = 0;
-      for (let i = 0; i < text.length; i++) {
-        totalWidth += offCtx.measureText(text[i]).width + (i < text.length - 1 ? letterSpacing : 0);
-      }
-      let startX = (width - totalWidth) / 2;
-      const centerY = height / 2;
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const charWidth = offCtx.measureText(char).width;
-        offCtx.fillText(char, startX + charWidth / 2, centerY);
-        startX += charWidth + letterSpacing;
-      }
-
-      const imgData = offCtx.getImageData(0, 0, width, height);
-      const data = imgData.data;
-      const targets: { x: number; y: number }[] = [];
-
-      const step = width < 640 ? 4 : 3;
-      for (let y = 0; y < height; y += step) {
-        for (let x = 0; x < width; x += step) {
-          const idx = (y * width + x) * 4;
-          if (data[idx + 3] > 110) {
-            targets.push({
-              x: x + (Math.random() - 0.5) * 2,
-              y: y + (Math.random() - 0.5) * 2,
-            });
-          }
-        }
-      }
-      return targets;
-    };
-
-    const nameTargets = generateNameTargets();
-
-    // =========================================================================
-    // 2. INITIALIZE 3D DEEP SPACE STARFIELD
-    // =========================================================================
-    const STAR_COUNT = width < 768 ? 450 : 850;
+    const STAR_COUNT = width < 768 ? 500 : 950;
     const MAX_Z = 1600;
-    const FOV = Math.min(width, height) * 0.8;
+    const FOV = Math.min(width, height) * 0.85;
 
     const starColors = ['#ffffff', '#bae6fd', '#38bdf8', '#60a5fa', '#93c5fd', '#e0f2fe', '#0284c7'];
 
@@ -133,27 +70,10 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
         z,
         prevZ: z,
         color: starColors[Math.floor(Math.random() * starColors.length)],
-        size: layer === 'near' ? 2.2 : layer === 'mid' ? 1.4 : 0.8,
+        size: layer === 'near' ? 2.4 : layer === 'mid' ? 1.5 : 0.9,
         layer,
       });
     }
-
-    // =========================================================================
-    // 3. INITIALIZE GLYPH PARTICLES (FOR CONVERGENCE AT ARRIVAL)
-    // =========================================================================
-    const glyphParticles: GlyphParticle[] = nameTargets.map((target) => {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * Math.max(width, height) * 0.8 + 200;
-      return {
-        x: width / 2 + Math.cos(angle) * dist,
-        y: height / 2 + Math.sin(angle) * dist,
-        targetX: target.x,
-        targetY: target.y,
-        color: starColors[Math.floor(Math.random() * starColors.length)],
-        size: Math.random() * 1.5 + 1.1,
-        alpha: 0,
-      };
-    });
 
     // Main Animation Loop
     const render = () => {
@@ -164,18 +84,18 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       const cy = height / 2;
 
       // -----------------------------------------------------------------------
-      // 1. YEARS PASSAGE (2000 -> 2026, dissolves with blur & fade by p = 0.28)
+      // 1. YEARS PASSAGE (2000 -> 2026)
       // -----------------------------------------------------------------------
-      if (p < 0.28) {
-        const yearProgress = p / 0.28;
+      if (p < 0.32) {
+        const yearProgress = p / 0.32;
         const yVal = Math.floor(2000 + yearProgress * 26);
         setCurrentYear(Math.min(2026, yVal));
 
-        if (p < 0.14) {
+        if (p < 0.16) {
           setYearOpacity(1);
         } else {
           // Dissolve smoothly with blur + opacity
-          const fade = (p - 0.14) / 0.14;
+          const fade = (p - 0.16) / 0.16;
           setYearOpacity(Math.max(0, 1 - fade));
         }
       } else {
@@ -183,33 +103,33 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       }
 
       // -----------------------------------------------------------------------
-      // 2. SPACE BACKGROUND TONE: DEEP SPACE BLACK & MIDNIGHT NAVY
+      // 2. SPACE BACKGROUND TONE
       // -----------------------------------------------------------------------
-      ctx.fillStyle = 'rgba(0, 2, 8, 0.35)'; // Motion trail blur
+      ctx.fillStyle = 'rgba(0, 2, 8, 0.3)'; // Motion trail blur
       ctx.fillRect(0, 0, width, height);
 
       // -----------------------------------------------------------------------
       // 3. VELOCITY PROFILE (FORWARD WARP TRAVEL)
       // -----------------------------------------------------------------------
-      let speed = 4; // Initial gentle drift
+      let speed = 4;
       let isStreak = false;
 
-      if (p < 0.22) {
-        // Initial acceleration through early stars
-        speed = 4 + (p / 0.22) * 12;
-      } else if (p < 0.60) {
+      if (p < 0.2) {
+        // Initial acceleration
+        speed = 4 + (p / 0.2) * 16;
+      } else if (p < 0.65) {
         // WARP ACCELERATION & PEAK SPEED (STAR STREAKS)
-        const warpP = (p - 0.22) / 0.38;
-        speed = 16 + Math.sin(warpP * Math.PI * 0.5) * 88; // Reaches ~104 speed
+        const warpP = (p - 0.2) / 0.45;
+        speed = 20 + Math.sin(warpP * Math.PI * 0.5) * 95;
         isStreak = true;
-      } else if (p < 0.82) {
-        // DECELERATION (Streaks return to points)
-        const slowP = (p - 0.60) / 0.22;
-        speed = 104 - Math.sin(slowP * Math.PI * 0.5) * 98; // Drops to ~6
-        isStreak = slowP < 0.6;
+      } else if (p < 0.88) {
+        // DECELERATION (Streaks return to calm points)
+        const slowP = (p - 0.65) / 0.23;
+        speed = 115 - Math.sin(slowP * Math.PI * 0.5) * 110;
+        isStreak = slowP < 0.4;
       } else {
         // GENTLE ARRIVAL DRIFT
-        speed = 2.5;
+        speed = 3;
         isStreak = false;
       }
 
@@ -219,7 +139,7 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       for (let i = 0; i < stars.length; i++) {
         const star = stars[i];
         star.prevZ = star.z;
-        star.z -= speed * (star.layer === 'near' ? 1.3 : star.layer === 'mid' ? 1.0 : 0.6);
+        star.z -= speed * (star.layer === 'near' ? 1.35 : star.layer === 'mid' ? 1.0 : 0.65);
 
         if (star.z <= 0) {
           star.z = MAX_Z;
@@ -233,20 +153,20 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
         const py = cy + star.y * k;
 
         // Skip off-screen
-        if (px < -50 || px > width + 50 || py < -50 || py > height + 50) continue;
+        if (px < -60 || px > width + 60 || py < -60 || py > height + 60) continue;
 
         const prevK = FOV / star.prevZ;
         const prevPx = cx + star.x * prevK;
         const prevPy = cy + star.y * prevK;
 
-        const alpha = Math.min(1, (MAX_Z - star.z) / (MAX_Z * 0.65));
+        const alpha = Math.min(1, (MAX_Z - star.z) / (MAX_Z * 0.6));
 
-        if (isStreak && (Math.abs(px - prevPx) > 1 || Math.abs(py - prevPy) > 1)) {
+        if (isStreak && (Math.abs(px - prevPx) > 1.2 || Math.abs(py - prevPy) > 1.2)) {
           // Render luminous Star Streak
           ctx.beginPath();
           ctx.strokeStyle = star.color;
-          ctx.lineWidth = star.size * (FOV / star.z) * 0.45;
-          ctx.globalAlpha = alpha * 0.9;
+          ctx.lineWidth = star.size * (FOV / star.z) * 0.4;
+          ctx.globalAlpha = alpha * 0.92;
           ctx.moveTo(prevPx, prevPy);
           ctx.lineTo(px, py);
           ctx.stroke();
@@ -254,7 +174,7 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
           // Render Point Star
           ctx.fillStyle = star.color;
           ctx.globalAlpha = alpha;
-          const sz = Math.max(0.6, star.size * k * 0.5);
+          const sz = Math.max(0.6, star.size * k * 0.45);
           ctx.beginPath();
           ctx.arc(px, py, sz, 0, Math.PI * 2);
           ctx.fill();
@@ -262,30 +182,20 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       }
 
       // -----------------------------------------------------------------------
-      // 5. CONVERGENCE OF PARTICLES INTO "Mateus Araujo" (p >= 0.75)
+      // 5. ARRIVAL TRANSITION FLASH (CLEAN HYPERSPACE FLASH at p >= 0.88)
       // -----------------------------------------------------------------------
-      if (p >= 0.75) {
-        const convergeP = (p - 0.75) / 0.25;
-        const easeConvergence = 1 - Math.pow(1 - convergeP, 3); // Cubic ease out
-
-        for (let j = 0; j < glyphParticles.length; j++) {
-          const gp = glyphParticles[j];
-          const curX = gp.x + (gp.targetX - gp.x) * easeConvergence;
-          const curY = gp.y + (gp.targetY - gp.y) * easeConvergence;
-          const curAlpha = Math.min(1, convergeP * 1.3);
-
-          ctx.fillStyle = gp.color;
-          ctx.globalAlpha = curAlpha;
-          ctx.beginPath();
-          ctx.arc(curX, curY, gp.size, 0, Math.PI * 2);
-          ctx.fill();
-        }
+      if (p >= 0.88) {
+        const exitP = (p - 0.88) / 0.12;
+        const flashAlpha = Math.sin(exitP * Math.PI) * 0.65;
+        ctx.fillStyle = '#061826';
+        ctx.globalAlpha = flashAlpha;
+        ctx.fillRect(0, 0, width, height);
       }
 
       ctx.globalAlpha = 1;
 
       // -----------------------------------------------------------------------
-      // 6. COMPLETE TRANSITION AT END
+      // 6. COMPLETE TRANSITION
       // -----------------------------------------------------------------------
       if (p >= 1) {
         onComplete();
@@ -321,15 +231,14 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
           if (onSkip) onSkip();
           else onComplete();
         }}
-        className="absolute top-6 right-6 z-50 px-3.5 py-1.5 rounded-full bg-black/60 hover:bg-blue-950/80 border border-cyan-900/60 hover:border-cyan-400 text-cyan-300 font-mono text-xs flex items-center gap-1.5 backdrop-blur-md cursor-pointer transition shadow-lg active:scale-95"
+        className="absolute top-6 right-6 z-50 px-4 py-2 rounded-full bg-black/60 hover:bg-blue-950/80 border border-cyan-900/60 hover:border-cyan-400 text-cyan-300 font-mono text-xs flex items-center gap-1.5 backdrop-blur-md cursor-pointer transition shadow-lg active:scale-95"
       >
-        <span>Pular</span>
+        <span>Pular Viagem</span>
         <FastForward className="w-3.5 h-3.5" />
       </button>
 
       {/* 
         PURE YEARS DISPLAY ONLY (2000 -> 2026) 
-        No subtitles, no descriptions, no extra words.
         Dissolves with blur + opacity as warp speed picks up.
       */}
       {yearOpacity > 0 && (

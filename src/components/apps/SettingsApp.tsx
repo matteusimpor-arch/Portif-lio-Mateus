@@ -1,24 +1,30 @@
 import React, { useState } from 'react';
 import {
   Settings,
-  Monitor,
-  Volume2,
-  Sparkles,
   RefreshCw,
-  Palette,
   Eye,
   Check,
   Moon,
-  Tv
+  Tv,
+  Sparkles
 } from 'lucide-react';
 import { ThemeConfig } from '../../types';
 import { soundFx } from '../../utils/soundEffects';
+import { ScreensaverType } from '../ScreensaverCanvas';
 
 interface SettingsAppProps {
   themeConfig: ThemeConfig;
   onUpdateTheme: (newConfig: Partial<ThemeConfig>) => void;
   onResetDesktop: () => void;
   onTestScreensaver?: () => void;
+}
+
+interface ScreensaverOption {
+  id: ScreensaverType | 'random';
+  name: string;
+  badge: string;
+  desc: string;
+  icon: string;
 }
 
 export const SettingsApp: React.FC<SettingsAppProps> = ({
@@ -29,6 +35,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'wallpaper' | 'screensaver' | 'appearance'>('wallpaper');
   const [previewWallpaper, setPreviewWallpaper] = useState<ThemeConfig['wallpaper']>(themeConfig.wallpaper);
+
+  const [selectedScreensaver, setSelectedScreensaver] = useState<string>(() => {
+    return (typeof window !== 'undefined' && localStorage.getItem('mateus_screensaver_pref')) || 'pipes_3d';
+  });
 
   const wallpapers: { id: ThemeConfig['wallpaper']; label: string; bgClass: string; desc: string }[] = [
     {
@@ -69,11 +79,78 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
     }
   ];
 
+  const screensaverOptions: ScreensaverOption[] = [
+    {
+      id: 'pipes_3d',
+      name: 'Tubos 3D (3D Pipes Classic)',
+      badge: 'CLÁSSICO',
+      desc: 'O lendário labirinto tridimensional de canos coloridos iluminados do Windows 98/2000.',
+      icon: '🧪'
+    },
+    {
+      id: 'starfield',
+      name: 'Campo de Estrelas 3D (Starfield)',
+      badge: 'ESPAÇAL',
+      desc: 'Navegação em alta velocidade pelo cosmos com feixes de luz e estrelas viajando em direção à tela.',
+      icon: '✨'
+    },
+    {
+      id: 'matrix_rain',
+      name: 'Chuva Digital Matrix Code',
+      badge: 'HACKER',
+      desc: 'Cascata de glifos verdes com reflexo fosforescente e terminal de dados em tempo real.',
+      icon: '📟'
+    },
+    {
+      id: 'mystify',
+      name: 'Mystify (Polígonos Dinâmicos)',
+      badge: 'GEOMETRIA',
+      desc: 'Fitas poligonais coloridas ricocheteando nas bordas com rastro e transição de matiz suave.',
+      icon: '🎨'
+    },
+    {
+      id: 'retro_bounce',
+      name: 'Bouncing Logo Mateus OS',
+      badge: 'RETRÔ',
+      desc: 'O clássico logotipo flutuante que rebate nas quatro paredes da tela mudando de cor a cada quique.',
+      icon: '📺'
+    },
+    {
+      id: 'flying_windows',
+      name: 'Janelas Flutuantes 3D',
+      badge: 'SISTEMA',
+      desc: 'Janelas clássicas do Mateus OS navegando pelo espaço em gravidade zero.',
+      icon: '🪟'
+    },
+    {
+      id: 'crt_terminal',
+      name: 'Terminal Mainframe Diagnostic',
+      badge: 'DIAGNÓSTICO',
+      desc: 'Varredura contínua de status, logs e checagem de sistemas com scanlines CRT.',
+      icon: '💻'
+    },
+    {
+      id: 'random',
+      name: 'Modo Aleatório (Surpresa)',
+      badge: 'ALEATÓRIO',
+      desc: 'Alterna dinamicamente entre os diferentes descansos de tela a cada ciclo de inatividade.',
+      icon: '🎲'
+    }
+  ];
+
   const handleApplyWallpaper = (wId: ThemeConfig['wallpaper']) => {
     soundFx.playFanfare();
     onUpdateTheme({ wallpaper: wId });
     try {
       localStorage.setItem('mateus_os_wallpaper', wId);
+    } catch (e) {}
+  };
+
+  const handleSaveScreensaver = (scId: string) => {
+    soundFx.playClick();
+    setSelectedScreensaver(scId);
+    try {
+      localStorage.setItem('mateus_screensaver_pref', scId);
     } catch (e) {}
   };
 
@@ -92,7 +169,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       <div className="bg-[#c0c0c0] p-2 border-2 border-white border-r-gray-800 border-b-gray-800 flex items-center justify-between text-xs font-mono">
         <div className="flex items-center gap-2 font-bold">
           <Settings className="w-4 h-4 text-blue-900" />
-          <span className="text-blue-950 font-bold">PAINEL DE CONTROLE: PROPRIEDADES DE VÍDEO & FUNDOS</span>
+          <span className="text-blue-950 font-bold">PAINEL DE CONTROLE: PROPRIEDADES DE VÍDEO & SISTEMA</span>
         </div>
         <span className="text-[11px] text-gray-700">PERSONALIZAR.EXE</span>
       </div>
@@ -242,27 +319,59 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       {/* Tab 2: Screensaver */}
       {activeTab === 'screensaver' && (
         <div className="bg-white border-2 border-gray-700 shadow-sm p-4 space-y-4 text-xs">
-          <div className="bg-blue-50 border border-blue-300 p-3 rounded space-y-2">
+          <div className="bg-blue-50 border border-blue-300 p-3 rounded space-y-1.5">
             <h3 className="font-bold font-mono text-blue-950 text-xs flex items-center gap-1.5">
               <Moon className="w-4 h-4 text-blue-800" />
-              <span>Sistema Automático de Descanso de Tela</span>
+              <span>Gerenciador de Proteção de Tela Mateus OS</span>
             </h3>
             <p className="text-gray-800 text-[11.5px] leading-relaxed">
-              O descanso de tela é ativado automaticamente após <strong>30 segundos de inatividade</strong> (sem movimento de mouse ou teclas). Qualquer toque no teclado ou clique desperta o sistema instantaneamente.
+              O descanso de tela é disparado automaticamente após <strong>30 segundos de inatividade</strong>. Mova o mouse, clique ou toque em qualquer lugar para retornar à sua sessão instantaneamente.
             </p>
           </div>
 
-          <div className="border border-gray-300 p-3 bg-gray-50 rounded space-y-2">
-            <div className="font-bold text-gray-900 font-mono">Modos de Descanso Incluídos:</div>
-            <ul className="list-disc pl-5 space-y-1 text-[11.5px] text-gray-700">
-              <li><strong>Chuva Digital Matrix:</strong> Caracteres verdes codificados com o nome <em>MATEUS ARAUJO</em>.</li>
-              <li><strong>Morfologia de Partículas:</strong> Nuvens de micropartículas orbitando no espaço.</li>
-              <li><strong>Terminal CRT Retrô:</strong> Linhas de log em fósforo verde estilo mainframe.</li>
-              <li><strong>Campo de Estrelas (Starfield):</strong> Efeito clássico 3D de navegação estelar.</li>
-            </ul>
+          <div className="space-y-2">
+            <label className="font-bold font-mono text-gray-900 text-xs">
+              Escolha o Protetor de Tela Favorito:
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {screensaverOptions.map((sc) => {
+                const isChosen = selectedScreensaver === sc.id;
+                return (
+                  <div
+                    key={sc.id}
+                    onClick={() => handleSaveScreensaver(sc.id)}
+                    className={`p-2.5 border-2 rounded flex items-start gap-2.5 cursor-pointer transition ${
+                      isChosen
+                        ? 'border-blue-900 bg-blue-50 ring-1 ring-blue-900 shadow-xs'
+                        : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                    }`}
+                  >
+                    <span className="text-xl shrink-0 p-1 bg-white border border-gray-300 rounded">
+                      {sc.icon}
+                    </span>
+                    <div className="space-y-0.5 flex-1 min-w-0">
+                      <div className="font-bold text-blue-950 flex items-center justify-between text-xs">
+                        <span className="truncate">{sc.name}</span>
+                        <span className="text-[9px] font-mono px-1 py-0.5 bg-blue-950 text-cyan-300 rounded">
+                          {sc.badge}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-600 leading-snug line-clamp-2">
+                        {sc.desc}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="pt-2 flex justify-end">
+          <div className="pt-2 flex items-center justify-between border-t border-gray-300">
+            <span className="text-[11px] font-mono text-emerald-800 font-bold flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" />
+              <span>Modo selecionado: {selectedScreensaver.toUpperCase()}</span>
+            </span>
+
             <button
               onClick={() => {
                 soundFx.playClick();
@@ -270,7 +379,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                   onTestScreensaver();
                 }
               }}
-              className="btn-retro px-4 py-2 text-xs font-bold text-blue-950 bg-yellow-200 border-2 border-yellow-600 flex items-center gap-1.5 cursor-pointer"
+              className="btn-retro px-4 py-2 text-xs font-bold text-blue-950 bg-yellow-200 border-2 border-yellow-600 flex items-center gap-1.5 cursor-pointer shadow hover:bg-yellow-100"
             >
               <Tv className="w-4 h-4 text-blue-950" />
               <span>Testar Descanso de Tela Agora</span>

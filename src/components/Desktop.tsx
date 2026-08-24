@@ -536,8 +536,8 @@ export const Desktop: React.FC<DesktopProps> = ({
       onMouseUp={handleMouseUp}
       className={`fixed inset-0 select-none overflow-hidden pb-12 transition-colors duration-500 ${getWallpaperBackground()}`}
     >
-      {/* Desktop Grid Layout */}
-      <div className="relative w-full h-full p-4 overflow-y-auto custom-scrollbar grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-y-4 gap-x-2 content-start z-10 pointer-events-auto pb-16">
+      {/* Desktop Layout - Classic Windows Left-Aligned Vertical Columns */}
+      <div className="relative w-full h-[calc(100vh-56px)] p-3 sm:p-4 flex flex-col flex-wrap content-start items-start gap-y-2 gap-x-2 sm:gap-x-3 z-10 pointer-events-auto overflow-x-auto overflow-y-hidden custom-scrollbar pb-14">
         {/* Standard Desktop Apps */}
         {desktopItems.map((item) => {
           const isSelected = selectedIcon === item.id;
@@ -546,7 +546,7 @@ export const Desktop: React.FC<DesktopProps> = ({
               key={item.id}
               onClick={() => handleIconClick(item.id)}
               onDoubleClick={() => handleIconDoubleClick(item.id)}
-              className={`flex flex-col items-center justify-start p-1.5 rounded-xs w-24 h-24 text-center cursor-pointer transition-colors ${
+              className={`flex flex-col items-center justify-start p-1.5 rounded-xs w-20 sm:w-22 h-20 sm:h-22 text-center cursor-pointer transition-colors ${
                 isSelected
                   ? 'bg-blue-900/60 border border-dotted border-white/80'
                   : 'hover:bg-white/10'
@@ -606,15 +606,15 @@ export const Desktop: React.FC<DesktopProps> = ({
               onContextMenu={(e) => handleContextMenu(e, folder)}
               onTouchStart={(e) => handleTouchStart(e, folder)}
               onTouchEnd={handleTouchEnd}
-              className={`flex flex-col items-center justify-start p-1.5 rounded-xs w-24 h-24 text-center cursor-pointer transition-colors ${
+              className={`flex flex-col items-center justify-start p-1.5 rounded-xs w-20 sm:w-22 h-20 sm:h-22 text-center cursor-pointer transition-colors ${
                 isSelected
                   ? 'bg-blue-900/60 border border-dotted border-white/80'
                   : 'hover:bg-white/10'
               }`}
             >
               {/* Windows 2000 Yellow Folder Icon */}
-              <div className="w-12 h-12 relative flex items-center justify-center">
-                <div className="w-10 h-8 bg-amber-400 border-2 border-amber-600 rounded-t-xs shadow-md relative">
+              <div className="w-10 h-10 relative flex items-center justify-center">
+                <div className="w-9 h-7 bg-amber-400 border-2 border-amber-600 rounded-t-xs shadow-md relative">
                   <div className="absolute -top-2 left-0 w-4 h-2 bg-amber-500 border-t-2 border-l-2 border-r-2 border-amber-700 rounded-t-xs" />
                 </div>
               </div>
@@ -657,11 +657,11 @@ export const Desktop: React.FC<DesktopProps> = ({
         onLaunchTimeTravel={onLaunchTimeTravel}
       />
 
-      {/* "Você Sabia?" Floating Tip Banner */}
+      {/* "Você Sabia?" Floating Tip Banner - DESKTOP ONLY (Disabled on Mobile) */}
       {!isFactDismissed && (
         <aside
           aria-label="Dica do Sistema"
-          className="fixed top-4 right-4 z-20 w-80 bg-[#ffffe1] text-gray-900 border-2 border-black p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.4)] text-xs font-sans animate-fadeIn"
+          className="hidden md:block fixed top-4 right-4 z-20 w-80 bg-[#ffffe1] text-gray-900 border-2 border-black p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.4)] text-xs font-sans animate-fadeIn"
         >
           <div className="flex items-center justify-between font-bold border-b border-gray-400 pb-1 mb-2">
             <div className="flex items-center gap-1.5 text-blue-900">
