@@ -231,8 +231,8 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
     },
     {
       id: 'resume',
-      title: 'RESUMO.PDF',
-      shortTitle: 'RESUMO.PDF',
+      title: 'Resumo.pdf',
+      shortTitle: 'Resumo.pdf',
       subtitle: 'Currículo Oficial PDF',
       category: 'core',
       icon: FileText,
@@ -735,7 +735,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
           </div>
 
           {/* 3-Column Standard Space App Icons Matrix */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-11 gap-3 sm:gap-4 max-w-5xl justify-items-center">
+          <div className="flex flex-wrap items-start justify-center gap-2 sm:gap-3 md:gap-3.5 lg:gap-4 max-w-6xl px-2">
             {spaceApps.map((app) => {
               const IconComp = app.icon;
               const isSelected = selectedIconId === app.id;
@@ -755,7 +755,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
                     e.stopPropagation();
                     handleOpenApp(app.id);
                   }}
-                  className={`flex flex-col items-center justify-center p-2 rounded-2xl w-20 sm:w-22 text-center cursor-pointer transition-all duration-200 group ${
+                  className={`flex flex-col items-center justify-start p-2 rounded-2xl w-[86px] sm:w-[96px] md:w-[100px] min-h-[96px] text-center cursor-pointer transition-all duration-200 group ${
                     isSelected
                       ? 'bg-cyan-500/20 border border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105'
                       : 'hover:bg-white/10 hover:border-white/20 border border-transparent'
@@ -763,12 +763,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
                 >
                   {/* Modern Futuristic App Icon Badge */}
                   <div
-                    className={`w-12 h-12 rounded-2xl bg-gradient-to-tr ${app.iconBg} p-2.5 flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all`}
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr ${app.iconBg} p-2.5 flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all shrink-0`}
                   >
-                    <IconComp className="w-6 h-6" />
+                    <IconComp className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
 
-                  <span className="text-[11px] font-mono font-medium text-slate-200 mt-2 truncate w-full group-hover:text-cyan-300 transition-colors">
+                  <span className="text-[11px] font-mono font-medium text-slate-200 mt-1.5 break-words leading-tight w-full text-center group-hover:text-cyan-300 transition-colors select-none">
                     {app.shortTitle}
                   </span>
                 </div>
@@ -805,15 +805,15 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
                   onContextMenu={(e) => handleContextMenu(e, folder)}
                   onTouchStart={(e) => handleTouchStart(e, folder)}
                   onTouchEnd={handleTouchEnd}
-                  className={`flex flex-col items-center justify-center p-2 rounded-2xl w-20 sm:w-22 text-center cursor-pointer transition-all duration-200 group ${
+                  className={`flex flex-col items-center justify-start p-2 rounded-2xl w-[86px] sm:w-[96px] md:w-[100px] min-h-[96px] text-center cursor-pointer transition-all duration-200 group ${
                     isSelected
                       ? 'bg-cyan-500/20 border border-cyan-400/80 shadow-[0_0_20px_rgba(6,182,212,0.4)] scale-105'
                       : 'hover:bg-white/10 hover:border-white/20 border border-transparent'
                   }`}
                 >
                   {/* Modern Glass Folder Icon */}
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-600/30 to-blue-700/40 border border-cyan-400/40 p-2.5 flex items-center justify-center text-cyan-300 shadow-lg group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all">
-                    <Folder className="w-6 h-6" />
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-cyan-600/30 to-blue-700/40 border border-cyan-400/40 p-2.5 flex items-center justify-center text-cyan-300 shadow-lg group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all shrink-0">
+                    <Folder className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
 
                   {isEditing ? (
@@ -832,7 +832,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
                       onClick={(e) => e.stopPropagation()}
                     />
                   ) : (
-                    <span className="text-[11px] font-mono font-medium text-slate-200 mt-2 truncate w-full group-hover:text-cyan-300 transition-colors">
+                    <span className="text-[11px] font-mono font-medium text-slate-200 mt-1.5 break-words leading-tight w-full text-center group-hover:text-cyan-300 transition-colors select-none">
                       {folder.name}
                     </span>
                   )}

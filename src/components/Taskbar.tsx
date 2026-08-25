@@ -349,7 +349,7 @@ export const Taskbar: React.FC<TaskbarProps> = ({
                     className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
                   >
                     <FileText className="w-3.5 h-3.5 text-red-700" />
-                    <span>Résumé_Mateus_Araujo.pdf</span>
+                    <span>Resumo_Mateus_Araujo.pdf</span>
                   </div>
                   <div
                     onClick={() => openAndCloseMenu('experience')}

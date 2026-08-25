@@ -59,7 +59,7 @@ export const AimsMessengerApp: React.FC = () => {
       } else if (query.includes('exercito') || query.includes('exército') || query.includes('militar')) {
         reply = 'Minha trajetória no Exército Brasileiro consolidou competências essenciais de liderança de equipes, disciplina em processos críticos, organização logística e respeito a rígidos padrões de conformidade.';
       } else if (query.includes('cv') || query.includes('curriculo') || query.includes('currículo') || query.includes('pdf')) {
-        reply = 'Você pode abrir o aplicativo Résumé.pdf na área de trabalho para ler e baixar meu currículo oficial completo em PDF!';
+        reply = 'Você pode abrir o aplicativo Resumo.pdf na área de trabalho para ler e baixar meu currículo oficial completo em PDF!';
       } else if (query.includes('2026') || query.includes('space') || query.includes('futuro') || query.includes('tempo')) {
         reply = 'Experimente clicar no botão "Viagem no tempo" na área de trabalho! Ele te transporta do ano 2000 até 2026 no ambiente interativo MATEUS SPACE com partículas!';
       } else if (query.includes('contato') || query.includes('email') || query.includes('whatsapp') || query.includes('telefone')) {

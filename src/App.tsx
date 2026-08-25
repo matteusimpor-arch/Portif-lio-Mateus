@@ -103,7 +103,7 @@ export default function App() {
     { id: 'now', title: 'Agora (2026) / Focos & Metas (Now.exe)', iconName: 'now', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 80, y: 40, width: 720, height: 540 },
     { id: 'contact', title: 'Contato Direto (Contact.exe)', iconName: 'contact', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 140, y: 70, width: 740, height: 560 },
     { id: 'guestbook', title: 'Livro de Visitas (Guestbook.exe)', iconName: 'guestbook', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 140, y: 60, width: 780, height: 600 },
-    { id: 'resume', title: 'Currículo Oficial (Résumé.pdf)', iconName: 'resume', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 110, y: 55, width: 720, height: 580 },
+    { id: 'resume', title: 'Currículo Oficial (Resumo.pdf)', iconName: 'resume', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 110, y: 55, width: 720, height: 580 },
     
     // Creative & Retro Apps
     { id: 'paint', title: 'Criança Pix (PixPaint.exe)', iconName: 'paint', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 130, y: 40, width: 760, height: 560 },

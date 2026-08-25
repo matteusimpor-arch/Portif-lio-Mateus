@@ -307,18 +307,18 @@ export const Desktop: React.FC<DesktopProps> = ({
     { id: 'skills', title: 'O que eu faço', column: 1, iconType: 'doc-word' },
     { id: 'now', title: 'Agora (2026)', column: 1, iconType: 'satellite' },
     { id: 'contact', title: 'Contato', column: 1, iconType: 'envelope' },
-    { id: 'resume', title: 'Résumé.pdf', column: 1, iconType: 'pdf-doc' },
+    { id: 'resume', title: 'Resumo.pdf', column: 1, iconType: 'pdf-doc' },
 
     // Column 2
     { id: 'paint', title: 'Criança Pix', column: 2, iconType: 'paint-palette' },
-    { id: 'quiz', title: 'Cultura Pop Quiz', column: 2, iconType: 'pop-quiz', badge: '★ QUIZ', badgeColor: 'bg-blue-600 text-yellow-300' },
+    { id: 'quiz', title: 'Cultura Pop Quiz', column: 2, iconType: 'pop-quiz' },
     { id: 'clippy', title: 'Clippy Ajuda', column: 2, iconType: 'clippy' },
     { id: 'games', title: 'Jogos', column: 2, iconType: 'gamepad' },
     { id: 'aims', title: 'AIMS', column: 2, iconType: 'aims' },
     { id: 'settings', title: 'Fundos', column: 2, iconType: 'settings-screen' },
 
     // Column 3
-    { id: 'guestbook', title: 'Livro de Visitas', column: 3, iconType: 'guestbook-book', badge: '★ NOVO', badgeColor: 'bg-emerald-600 text-white' },
+    { id: 'guestbook', title: 'Livro de Visitas', column: 3, iconType: 'guestbook-book' },
     { id: 'napster', title: 'Categoria: Napster', column: 3, iconType: 'napster' },
     { id: 'nostalgia', title: 'Momentos de Nostalgia', column: 3, iconType: 'retro-tv' },
     { id: 'timetravel', title: 'Viagem no tempo', column: 3, iconType: 'time-spiral' },
@@ -538,7 +538,7 @@ export const Desktop: React.FC<DesktopProps> = ({
       className={`fixed inset-0 select-none overflow-hidden pb-12 transition-colors duration-500 ${getWallpaperBackground()}`}
     >
       {/* Desktop Layout - Classic Windows Left-Aligned Vertical Columns */}
-      <div className="relative w-full h-[calc(100vh-56px)] p-3 sm:p-4 flex flex-col flex-wrap content-start items-start gap-y-2 gap-x-2 sm:gap-x-3 z-10 pointer-events-auto overflow-x-auto overflow-y-hidden custom-scrollbar pb-14">
+      <div className="relative w-full h-[calc(100vh-56px)] p-3 sm:p-4 flex flex-col flex-wrap content-start items-start gap-y-3 gap-x-3 sm:gap-x-4 z-10 pointer-events-auto overflow-x-auto overflow-y-hidden custom-scrollbar pb-14">
         {/* Standard Desktop Apps */}
         {desktopItems.map((item) => {
           const isSelected = selectedIcon === item.id;
@@ -547,13 +547,13 @@ export const Desktop: React.FC<DesktopProps> = ({
               key={item.id}
               onClick={() => handleIconClick(item.id)}
               onDoubleClick={() => handleIconDoubleClick(item.id)}
-              className={`flex flex-col items-center justify-start p-1.5 rounded-xs w-20 sm:w-22 h-20 sm:h-22 text-center cursor-pointer transition-colors ${
+              className={`flex flex-col items-center justify-start p-1.5 pb-2 rounded-xs w-[84px] sm:w-[92px] min-h-[82px] sm:min-h-[88px] h-auto text-center cursor-pointer transition-colors ${
                 isSelected
-                  ? 'bg-blue-900/60 border border-dotted border-white/80'
+                  ? 'bg-blue-900/70 border border-dotted border-white/90 shadow-xs'
                   : 'hover:bg-white/10'
               }`}
             >
-              <div className="relative">
+              <div className="relative shrink-0">
                 {renderIconVisual(item.iconType)}
                 {item.badge && (
                   <span
@@ -566,8 +566,10 @@ export const Desktop: React.FC<DesktopProps> = ({
                 )}
               </div>
               <span
-                className={`text-[11px] font-sans mt-1 px-1 line-clamp-2 leading-tight ${
-                  isSelected ? 'bg-blue-900 text-white' : 'text-white drop-shadow-[1px_1px_2px_rgba(0,0,0,0.9)]'
+                className={`text-[11px] font-sans mt-1 px-1 break-words leading-snug max-w-full select-none ${
+                  isSelected
+                    ? 'bg-[#000080] text-white'
+                    : 'text-white drop-shadow-[1px_1px_2px_rgba(0,0,0,0.95)]'
                 }`}
               >
                 {item.title}
@@ -607,14 +609,14 @@ export const Desktop: React.FC<DesktopProps> = ({
               onContextMenu={(e) => handleContextMenu(e, folder)}
               onTouchStart={(e) => handleTouchStart(e, folder)}
               onTouchEnd={handleTouchEnd}
-              className={`flex flex-col items-center justify-start p-1.5 rounded-xs w-20 sm:w-22 h-20 sm:h-22 text-center cursor-pointer transition-colors ${
+              className={`flex flex-col items-center justify-start p-1.5 pb-2 rounded-xs w-[84px] sm:w-[92px] min-h-[82px] sm:min-h-[88px] h-auto text-center cursor-pointer transition-colors ${
                 isSelected
-                  ? 'bg-blue-900/60 border border-dotted border-white/80'
+                  ? 'bg-blue-900/70 border border-dotted border-white/90 shadow-xs'
                   : 'hover:bg-white/10'
               }`}
             >
               {/* Windows 2000 Yellow Folder Icon */}
-              <div className="w-10 h-10 relative flex items-center justify-center">
+              <div className="w-10 h-10 relative flex items-center justify-center shrink-0">
                 <div className="w-9 h-7 bg-amber-400 border-2 border-amber-600 rounded-t-xs shadow-md relative">
                   <div className="absolute -top-2 left-0 w-4 h-2 bg-amber-500 border-t-2 border-l-2 border-r-2 border-amber-700 rounded-t-xs" />
                 </div>
@@ -638,8 +640,10 @@ export const Desktop: React.FC<DesktopProps> = ({
                 />
               ) : (
                 <span
-                  className={`text-[11px] font-sans mt-1 px-1 line-clamp-2 leading-tight ${
-                    isSelected ? 'bg-blue-900 text-white' : 'text-white drop-shadow-[1px_1px_2px_rgba(0,0,0,0.9)]'
+                  className={`text-[11px] font-sans mt-1 px-1 break-words leading-snug max-w-full select-none ${
+                    isSelected
+                      ? 'bg-[#000080] text-white'
+                      : 'text-white drop-shadow-[1px_1px_2px_rgba(0,0,0,0.95)]'
                   }`}
                 >
                   {folder.name}

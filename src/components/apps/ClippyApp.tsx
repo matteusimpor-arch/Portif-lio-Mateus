@@ -86,8 +86,8 @@ export const ClippyApp: React.FC<ClippyAppProps> = ({ onOpenApp, onLaunchTimeTra
     },
     {
       title: 'Procurando o Currículo para contratação?',
-      body: 'Você pode visualizar e fazer download do Currículo em PDF oficial de Mateus Araujo a qualquer momento abrindo o arquivo "Résumé.pdf".',
-      actionLabel: 'Abrir Résumé.pdf',
+      body: 'Você pode visualizar e fazer download do Currículo em PDF oficial de Mateus Araujo a qualquer momento abrindo o arquivo "Resumo.pdf".',
+      actionLabel: 'Abrir Resumo.pdf',
       appId: 'resume' as WindowAppId
     },
     {

@@ -102,21 +102,21 @@ export const MateusLogo: React.FC<MateusLogoProps> = ({
         >
           <defs>
             <radialGradient id={`logo-bg-${pxSize}`} cx="50%" cy="40%" r="60%">
-              <stop offset="0%" stop-color="#0c1a3b" />
-              <stop offset="70%" stop-color="#030712" />
-              <stop offset="100%" stop-color="#020617" />
+              <stop offset="0%" stopColor="#0c1a3b" />
+              <stop offset="70%" stopColor="#030712" />
+              <stop offset="100%" stopColor="#020617" />
             </radialGradient>
 
             <linearGradient id={`logo-m-grad-${pxSize}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#ffffff" />
-              <stop offset="50%" stop-color="#e0f2fe" />
-              <stop offset="100%" stop-color="#38bdf8" />
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="50%" stopColor="#e0f2fe" />
+              <stop offset="100%" stopColor="#38bdf8" />
             </linearGradient>
 
             <linearGradient id={`logo-orbit-grad-${pxSize}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#38bdf8" />
-              <stop offset="50%" stop-color="#22d3ee" />
-              <stop offset="100%" stop-color="#0369a1" />
+              <stop offset="0%" stopColor="#38bdf8" />
+              <stop offset="50%" stopColor="#22d3ee" />
+              <stop offset="100%" stopColor="#0369a1" />
             </linearGradient>
 
             <filter id={`logo-glow-${pxSize}`} x="-30%" y="-30%" width="160%" height="160%">

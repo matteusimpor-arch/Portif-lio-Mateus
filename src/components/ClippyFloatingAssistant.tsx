@@ -132,11 +132,11 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
       greeting: '📄 Currículo & Contato Direto',
       text: (
         <>
-          Para baixar o PDF oficial de contratação ou enviar mensagem direta via WhatsApp/E-mail, acesse <strong>Résumé.pdf</strong> ou o <strong>AIMS Messenger</strong>!
+          Para baixar o PDF oficial de contratação ou enviar mensagem direta via WhatsApp/E-mail, acesse <strong>Resumo.pdf</strong> ou o <strong>AIMS Messenger</strong>!
         </>
       ),
       action: () => { onOpenApp('resume'); setIsOpen(false); },
-      actionLabel: 'Visualizar Résumé.pdf →',
+      actionLabel: 'Visualizar Resumo.pdf →',
     },
   ];
 
