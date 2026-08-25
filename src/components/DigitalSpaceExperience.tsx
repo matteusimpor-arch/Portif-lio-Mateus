@@ -50,6 +50,7 @@ import { TrashApp } from './apps/TrashApp';
 import { GuestbookApp } from './apps/GuestbookApp';
 import { FolderWindow } from './FolderWindow';
 import { getFolderFiles, formatFileSize } from '../utils/folderStorage';
+import { MateusLogo } from './MateusLogo';
 
 interface DigitalSpaceExperienceProps {
   onBackToRetro: () => void;
@@ -709,17 +710,22 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
             </span>
           </button>
 
-          {/* Quick System Indicators */}
-          <div className="hidden sm:flex items-center gap-3">
-            <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 backdrop-blur-xl text-[11px] font-mono text-cyan-400 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>SPACE OS 2026 // {currentTheme.toUpperCase()}</span>
+          {/* Quick System Indicators & Official Brand Logo */}
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 backdrop-blur-xl text-[11px] font-mono text-cyan-400 flex items-center gap-2.5 shadow-lg">
+              <MateusLogo mode="space" size={24} animated={true} />
+              <span className="hidden sm:inline">SPACE OS 2026 // {currentTheme.toUpperCase()}</span>
             </div>
           </div>
         </div>
 
         {/* --- CENTER AREA: SOPHISTICATED SIGNATURE & ICONS GRID --- */}
         <div className="w-full flex-1 flex flex-col items-center justify-center my-auto pointer-events-auto">
+          {/* Official Space 2026 Animated Logo Monogram */}
+          <div className="mb-2 flex items-center justify-center">
+            <MateusLogo mode="space" size={56} animated={true} />
+          </div>
+
           {/* Central Name "Mateus Araujo" with Particle Glass / Digital Dust */}
           <div className="w-full max-w-2xl text-center mb-6">
             <ParticleTextCanvas

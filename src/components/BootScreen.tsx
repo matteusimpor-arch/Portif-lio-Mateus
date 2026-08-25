@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { soundFx } from '../utils/soundEffects';
+import { MateusLogo } from './MateusLogo';
 
 interface BootScreenProps {
   onBootComplete: () => void;
@@ -77,8 +78,13 @@ export const BootScreen: React.FC<BootScreenProps> = ({ onBootComplete }) => {
     >
       {/* Centered Splash Container matching Screenshot */}
       <div className="flex flex-col items-center justify-center text-center px-4 max-w-2xl w-full">
+        {/* Official Brand Monogram (M + Orbit) */}
+        <div className="mb-4">
+          <MateusLogo mode="retro" size={64} animated={false} />
+        </div>
+
         {/* Main Pixel Title: MateusOS '00 */}
-        <div className="mb-6 select-none transform transition-transform hover:scale-102">
+        <div className="mb-4 select-none transform transition-transform hover:scale-102">
           <h1 className="font-pixel text-3xl sm:text-5xl md:text-6xl text-white tracking-normal font-bold flex items-center justify-center">
             <span>Mateus</span>
             <span className="text-[#0080ff]">OS</span>

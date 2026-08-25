@@ -11,6 +11,7 @@ import {
 import { ThemeConfig } from '../../types';
 import { soundFx } from '../../utils/soundEffects';
 import { ScreensaverType } from '../ScreensaverCanvas';
+import { MateusLogo } from '../MateusLogo';
 
 interface SettingsAppProps {
   themeConfig: ThemeConfig;
@@ -424,6 +425,33 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
                 }}
                 className="w-4 h-4 cursor-pointer"
               />
+            </div>
+
+            {/* Official Visual Identity Showcase */}
+            <div className="p-3 bg-[#f8fafc] border border-blue-200 rounded space-y-2">
+              <div className="font-bold text-blue-950 flex items-center justify-between">
+                <span>Identidade Visual &amp; Favicon Oficial (M + Órbita)</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 bg-blue-100 text-blue-900 rounded font-bold">Oficial</span>
+              </div>
+              <p className="text-[11px] text-gray-600">
+                Logotipo exclusivo integrando a letra <strong>M</strong>, anel orbital luminoso e ponto espacial de navegação temporal.
+              </p>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="bg-[#030712] p-2.5 rounded border border-gray-700 flex items-center gap-3">
+                  <MateusLogo mode="retro" size={32} animated={false} />
+                  <div className="text-[10px] font-mono text-gray-300">
+                    <div className="font-bold text-white">Modo OS 00</div>
+                    <div className="text-[#38bdf8]">Retrô Pixel Ed.</div>
+                  </div>
+                </div>
+                <div className="bg-[#020617] p-2.5 rounded border border-cyan-500/40 flex items-center gap-3">
+                  <MateusLogo mode="space" size={32} animated={true} />
+                  <div className="text-[10px] font-mono text-cyan-300">
+                    <div className="font-bold text-white">Modo Space 2026</div>
+                    <div className="text-cyan-400">Quantum Vector Glow</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

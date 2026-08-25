@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Radial Gradient -->
+    <radialGradient id="bg-grad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#0b1736" />
+      <stop offset="60%" stop-color="#04091a" />
+      <stop offset="100%" stop-color="#020617" />
+    </radialGradient>
+
+    <!-- Outer Rim Glow -->
+    <linearGradient id="rim-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#0284c7" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9" />
+    </linearGradient>
+
+    <!-- Orbit Stroke Gradient -->
+    <linearGradient id="orbit-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="40%" stop-color="#22d3ee" />
+      <stop offset="70%" stop-color="#0284c7" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.2" />
+    </linearGradient>
+
+    <!-- Geometric M Gradient -->
+    <linearGradient id="m-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="45%" stop-color="#e0f2fe" />
+      <stop offset="80%" stop-color="#bae6fd" />
+      <stop offset="100%" stop-color="#7dd3fc" />
+    </linearGradient>
+
+    <!-- Beacon Glow Filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="m-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Circular Dark Background -->
+  <circle cx="256" cy="256" r="248" fill="url(#bg-grad)" stroke="url(#rim-grad)" stroke-width="8" />
+
+  <!-- Subtle Inner Space Grid Star Dust -->
+  <circle cx="120" cy="140" r="2.5" fill="#38bdf8" opacity="0.6" />
+  <circle cx="390" cy="130" r="2" fill="#e0f2fe" opacity="0.5" />
+  <circle cx="140" cy="380" r="2" fill="#7dd3fc" opacity="0.4" />
+  <circle cx="380" cy="370" r="3" fill="#38bdf8" opacity="0.6" />
+  <circle cx="256" cy="70" r="2" fill="#ffffff" opacity="0.7" />
+
+  <!-- Back Orbit Section -->
+  <g transform="rotate(-28 256 256)">
+    <ellipse cx="256" cy="256" rx="205" ry="76" fill="none" stroke="url(#orbit-grad)" stroke-width="8" stroke-dasharray="8 6" opacity="0.4" />
+    <ellipse cx="256" cy="256" rx="205" ry="76" fill="none" stroke="url(#orbit-grad)" stroke-width="6" opacity="0.85" />
+  </g>
+
+  <!-- Geometric Modern 'M' Monogram Logo -->
+  <g filter="url(#m-glow)">
+    <path d="M 148 356 L 148 156 L 256 270 L 364 156 L 364 356 L 316 356 L 316 230 L 256 296 L 196 230 L 196 356 Z"
+          fill="url(#m-grad)"
+          stroke="#0284c7"
+          stroke-width="3"
+          stroke-linejoin="round" />
+  </g>
+
+  <!-- Front Orbit Foreground Overlay & Flare -->
+  <g transform="rotate(-28 256 256)">
+    <!-- Active Luminous Orbital Beacon Node -->
+    <!-- Position on orbit ring at angle ~ 50 deg -->
+    <g transform="translate(390, 298)">
+      <!-- Outer Beacon Halo -->
+      <circle cx="0" cy="0" r="24" fill="#0ea5e9" opacity="0.35" filter="url(#glow)" />
+      <!-- Middle Glow -->
+      <circle cx="0" cy="0" r="14" fill="#38bdf8" opacity="0.8" filter="url(#glow)" />
+      <!-- Core Intense Beacon -->
+      <circle cx="0" cy="0" r="8" fill="#ffffff" />
+      <!-- Cross Star Flare -->
+      <path d="M -16 0 L 16 0 M 0 -16 L 0 16" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.9" />
+    </g>
+  </g>
+</svg>

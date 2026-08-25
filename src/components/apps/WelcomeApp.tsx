@@ -2,6 +2,7 @@ import React from 'react';
 import { Sparkles, ArrowRight, Folder, FileText, Send, Lightbulb, Compass, Monitor } from 'lucide-react';
 import { soundFx } from '../../utils/soundEffects';
 import { WindowAppId } from '../../types';
+import { MateusLogo } from '../MateusLogo';
 
 interface WelcomeAppProps {
   onOpenApp?: (appId: WindowAppId) => void;
@@ -13,7 +14,10 @@ export const WelcomeApp: React.FC<WelcomeAppProps> = ({ onOpenApp, onLaunchTimeT
     <div className="bg-[#F5F4ED] text-gray-900 font-sans p-4 sm:p-6 md:p-8 max-w-3xl mx-auto space-y-5 select-text border-2 border-gray-400 shadow-xs">
       {/* Directory Path Bar */}
       <div className="bg-[#ECE9D8] p-1.5 border-2 border-white border-r-gray-800 border-b-gray-800 flex items-center justify-between text-xs font-mono">
-        <span className="text-blue-950 font-bold">C:\MATEUS\BEM_VINDO_README.TXT</span>
+        <div className="flex items-center gap-2">
+          <MateusLogo mode="retro" size={20} animated={false} />
+          <span className="text-blue-950 font-bold">C:\MATEUS\BEM_VINDO_README.TXT</span>
+        </div>
         <span className="text-[10px] text-gray-700">MATEUS OS 2000</span>
       </div>
 
