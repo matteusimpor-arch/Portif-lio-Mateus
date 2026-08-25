@@ -32,6 +32,7 @@ interface Track {
   bitrate: string;
   genre: string;
   isFlagshipSaved?: boolean;
+  audioUrl?: string;
   melodyNotes: { freq: number; dur: number; bassFreq?: number }[];
   bpm: number;
 }
@@ -203,6 +204,7 @@ export const NapsterApp: React.FC = () => {
       bitrate: '320 kbps (High Quality)',
       genre: 'Nu-Metal / Alternative',
       isFlagshipSaved: true,
+      audioUrl: '/audio/in_the_end.wav',
       melodyNotes: inTheEndMelody,
       bpm: 105
     },
@@ -215,6 +217,7 @@ export const NapsterApp: React.FC = () => {
       bitrate: '320 kbps (High Quality)',
       genre: 'Alternative Rock',
       isFlagshipSaved: true,
+      audioUrl: '/audio/californication.wav',
       melodyNotes: californicationMelody,
       bpm: 96
     },
@@ -227,6 +230,7 @@ export const NapsterApp: React.FC = () => {
       bitrate: '320 kbps (High Quality)',
       genre: 'Eurodance 2000',
       isFlagshipSaved: true,
+      audioUrl: '/audio/around_the_world.wav',
       melodyNotes: aroundTheWorldMelody,
       bpm: 132
     },
@@ -239,6 +243,7 @@ export const NapsterApp: React.FC = () => {
       bitrate: '320 kbps (High Quality)',
       genre: 'Euro Dance / Electro House',
       isFlagshipSaved: true,
+      audioUrl: '/audio/alors_on_danse.wav',
       melodyNotes: alorsOnDanseMelody,
       bpm: 120
     },
@@ -251,6 +256,7 @@ export const NapsterApp: React.FC = () => {
       bitrate: '320 kbps (High Quality)',
       genre: 'Latin Rock / Pop',
       isFlagshipSaved: true,
+      audioUrl: '/audio/smooth.wav',
       melodyNotes: smoothMelody,
       bpm: 116
     },
@@ -297,6 +303,7 @@ export const NapsterApp: React.FC = () => {
 
   const currentTrackDef = basePlaylist[currentTrackIndex] || basePlaylist[0];
   const customAudioForCurrent = customAudios[currentTrackDef.id];
+  const activeAudioUrl = customAudioForCurrent?.url || currentTrackDef.audioUrl;
   const currentDuration = customAudioForCurrent?.duration || currentTrackDef.duration;
 
   // Initialize HTML5 Audio Element
@@ -415,12 +422,13 @@ export const NapsterApp: React.FC = () => {
   // Playback Loop
   useEffect(() => {
     const audio = audioElementRef.current;
-    const hasCustomFile = !!customAudios[currentTrackDef.id]?.url;
+    const currentAudioUrl = customAudios[currentTrackDef.id]?.url || currentTrackDef.audioUrl;
 
     if (isPlaying) {
-      if (hasCustomFile && audio) {
-        if (audio.src !== customAudios[currentTrackDef.id].url) {
-          audio.src = customAudios[currentTrackDef.id].url;
+      if (currentAudioUrl && audio) {
+        const currentSrcEnds = audio.src.endsWith(currentAudioUrl);
+        if (!currentSrcEnds) {
+          audio.src = currentAudioUrl;
           audio.currentTime = elapsedSeconds;
         }
         audio.play().catch(() => {});
@@ -499,7 +507,7 @@ export const NapsterApp: React.FC = () => {
     const targetSeconds = Math.floor(ratio * currentDuration);
 
     setElapsedSeconds(targetSeconds);
-    if (audioElementRef.current && customAudios[currentTrackDef.id]) {
+    if (audioElementRef.current && (customAudios[currentTrackDef.id] || currentTrackDef.audioUrl)) {
       audioElementRef.current.currentTime = targetSeconds;
     }
   };
@@ -886,6 +894,10 @@ export const NapsterApp: React.FC = () => {
                 <span className="text-[10px] bg-green-900 text-green-200 px-1.5 py-0.2 rounded border border-green-600 font-bold">
                   MP3 LOCAL ATIVO
                 </span>
+              ) : currentTrackDef.audioUrl ? (
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-600 font-bold flex items-center gap-1">
+                  <Disc className="w-2.5 h-2.5 animate-spin" /> ÁUDIO GRAVADO INTEGRADO
+                </span>
               ) : (
                 <span className="text-[10px] bg-cyan-950 text-cyan-300 px-1.5 py-0.2 rounded border border-cyan-800 font-bold">
                   SINTETIZADOR DIGITAL OS 2000
@@ -1111,7 +1123,9 @@ export const NapsterApp: React.FC = () => {
       <div className="bg-[#c0c0c0] p-1.5 border-bevel-in text-[11px] font-mono text-gray-800 flex items-center justify-between">
         <span className="truncate">
           {customAudios[currentTrackDef.id]
-            ? `ÁUDIO MP3 EM REPRODUÇÃO: ${customAudios[currentTrackDef.id].fileName}`
+            ? `ÁUDIO MP3 PERSONALIZADO: ${customAudios[currentTrackDef.id].fileName}`
+            : currentTrackDef.audioUrl
+            ? `ÁUDIO GRAVADO OFICIAL INTEGRADO: ${currentTrackDef.title}`
             : `SINTETIZADOR HARMONIZADO ATIVO: ${currentTrackDef.title}`}
         </span>
         <span className="shrink-0">MATEUS OS 2000 AUDIO ENGINE</span>
