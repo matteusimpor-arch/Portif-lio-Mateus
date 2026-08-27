@@ -39,12 +39,21 @@ import { recordSiteVisit } from './lib/firebase';
 export default function App() {
   const [isBootComplete, setIsBootComplete] = useState<boolean>(false);
   const [isShutdown, setIsShutdown] = useState<boolean>(false);
-  const [activeWindowId, setActiveWindowId] = useState<string | null>('welcome');
+  // Check if first visit for automatic Welcome.exe opening
+  const isFirstVisit = typeof window !== 'undefined' ? !localStorage.getItem('mateusOSWelcomeSeen') : true;
+
+  const [activeWindowId, setActiveWindowId] = useState<string | null>(() => (isFirstVisit ? 'welcome' : null));
   const [highestZIndex, setHighestZIndex] = useState<number>(20);
 
   // Auto-record site visit on initial page load (1 per browser session)
   useEffect(() => {
     recordSiteVisit();
+    // Mark welcome seen on first visit
+    if (typeof window !== 'undefined' && !localStorage.getItem('mateusOSWelcomeSeen')) {
+      try {
+        localStorage.setItem('mateusOSWelcomeSeen', 'true');
+      } catch (e) {}
+    }
   }, []);
 
   // Screensaver State & Idle Timer
@@ -94,7 +103,19 @@ export default function App() {
 
   // Initial Window states matching the 16 desktop apps + Welcome
   const initialWindows: WindowState[] = [
-    { id: 'welcome', title: '✦ Bem-Vindo · Leia-Me (Welcome.exe)', iconName: 'welcome', isOpen: true, isMinimized: false, isMaximized: false, zIndex: 20, x: 120, y: 35, width: 780, height: 570 },
+    {
+      id: 'welcome',
+      title: '✦ Bem-Vindo · Leia-Me (Welcome.exe)',
+      iconName: 'welcome',
+      isOpen: isFirstVisit,
+      isMinimized: false,
+      isMaximized: false,
+      zIndex: isFirstVisit ? 20 : 1,
+      x: typeof window !== 'undefined' ? Math.max(16, Math.floor((window.innerWidth - 660) / 2)) : 100,
+      y: typeof window !== 'undefined' ? Math.max(16, Math.floor((window.innerHeight - 540) / 2)) : 40,
+      width: 660,
+      height: 500,
+    },
     { id: 'projects', title: 'Trabalho Selecionado (Projects.exe)', iconName: 'projects', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 90, y: 45, width: 840, height: 620 },
     { id: 'about', title: 'Sobre Mateus (About_Mateus.exe)', iconName: 'about', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 60, y: 30, width: 740, height: 560 },
     { id: 'education', title: 'Formação Acadêmica & MBAs (Education.exe)', iconName: 'education', isOpen: false, isMinimized: false, isMaximized: false, zIndex: 1, x: 100, y: 50, width: 750, height: 580 },

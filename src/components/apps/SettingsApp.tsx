@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Settings,
   RefreshCw,
@@ -6,7 +6,13 @@ import {
   Check,
   Moon,
   Tv,
-  Sparkles
+  Sparkles,
+  Bot,
+  Compass,
+  Square,
+  Volume2,
+  VolumeX,
+  Smile
 } from 'lucide-react';
 import { ThemeConfig } from '../../types';
 import { soundFx } from '../../utils/soundEffects';
@@ -18,6 +24,7 @@ interface SettingsAppProps {
   onUpdateTheme: (newConfig: Partial<ThemeConfig>) => void;
   onResetDesktop: () => void;
   onTestScreensaver?: () => void;
+  initialTab?: 'wallpaper' | 'screensaver' | 'appearance' | 'mbot';
 }
 
 interface ScreensaverOption {
@@ -32,10 +39,47 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
   themeConfig,
   onUpdateTheme,
   onResetDesktop,
-  onTestScreensaver
+  onTestScreensaver,
+  initialTab = 'wallpaper',
 }) => {
-  const [activeTab, setActiveTab] = useState<'wallpaper' | 'screensaver' | 'appearance'>('wallpaper');
+  const [activeTab, setActiveTab] = useState<'wallpaper' | 'screensaver' | 'appearance' | 'mbot'>(initialTab);
   const [previewWallpaper, setPreviewWallpaper] = useState<ThemeConfig['wallpaper']>(themeConfig.wallpaper);
+
+  // M-BOT local settings state
+  const [mBotEnabled, setMBotEnabled] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('mBotEnabled') !== 'false' : true;
+  });
+  const [mBotBehavior, setMBotBehavior] = useState<'roam' | 'stay'>(() => {
+    return (typeof window !== 'undefined' && (localStorage.getItem('mBotBehavior') as 'roam' | 'stay')) || 'roam';
+  });
+  const [mBotCursor, setMBotCursor] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('mBotCursorInteraction') !== 'false' : true;
+  });
+  const [mBotSound, setMBotSound] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('mBotSound') === 'true' : false;
+  });
+
+  const handleUpdateMBot = (updates: { enabled?: boolean; behavior?: 'roam' | 'stay'; cursor?: boolean; sound?: boolean }) => {
+    if (updates.enabled !== undefined) {
+      setMBotEnabled(updates.enabled);
+      localStorage.setItem('mBotEnabled', String(updates.enabled));
+    }
+    if (updates.behavior !== undefined) {
+      setMBotBehavior(updates.behavior);
+      localStorage.setItem('mBotBehavior', updates.behavior);
+    }
+    if (updates.cursor !== undefined) {
+      setMBotCursor(updates.cursor);
+      localStorage.setItem('mBotCursorInteraction', String(updates.cursor));
+    }
+    if (updates.sound !== undefined) {
+      setMBotSound(updates.sound);
+      localStorage.setItem('mBotSound', String(updates.sound));
+      if (updates.sound) soundFx.playMBotChirp();
+    }
+    // Dispatch storage event so live companion syncs immediately
+    window.dispatchEvent(new Event('storage'));
+  };
 
   const [selectedScreensaver, setSelectedScreensaver] = useState<string>(() => {
     return (typeof window !== 'undefined' && localStorage.getItem('mateus_screensaver_pref')) || 'pipes_3d';
@@ -217,6 +261,20 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
           }`}
         >
           ✦ Áudio & Efeitos CRT
+        </button>
+
+        <button
+          onClick={() => {
+            soundFx.playClick();
+            setActiveTab('mbot');
+          }}
+          className={`px-3 py-1 text-xs font-bold border-2 rounded-t-sm cursor-pointer ${
+            activeTab === 'mbot'
+              ? 'bg-white border-gray-600 border-b-white font-bold text-blue-950 -mb-[2px]'
+              : 'bg-[#d8d8d8] border-gray-400 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          ✦ M-BOT (Companheiro)
         </button>
       </div>
 
@@ -467,6 +525,158 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Redefinir Área de Trabalho</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: M-BOT Companion */}
+      {activeTab === 'mbot' && (
+        <div className="bg-white border-2 border-gray-700 shadow-sm p-4 space-y-4 text-xs">
+          {/* M-BOT Overview Card */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-3 bg-blue-50 border-2 border-blue-200 rounded">
+            {/* Retro Bot Visual Avatar */}
+            <div className="w-20 h-20 bg-slate-200 border-2 border-slate-400 p-1 flex items-center justify-center shadow-inner shrink-0 rounded">
+              <svg viewBox="0 0 100 110" className="w-16 h-16">
+                <rect x="24" y="48" width="52" height="38" rx="6" fill="#64748b" stroke="#000" strokeWidth="1.5" />
+                <rect x="30" y="53" width="40" height="28" rx="4" fill="#1e3a8a" stroke="#000" strokeWidth="1" />
+                <rect x="42" y="66" width="16" height="11" rx="2" fill="#ffffff" stroke="#000" strokeWidth="0.8" />
+                <text x="50" y="74.5" textAnchor="middle" fontSize="8" fontWeight="900" fontFamily="monospace" fill="#1e3a8a">M</text>
+                <circle cx="64" cy="58" r="1.8" fill="#22c55e" stroke="#000" strokeWidth="0.5" />
+                <rect x="46" y="38" width="8" height="12" rx="2" fill="#334155" stroke="#000" strokeWidth="1" />
+                {/* Eyes: Fundo Branco, Pupila Preta, Brilho Branco */}
+                <ellipse cx="34" cy="26" rx="14" ry="13" fill="#64748b" stroke="#000" strokeWidth="1.5" />
+                <ellipse cx="34" cy="26" rx="11" ry="10" fill="#ffffff" stroke="#cbd5e1" strokeWidth="0.8" />
+                <circle cx="34" cy="26" r="6" fill="#000000" />
+                <circle cx="32" cy="23.5" r="2.2" fill="#ffffff" />
+                <circle cx="36.5" cy="28.5" r="1.1" fill="#ffffff" />
+                <ellipse cx="66" cy="26" rx="14" ry="13" fill="#64748b" stroke="#000" strokeWidth="1.5" />
+                <ellipse cx="66" cy="26" rx="11" ry="10" fill="#ffffff" stroke="#cbd5e1" strokeWidth="0.8" />
+                <circle cx="66" cy="26" r="6" fill="#000000" />
+                <circle cx="64" cy="23.5" r="2.2" fill="#ffffff" />
+                <circle cx="68.5" cy="28.5" r="1.1" fill="#ffffff" />
+                {/* Treads */}
+                <path d="M 12 98 L 22 75 L 34 75 L 42 98 Z" fill="#1e293b" stroke="#000" strokeWidth="1.5" />
+                <path d="M 58 98 L 66 75 L 78 75 L 88 98 Z" fill="#1e293b" stroke="#000" strokeWidth="1.5" />
+              </svg>
+            </div>
+
+            <div className="space-y-1 text-center sm:text-left">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <span className="font-bold font-mono text-sm text-blue-950">M-BOT COMPANION</span>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 bg-yellow-200 border border-yellow-500 text-blue-950 font-bold">
+                  HABITANTE DO DESKTOP
+                </span>
+              </div>
+              <p className="text-gray-700 text-[11px] leading-relaxed">
+                Pequeno robô explorador original do Mateus OS. Passeia discretamente pelo desktop, observa o cursor e aplicativos, reage a cliques e evolui de <strong>M-BOT 00</strong> para <strong>M-BOT 26</strong> durante a viagem temporal.
+              </p>
+            </div>
+          </div>
+
+          {/* Controls List */}
+          <div className="space-y-3">
+            {/* Enable/Disable M-BOT */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-300 rounded">
+              <div className="space-y-0.5">
+                <div className="font-bold text-blue-950 flex items-center gap-1.5">
+                  <Bot className="w-4 h-4 text-blue-900" />
+                  <span>Exibir M-BOT no Desktop</span>
+                </div>
+                <div className="text-[11px] text-gray-600">Ativa ou desativa a presença do robô companheiro</div>
+              </div>
+              <input
+                type="checkbox"
+                checked={mBotEnabled}
+                onChange={(e) => {
+                  soundFx.playClick();
+                  handleUpdateMBot({ enabled: e.target.checked });
+                }}
+                className="w-4 h-4 cursor-pointer"
+              />
+            </div>
+
+            {/* Behavior: Roam vs Stay */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 border border-gray-300 rounded gap-2">
+              <div className="space-y-0.5">
+                <div className="font-bold text-blue-950 flex items-center gap-1.5">
+                  <Compass className="w-4 h-4 text-blue-900" />
+                  <span>Comportamento do Robô</span>
+                </div>
+                <div className="text-[11px] text-gray-600">Escolha entre caminhar livremente ou ficar parado em um ponto</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleUpdateMBot({ behavior: 'roam' })}
+                  className={`btn-retro px-3 py-1 text-xs font-bold flex items-center gap-1 cursor-pointer ${
+                    mBotBehavior === 'roam' ? 'bg-blue-900 text-white font-bold' : 'text-gray-900'
+                  }`}
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  <span>Passear</span>
+                </button>
+                <button
+                  onClick={() => handleUpdateMBot({ behavior: 'stay' })}
+                  className={`btn-retro px-3 py-1 text-xs font-bold flex items-center gap-1 cursor-pointer ${
+                    mBotBehavior === 'stay' ? 'bg-blue-900 text-white font-bold' : 'text-gray-900'
+                  }`}
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span>Ficar Parado</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Cursor Tracking Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-300 rounded">
+              <div className="space-y-0.5">
+                <div className="font-bold text-blue-950 flex items-center gap-1.5">
+                  <Eye className="w-4 h-4 text-blue-900" />
+                  <span>Interação com o Cursor</span>
+                </div>
+                <div className="text-[11px] text-gray-600">Os olhos digitais observam o mouse quando ele passa perto</div>
+              </div>
+              <input
+                type="checkbox"
+                checked={mBotCursor}
+                onChange={(e) => {
+                  soundFx.playClick();
+                  handleUpdateMBot({ cursor: e.target.checked });
+                }}
+                className="w-4 h-4 cursor-pointer"
+              />
+            </div>
+
+            {/* Sound Toggle */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-300 rounded">
+              <div className="space-y-0.5">
+                <div className="font-bold text-blue-950 flex items-center gap-1.5">
+                  <Volume2 className="w-4 h-4 text-blue-900" />
+                  <span>Efeitos Sonoros do M-BOT</span>
+                </div>
+                <div className="text-[11px] text-gray-600">Pequenos bips e cumprimentos eletrônicos sutis ao interagir</div>
+              </div>
+              <input
+                type="checkbox"
+                checked={mBotSound}
+                onChange={(e) => {
+                  soundFx.playClick();
+                  handleUpdateMBot({ sound: e.target.checked });
+                }}
+                className="w-4 h-4 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          <div className="p-3 bg-gray-100 border border-gray-300 rounded text-[11px] text-gray-600 space-y-1 font-mono">
+            <div className="font-bold text-blue-950 flex items-center gap-1">
+              <Smile className="w-3.5 h-3.5 text-blue-900" />
+              <span>Dicas de Interação:</span>
+            </div>
+            <ul className="list-disc list-inside space-y-0.5 pl-1">
+              <li>Clique ou toque no M-BOT para receber um cumprimento animado.</li>
+              <li>Clique e arraste para posicioná-lo onde preferir na tela.</li>
+              <li>Clique com botão direito (ou toque longo no mobile) para abrir o menu rápido.</li>
+            </ul>
           </div>
         </div>
       )}

@@ -274,6 +274,13 @@ export const Taskbar: React.FC<TaskbarProps> = ({
                   onMouseLeave={() => setActiveSubmenu(null)}
                 >
                   <div
+                    onClick={() => openAndCloseMenu('welcome')}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2 font-bold"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-600" />
+                    <span>Bem-Vindo · Leia-Me (Welcome.exe)</span>
+                  </div>
+                  <div
                     onClick={() => openAndCloseMenu('projects')}
                     className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
                   >
@@ -356,7 +363,7 @@ export const Taskbar: React.FC<TaskbarProps> = ({
                     className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center gap-2"
                   >
                     <FileText className="w-3.5 h-3.5 text-green-800" />
-                    <span>Aditamento_SVP_11RM.doc</span>
+                    <span>Função Atual</span>
                   </div>
                 </div>
               )}

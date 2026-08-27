@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Sparkles, ChevronRight, ExternalLink } from 'lucide-react';
+import { X } from 'lucide-react';
 import { WindowAppId } from '../types';
 import { soundFx } from '../utils/soundEffects';
 
@@ -12,10 +12,9 @@ interface ClippyFloatingAssistantProps {
 export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = ({
   onOpenApp,
   onLaunchTimeTravel,
-  initialOpen = true,
+  initialOpen = false,
 }) => {
-  const isMobileScreen = typeof window !== 'undefined' && window.innerWidth < 768;
-  const [isOpen, setIsOpen] = useState<boolean>(isMobileScreen ? false : initialOpen);
+  const [isOpen, setIsOpen] = useState<boolean>(initialOpen);
   const [tipIndex, setTipIndex] = useState<number>(0);
   const [isBlinking, setIsBlinking] = useState<boolean>(false);
   const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -86,13 +85,13 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
     return () => clearInterval(blinkInterval);
   }, []);
 
-  // Interactive tips matching screenshot style and Portuguese localization
+  // Interactive tips matching Portuguese localization & clean hierarchy
   const tips = [
     {
-      greeting: "Hi, I'm Clippy (Clip for short)! 📎",
+      greeting: 'Olá! Eu sou o Clippy. 📎',
       text: (
         <>
-          Bem-vindo ao <strong>MateusOS</strong>, o portfólio interativo de Mateus Araujo com estética dos anos 2000. Aqui está um tour rápido pelas ferramentas do sistema:
+          Se precisar de ajuda para explorar o <strong>Mateus OS</strong>, clique em mim ou navegue pelos ícones do desktop e menu Iniciar.
         </>
       ),
       action: null,
@@ -102,10 +101,13 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
       greeting: '💼 Trabalho Selecionado & Portfólio',
       text: (
         <>
-          Quer ver os estudos de caso em <strong>Logística</strong>, <strong>Engenharia de Prompt</strong> e automações com IA? Dê um toque nos ícones do desktop!
+          Quer ver os estudos de caso em <strong>Logística</strong>, <strong>Supply Chain</strong> e inovação tecnológica? Dê um duplo clique no ícone do desktop!
         </>
       ),
-      action: () => { onOpenApp('projects'); setIsOpen(false); },
+      action: () => {
+        onOpenApp('projects');
+        setIsOpen(false);
+      },
       actionLabel: 'Abrir Trabalho Selecionado →',
     },
     {
@@ -115,7 +117,10 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
           Experimente o portal temporal e avance para o <strong>MATEUS SPACE 2026</strong>, onde as partículas cósmicas se transformam em aplicativos!
         </>
       ),
-      action: () => { onLaunchTimeTravel(); setIsOpen(false); },
+      action: () => {
+        onLaunchTimeTravel();
+        setIsOpen(false);
+      },
       actionLabel: 'Iniciar Viagem no Tempo →',
     },
     {
@@ -125,7 +130,10 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
           Relembre os clássicos: <strong>Paciência 2000</strong>, <strong>Snake 3310</strong>, <strong>Campo Minado</strong>, <strong>Pinball</strong> e muito mais!
         </>
       ),
-      action: () => { onOpenApp('games'); setIsOpen(false); },
+      action: () => {
+        onOpenApp('games');
+        setIsOpen(false);
+      },
       actionLabel: 'Abrir Central de Jogos →',
     },
     {
@@ -135,18 +143,25 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
           Para baixar o PDF oficial de contratação ou enviar mensagem direta via WhatsApp/E-mail, acesse <strong>Resumo.pdf</strong> ou o <strong>AIMS Messenger</strong>!
         </>
       ),
-      action: () => { onOpenApp('resume'); setIsOpen(false); },
+      action: () => {
+        onOpenApp('resume');
+        setIsOpen(false);
+      },
       actionLabel: 'Visualizar Resumo.pdf →',
     },
   ];
 
   const handleNextTip = () => {
-    try { soundFx.playClick(); } catch (e) {}
+    try {
+      soundFx.playClick();
+    } catch (e) {}
     setTipIndex((prev) => (prev + 1) % tips.length);
   };
 
   const handleToggleOpen = () => {
-    try { soundFx.playClick(); } catch (e) {}
+    try {
+      soundFx.playClick();
+    } catch (e) {}
     setIsOpen(!isOpen);
   };
 
@@ -172,7 +187,9 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
             {/* Close button X */}
             <button
               onClick={() => {
-                try { soundFx.playClick(); } catch (e) {}
+                try {
+                  soundFx.playClick();
+                } catch (e) {}
                 setIsOpen(false);
               }}
               className="absolute top-2 right-2 text-gray-600 hover:text-black font-bold p-1 cursor-pointer transition hover:bg-yellow-200 rounded min-w-[28px] min-h-[28px] flex items-center justify-center"
@@ -196,7 +213,9 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
               {currentTip.action ? (
                 <button
                   onClick={() => {
-                    try { soundFx.playWindowOpen(); } catch (e) {}
+                    try {
+                      soundFx.playWindowOpen();
+                    } catch (e) {}
                     currentTip.action!();
                   }}
                   className="text-blue-900 hover:text-blue-700 font-bold underline text-xs sm:text-[11px] cursor-pointer flex items-center gap-0.5 py-1"
@@ -204,7 +223,9 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
                   <span>{currentTip.actionLabel}</span>
                 </button>
               ) : (
-                <span className="text-[11px] sm:text-[10px] text-gray-500 font-mono">Dica {tipIndex + 1} de {tips.length}</span>
+                <span className="text-[11px] sm:text-[10px] text-gray-500 font-mono">
+                  Dica {tipIndex + 1} de {tips.length}
+                </span>
               )}
 
               <button
@@ -216,12 +237,8 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
             </div>
 
             {/* Speech bubble pointy arrow on Desktop */}
-            <div
-              className="hidden sm:block absolute top-1/2 -right-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-black"
-            />
-            <div
-              className="hidden sm:block absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-y-7 border-y-transparent border-l-7 border-l-[#ffffd2]"
-            />
+            <div className="hidden sm:block absolute top-1/2 -right-2.5 -translate-y-1/2 w-0 h-0 border-y-8 border-y-transparent border-l-8 border-l-black" />
+            <div className="hidden sm:block absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-y-7 border-y-transparent border-l-7 border-l-[#ffffd2]" />
           </div>
         </>
       )}
@@ -283,7 +300,7 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
           {/* --- LEFT EYE & EYEBROW --- */}
           {/* Eyebrow Left */}
           <path
-            d={isHovered ? "M 40 48 Q 50 42 60 48" : "M 42 52 Q 52 46 62 50"}
+            d={isHovered ? 'M 40 48 Q 50 42 60 48' : 'M 42 52 Q 52 46 62 50'}
             fill="none"
             stroke="#1f2937"
             strokeWidth="3.5"
@@ -304,25 +321,27 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
           {/* Left Pupil (Tracks Mouse Position) */}
           {!isBlinking ? (
             <g transform={`translate(${leftPupil.x}, ${leftPupil.y})`}>
-              <circle
-                ref={leftEyeRef}
-                cx="52"
-                cy="65"
-                r="5.5"
-                fill="#111827"
-              />
+              <circle ref={leftEyeRef} cx="52" cy="65" r="5.5" fill="#111827" />
               {/* Eye Catchlight / Glint */}
               <circle cx="50" cy="63" r="1.8" fill="#ffffff" />
             </g>
           ) : (
             // Blinking line
-            <line x1="43" y1="65" x2="61" y2="65" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
+            <line
+              x1="43"
+              y1="65"
+              x2="61"
+              y2="65"
+              stroke="#1f2937"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
           )}
 
           {/* --- RIGHT EYE & EYEBROW --- */}
           {/* Eyebrow Right */}
           <path
-            d={isHovered ? "M 70 48 Q 80 42 90 48" : "M 68 50 Q 78 46 88 52"}
+            d={isHovered ? 'M 70 48 Q 80 42 90 48' : 'M 68 50 Q 78 46 88 52'}
             fill="none"
             stroke="#1f2937"
             strokeWidth="3.5"
@@ -343,19 +362,21 @@ export const ClippyFloatingAssistant: React.FC<ClippyFloatingAssistantProps> = (
           {/* Right Pupil (Tracks Mouse Position) */}
           {!isBlinking ? (
             <g transform={`translate(${rightPupil.x}, ${rightPupil.y})`}>
-              <circle
-                ref={rightEyeRef}
-                cx="80"
-                cy="65"
-                r="5.5"
-                fill="#111827"
-              />
+              <circle ref={rightEyeRef} cx="80" cy="65" r="5.5" fill="#111827" />
               {/* Eye Catchlight / Glint */}
               <circle cx="78" cy="63" r="1.8" fill="#ffffff" />
             </g>
           ) : (
             // Blinking line
-            <line x1="71" y1="65" x2="89" y2="65" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
+            <line
+              x1="71"
+              y1="65"
+              x2="89"
+              y2="65"
+              stroke="#1f2937"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
           )}
         </svg>
 

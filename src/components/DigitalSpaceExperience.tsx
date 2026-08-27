@@ -46,6 +46,7 @@ import { SpaceGamesApp } from './apps/space2026/SpaceGamesApp';
 import { SpaceContactApp } from './apps/space2026/SpaceContactApp';
 import { SpaceClippy } from './apps/space2026/SpaceClippy';
 import { SpacePersonalizationApp } from './apps/space2026/SpacePersonalizationApp';
+import { MBotCompanion } from './MBotCompanion';
 import { TrashApp } from './apps/TrashApp';
 import { GuestbookApp } from './apps/GuestbookApp';
 import { FolderWindow } from './FolderWindow';
@@ -115,7 +116,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
     return true;
   });
 
-  const [personalizationTab, setPersonalizationTab] = useState<'wallpapers' | 'themes' | 'effects'>('wallpapers');
+  const [personalizationTab, setPersonalizationTab] = useState<'wallpapers' | 'themes' | 'effects' | 'mbot'>('wallpapers');
 
   const handleSelectTheme = (t: SpaceThemeId) => {
     setCurrentTheme(t);
@@ -359,7 +360,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
   };
 
   // Open App in Window
-  const handleOpenApp = (appId: string, initialTab?: 'wallpapers' | 'themes' | 'effects') => {
+  const handleOpenApp = (appId: string, initialTab?: 'wallpapers' | 'themes' | 'effects' | 'mbot') => {
     setIsLauncherOpen(false);
     if (initialTab) setPersonalizationTab(initialTab);
     try {
@@ -981,6 +982,13 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
         onOpenAims={() => handleOpenApp('aims')}
         onOpenGames={() => handleOpenApp('games')}
         onOpenProjects={() => handleOpenApp('projects')}
+      />
+
+      {/* Original Companion Robot: M-BOT 26 */}
+      <MBotCompanion
+        mode="space"
+        spaceTheme={currentTheme}
+        onOpenSettings={() => handleOpenApp('personalization', 'mbot')}
       />
 
       {/* --- MODERN SPACE TASKBAR (FIXED BOTTOM) --- */}

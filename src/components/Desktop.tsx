@@ -34,6 +34,8 @@ import { WindowAppId, ThemeConfig, DesktopFolderItem } from '../types';
 import { soundFx } from '../utils/soundEffects';
 import { DID_YOU_KNOW_FACTS } from '../data/portfolioData';
 import { ClippyFloatingAssistant } from './ClippyFloatingAssistant';
+import { RetroCentralWatermark } from './RetroCentralWatermark';
+import { MBotCompanion } from './MBotCompanion';
 import { getFolderFiles, formatFileSize } from '../utils/folderStorage';
 
 interface DesktopProps {
@@ -88,7 +90,7 @@ export const Desktop: React.FC<DesktopProps> = ({
   onUpdateFolderPosition,
 }) => {
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
-  const [isFactDismissed, setIsFactDismissed] = useState<boolean>(false);
+  const [isFactDismissed, setIsFactDismissed] = useState<boolean>(true);
   const [currentFactIndex, setCurrentFactIndex] = useState<number>(0);
 
   // Context Menu State
@@ -537,6 +539,11 @@ export const Desktop: React.FC<DesktopProps> = ({
       onMouseUp={handleMouseUp}
       className={`fixed inset-0 select-none overflow-hidden pb-12 transition-colors duration-500 ${getWallpaperBackground()}`}
     >
+      {/* Central Visual Watermark Symbol (M + Segmented Pixel Orbit) - OS 00 Signature */}
+      <div className="absolute inset-0 bottom-12 flex items-center justify-center pointer-events-none z-0">
+        <RetroCentralWatermark opacity={0.15} />
+      </div>
+
       {/* Desktop Layout - Classic Windows Left-Aligned Vertical Columns */}
       <div className="relative w-full h-[calc(100vh-56px)] p-3 sm:p-4 flex flex-col flex-wrap content-start items-start gap-y-3 gap-x-3 sm:gap-x-4 z-10 pointer-events-auto overflow-x-auto overflow-y-hidden custom-scrollbar pb-14">
         {/* Standard Desktop Apps */}
@@ -659,6 +666,13 @@ export const Desktop: React.FC<DesktopProps> = ({
       {/* Floating Clippy Assistant */}
       <ClippyFloatingAssistant
         onOpenApp={onOpenApp}
+        onLaunchTimeTravel={onLaunchTimeTravel}
+      />
+
+      {/* Original Companion Robot: M-BOT 00 */}
+      <MBotCompanion
+        mode="retro"
+        onOpenSettings={() => onOpenApp('settings')}
         onLaunchTimeTravel={onLaunchTimeTravel}
       />
 
@@ -786,6 +800,18 @@ export const Desktop: React.FC<DesktopProps> = ({
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Atualizar</span>
+              </button>
+              <div className="h-px bg-gray-400 my-1 mx-1 border-b border-white" />
+              <button
+                onClick={() => {
+                  setIsFactDismissed(false);
+                  setContextMenu(null);
+                  try { soundFx.playClick(); } catch (e) {}
+                }}
+                className="w-full text-left px-3 py-1 hover:bg-blue-800 hover:text-white flex items-center gap-2 cursor-pointer"
+              >
+                <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
+                <span>Dica do Sistema (Você Sabia?)</span>
               </button>
               <div className="h-px bg-gray-400 my-1 mx-1 border-b border-white" />
               <button
