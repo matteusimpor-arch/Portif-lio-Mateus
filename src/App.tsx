@@ -63,6 +63,7 @@ export default function App() {
   // View Mode State (Retro 2000 vs Space 2026)
   const [viewMode, setViewMode] = useState<ViewMode>('retro');
   const [isTimeTraveling, setIsTimeTraveling] = useState<boolean>(false);
+  const [timeTravelDirection, setTimeTravelDirection] = useState<'forward' | 'backward'>('forward');
 
   // --- RETRO CUSTOM FOLDERS STATE (PERSISTED) ---
   const [retroFolders, setRetroFolders] = useState<DesktopFolderItem[]>(() => {
@@ -268,19 +269,26 @@ export default function App() {
     setWindows(initialWindows);
   };
 
-  const handleLaunchTimeTravel = () => {
-    try { soundFx.playFanfare(); } catch (e) {}
+  const handleLaunchTimeTravel = (direction: 'forward' | 'backward' = 'forward') => {
+    try {
+      if (direction === 'forward') soundFx.playFanfare();
+      else soundFx.playMBotCurious();
+    } catch (e) {}
+    setTimeTravelDirection(direction);
     setIsTimeTraveling(true);
   };
 
   const handleTimeTravelComplete = () => {
     setIsTimeTraveling(false);
-    setViewMode('space');
+    if (timeTravelDirection === 'forward') {
+      setViewMode('space');
+    } else {
+      setViewMode('retro');
+    }
   };
 
   const handleBackToRetro = () => {
-    try { soundFx.playClick(); } catch (e) {}
-    setViewMode('retro');
+    handleLaunchTimeTravel('backward');
   };
 
   const handleTestScreensaver = () => {
@@ -448,7 +456,13 @@ export default function App() {
   }
 
   if (isTimeTraveling) {
-    return <TimeTravelSpiral onComplete={handleTimeTravelComplete} />;
+    return (
+      <TimeTravelSpiral
+        direction={timeTravelDirection}
+        onComplete={handleTimeTravelComplete}
+        onSkip={handleTimeTravelComplete}
+      />
+    );
   }
 
   if (viewMode === 'space' || viewMode === 'modern') {

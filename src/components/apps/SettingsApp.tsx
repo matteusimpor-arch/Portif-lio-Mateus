@@ -77,8 +77,9 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       localStorage.setItem('mBotSound', String(updates.sound));
       if (updates.sound) soundFx.playMBotChirp();
     }
-    // Dispatch storage event so live companion syncs immediately
+    // Dispatch events so live companion and taskbar sync immediately
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: updates.enabled } }));
   };
 
   const [selectedScreensaver, setSelectedScreensaver] = useState<string>(() => {

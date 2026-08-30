@@ -28,7 +28,8 @@ import {
   Layers,
   AlertTriangle,
   FolderOpen,
-  Check
+  Check,
+  Bot
 } from 'lucide-react';
 import { soundFx } from '../utils/soundEffects';
 import { ParticleTextCanvas } from './ParticleTextCanvas';
@@ -348,6 +349,50 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Sync M-BOT visibility state in Space 2026
+  const [isMBotEnabled, setIsMBotEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      return localStorage.getItem('mBotEnabled') !== 'false';
+    } catch (e) {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    const handleMBotStatus = (e: Event) => {
+      const ce = e as CustomEvent<{ enabled?: boolean }>;
+      if (ce.detail?.enabled !== undefined) {
+        setIsMBotEnabled(ce.detail.enabled);
+      } else {
+        try {
+          setIsMBotEnabled(localStorage.getItem('mBotEnabled') !== 'false');
+        } catch (err) {}
+      }
+    };
+
+    window.addEventListener('mbot-status-changed', handleMBotStatus);
+    window.addEventListener('storage', handleMBotStatus);
+    return () => {
+      window.removeEventListener('mbot-status-changed', handleMBotStatus);
+      window.removeEventListener('storage', handleMBotStatus);
+    };
+  }, []);
+
+  const handleToggleMBot = (forceState?: boolean) => {
+    const nextState = forceState !== undefined ? forceState : !isMBotEnabled;
+    setIsMBotEnabled(nextState);
+    try {
+      localStorage.setItem('mBotEnabled', String(nextState));
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('mbot-toggle', { detail: { enabled: nextState } }));
+    window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: nextState } }));
+    try {
+      soundFx.playClick();
+      if (nextState) soundFx.playMBotChirp();
+    } catch (err) {}
+  };
 
   // Bring Window to Front
   const bringToFront = (appId: string) => {
@@ -989,6 +1034,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
         mode="space"
         spaceTheme={currentTheme}
         onOpenSettings={() => handleOpenApp('personalization', 'mbot')}
+        onLaunchTimeTravel={() => onBackToRetro()}
       />
 
       {/* --- MODERN SPACE TASKBAR (FIXED BOTTOM) --- */}
@@ -1041,7 +1087,25 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
         </div>
 
         {/* Right: Quick Controls, Audio Toggle & 2026 Clock */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* M-BOT 26 Status / Unhide Quick Toggle */}
+          <button
+            onClick={() => handleToggleMBot()}
+            className={`p-2 rounded-xl border transition cursor-pointer flex items-center gap-1.5 ${
+              isMBotEnabled
+                ? 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 hover:text-cyan-300'
+                : 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-400/60 text-amber-300 animate-pulse shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+            }`}
+            title={isMBotEnabled ? 'M-BOT 26 Ativo (Clique para ocultar)' : 'M-BOT 26 Oculto (Clique para desocultar e exibir)'}
+          >
+            <Bot className="w-4 h-4" />
+            {!isMBotEnabled && (
+              <span className="hidden md:inline text-[10px] font-mono font-bold tracking-tight text-amber-300">
+                DESOCULTAR
+              </span>
+            )}
+          </button>
+
           {/* Quick Personalization Shortcut */}
           <button
             onClick={() => handleOpenApp('personalization')}
@@ -1088,6 +1152,30 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
 
           {/* Apps List */}
           <div className="flex-1 overflow-y-auto space-y-1.5 custom-scrollbar pr-1">
+            {/* M-BOT UNHIDE BANNER IN SPACE LAUNCHER */}
+            {!isMBotEnabled && (
+              <button
+                onClick={() => {
+                  handleToggleMBot(true);
+                  setIsLauncherOpen(false);
+                }}
+                className="w-full p-2.5 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/60 flex items-center justify-between transition cursor-pointer group shadow-[0_0_20px_rgba(245,158,11,0.25)] mb-2"
+              >
+                <div className="flex items-center gap-2.5 text-left">
+                  <div className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/50 flex items-center justify-center text-amber-300 group-hover:scale-110 transition-transform">
+                    <Bot className="w-4 h-4 animate-bounce" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-mono font-bold text-amber-300">Desocultar M-BOT 26</div>
+                    <div className="text-[10px] font-mono text-amber-200/80">Reativar mascote no desktop</div>
+                  </div>
+                </div>
+                <span className="text-[9px] font-mono font-bold px-2 py-0.5 bg-amber-400 text-slate-950 rounded-lg">
+                  RESTAURAR
+                </span>
+              </button>
+            )}
+
             {filteredApps.map((app) => {
               const IconComp = app.icon;
               return (
@@ -1116,6 +1204,16 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
 
           {/* Quick Footer Options */}
           <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono">
+            <button
+              onClick={() => handleToggleMBot()}
+              className={`flex items-center gap-1.5 cursor-pointer transition ${
+                isMBotEnabled ? 'text-slate-400 hover:text-cyan-300' : 'text-amber-400 hover:text-amber-300 font-bold'
+              }`}
+              title={isMBotEnabled ? 'Ocultar M-BOT 26' : 'Desocultar M-BOT 26'}
+            >
+              <Bot className="w-3.5 h-3.5" />
+              <span>M-BOT ({isMBotEnabled ? 'Ativo' : 'Oculto'})</span>
+            </button>
             <button
               onClick={() => handleOpenApp('personalization')}
               className="text-slate-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer"

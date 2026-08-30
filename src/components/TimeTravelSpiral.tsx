@@ -5,24 +5,7 @@ import { soundFx } from '../utils/soundEffects';
 interface TimeTravelSpiralProps {
   onComplete: () => void;
   onSkip?: () => void;
-}
-
-interface PixelBlock {
-  col: number;
-  row: number;
-  originX: number;
-  originY: number;
-  x: number;
-  y: number;
-  z: number;
-  vx: number;
-  vy: number;
-  vz: number;
-  size: number;
-  color: string;
-  isEdge: boolean;
-  detachTime: number; // 0 to 1 progress trigger
-  detached: boolean;
+  direction?: 'forward' | 'backward';
 }
 
 interface WarpStar {
@@ -35,19 +18,27 @@ interface WarpStar {
   layer: 'distant' | 'mid' | 'near';
 }
 
-export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, onSkip }) => {
+export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({
+  onComplete,
+  onSkip,
+  direction = 'forward',
+}) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [currentYear, setCurrentYear] = useState<number>(2000);
+  const [currentYear, setCurrentYear] = useState<number>(direction === 'forward' ? 2000 : 2026);
   const [yearOpacity, setYearOpacity] = useState<number>(0);
   const animationFrameId = useRef<number | null>(null);
   const startTimeRef = useRef<number>(Date.now());
 
-  // Duration: 5.8 seconds of clean, narrative, cinematic space travel
-  const TOTAL_DURATION_MS = 5800;
+  // Duration: 5.6 seconds of clean, narrative, cinematic space travel
+  const TOTAL_DURATION_MS = 5600;
 
   useEffect(() => {
     try {
-      soundFx.playFanfare();
+      if (direction === 'forward') {
+        soundFx.playFanfare();
+      } else {
+        soundFx.playMBotCurious();
+      }
     } catch (e) {}
 
     startTimeRef.current = Date.now();
@@ -69,101 +60,10 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
     window.addEventListener('resize', handleResize);
 
     const cx = width / 2;
-    const cy = (height - 48) / 2; // Center matching desktop usable area
+    const cy = (height - 48) / 2;
 
     // =========================================================================
-    // 1. GENERATE PIXEL-ART "M" STRUCTURE (80x88 GRID BLOCKS)
-    // =========================================================================
-    // Discrete bitmap mask representing the geometric pixel "M"
-    // 20 columns x 22 rows
-    const M_MASK = [
-      "11110000000000001111",
-      "11110000000000001111",
-      "11111000000000011111",
-      "11111100000000111111",
-      "11111110000001111111",
-      "11110111000011101111",
-      "11110011100111001111",
-      "11110001111110001111",
-      "11110000111100001111",
-      "11110000011000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111",
-      "11110000000000001111"
-    ];
-
-    const blockSize = isMobile ? 5 : 7;
-    const mCols = M_MASK[0].length;
-    const mRows = M_MASK.length;
-    const mWidth = mCols * blockSize;
-    const mHeight = mRows * blockSize;
-    const mStartX = cx - mWidth / 2;
-    const mStartY = cy - mHeight / 2;
-
-    const pixelBlocks: PixelBlock[] = [];
-
-    for (let r = 0; r < mRows; r++) {
-      for (let c = 0; c < mCols; c++) {
-        if (M_MASK[r][c] === '1') {
-          // Check if this pixel is on outer edge
-          const isEdge =
-            r === 0 || r === mRows - 1 || c === 0 || c === mCols - 1 ||
-            (r > 0 && M_MASK[r - 1][c] === '0') ||
-            (r < mRows - 1 && M_MASK[r + 1][c] === '0') ||
-            (c > 0 && M_MASK[r][c - 1] === '0') ||
-            (c < mCols - 1 && M_MASK[r][c + 1] === '0');
-
-          const pxX = mStartX + c * blockSize;
-          const pxY = mStartY + r * blockSize;
-
-          // Color nuance in classic 2000s palette
-          let color = '#ffffff';
-          if (c < 4 || c >= mCols - 4) {
-            color = r % 2 === 0 ? '#ffffff' : '#e0f2fe';
-          } else if (r > 6) {
-            color = '#38bdf8';
-          } else {
-            color = '#bae6fd';
-          }
-
-          // Random detach progression (outer edge pixels detach first, inner detach later)
-          const detachBase = isEdge ? 0.20 + Math.random() * 0.12 : 0.28 + Math.random() * 0.15;
-
-          const angle = Math.atan2(pxY - cy, pxX - cx) + (Math.random() - 0.5) * 0.8;
-          const speed = (Math.random() * 3 + 1.5) * (isEdge ? 1.4 : 1.0);
-
-          pixelBlocks.push({
-            col: c,
-            row: r,
-            originX: pxX,
-            originY: pxY,
-            x: pxX,
-            y: pxY,
-            z: 0,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            vz: Math.random() * 4 + 2,
-            size: blockSize,
-            color,
-            isEdge,
-            detachTime: detachBase,
-            detached: false,
-          });
-        }
-      }
-    }
-
-    // =========================================================================
-    // 2. INITIALIZE 3D STARFIELD
+    // 1. INITIALIZE 3D STARFIELD
     // =========================================================================
     const STAR_COUNT = isMobile ? 420 : 850;
     const MAX_Z = 1600;
@@ -189,6 +89,18 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       });
     }
 
+    // M-BOT Transformation Particles in Warp Tunnel
+    const botParticleCount = 90;
+    const botParticles = Array.from({ length: botParticleCount }, () => ({
+      x: (Math.random() - 0.5) * 80,
+      y: (Math.random() - 0.5) * 80,
+      angle: Math.random() * Math.PI * 2,
+      dist: Math.random() * 60 + 10,
+      speed: Math.random() * 0.08 + 0.04,
+      color: Math.random() < 0.5 ? '#38bdf8' : '#ffffff',
+      size: Math.random() * 2.5 + 1.2,
+    }));
+
     // Main Canvas Render Loop
     const render = () => {
       const elapsed = Date.now() - startTimeRef.current;
@@ -201,18 +113,16 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       // A. CLEAR SCREEN / GRADUAL DARKENING TO DEEP COSMIC SPACE
       // =======================================================================
       if (p < 0.20) {
-        // Desktop Teal to Deep Cosmic Navy/Black
         const darkProgress = p / 0.20;
         ctx.fillStyle = `rgba(0, 2, 8, ${0.4 + darkProgress * 0.6})`;
         ctx.fillRect(0, 0, width, height);
       } else {
-        // Pure deep space with subtle motion trails
         ctx.fillStyle = p > 0.75 ? 'rgba(0, 2, 8, 0.45)' : 'rgba(0, 2, 8, 0.32)';
         ctx.fillRect(0, 0, width, height);
       }
 
       // =======================================================================
-      // B. STARS / WARP STREAKS (Appears softly in Phase 2, surges in Phase 3)
+      // B. STARS / WARP STREAKS (Forward or Reverse)
       // =======================================================================
       const starVisibility = Math.min(1, Math.max(0, (p - 0.15) / 0.15));
 
@@ -221,61 +131,67 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
         let isStreak = false;
 
         if (p < 0.35) {
-          // Stars multiply and begin moving
           speed = 2 + ((p - 0.15) / 0.20) * 12;
         } else if (p < 0.68) {
-          // WARP ACCELERATION & PEAK SPEED (STAR STREAKS)
           const warpP = (p - 0.35) / 0.33;
           speed = 14 + Math.sin(warpP * Math.PI * 0.5) * 88;
           isStreak = true;
         } else if (p < 0.88) {
-          // DECELERATION (Streaks contract smoothly back to points)
           const slowP = (p - 0.68) / 0.20;
           speed = 102 - Math.sin(slowP * Math.PI * 0.5) * 98;
           isStreak = slowP < 0.45;
         } else {
-          // GENTLE ARRIVAL DRIFT (Matching Space Wallpaper Stars)
           speed = 2.5;
           isStreak = false;
         }
+
+        const isReverse = direction === 'backward';
 
         ctx.save();
         for (let i = 0; i < stars.length; i++) {
           const star = stars[i];
           star.prevZ = star.z;
-          star.z -= speed * (star.layer === 'near' ? 1.35 : star.layer === 'mid' ? 1.0 : 0.65);
 
-          if (star.z <= 0) {
-            star.z = MAX_Z;
-            star.prevZ = MAX_Z;
-            star.x = (Math.random() - 0.5) * width * 3.5;
-            star.y = (Math.random() - 0.5) * height * 3.5;
+          if (!isReverse) {
+            star.z -= speed * (star.layer === 'near' ? 1.35 : star.layer === 'mid' ? 1.0 : 0.65);
+            if (star.z <= 0) {
+              star.z = MAX_Z;
+              star.prevZ = MAX_Z;
+              star.x = (Math.random() - 0.5) * width * 3.5;
+              star.y = (Math.random() - 0.5) * height * 3.5;
+            }
+          } else {
+            // Reverse warp (stars moving inward)
+            star.z += speed * (star.layer === 'near' ? 1.35 : star.layer === 'mid' ? 1.0 : 0.65);
+            if (star.z >= MAX_Z) {
+              star.z = 10;
+              star.prevZ = 10;
+              star.x = (Math.random() - 0.5) * width * 3.5;
+              star.y = (Math.random() - 0.5) * height * 3.5;
+            }
           }
 
-          const k = FOV / star.z;
+          const k = FOV / Math.max(1, star.z);
           const px = currentCX + star.x * k;
           const py = currentCY + star.y * k;
 
-          // Skip off-screen
           if (px < -60 || px > width + 60 || py < -60 || py > height + 60) continue;
 
-          const prevK = FOV / star.prevZ;
+          const prevK = FOV / Math.max(1, star.prevZ);
           const prevPx = currentCX + star.x * prevK;
           const prevPy = currentCY + star.y * prevK;
 
           const alpha = Math.min(1, (MAX_Z - star.z) / (MAX_Z * 0.6)) * starVisibility;
 
           if (isStreak && (Math.abs(px - prevPx) > 1.2 || Math.abs(py - prevPy) > 1.2)) {
-            // Render luminous Star Streak
             ctx.beginPath();
             ctx.strokeStyle = star.color;
-            ctx.lineWidth = star.size * (FOV / star.z) * 0.38;
+            ctx.lineWidth = star.size * (FOV / Math.max(1, star.z)) * 0.38;
             ctx.globalAlpha = alpha * 0.92;
             ctx.moveTo(prevPx, prevPy);
             ctx.lineTo(px, py);
             ctx.stroke();
           } else {
-            // Render Point Star
             ctx.fillStyle = star.color;
             ctx.globalAlpha = alpha;
             const sz = Math.max(0.6, star.size * k * 0.45);
@@ -288,135 +204,56 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       }
 
       // =======================================================================
-      // C. THE CENTRAL "M" SYMBOL & ORBIT TRANSFORMATION
+      // C. M-BOT TRANSFORMATION PARTICLES IN WARP TUNNEL (p between 0.35 and 0.85)
       // =======================================================================
-      // Opacity starts at watermark 0.15 -> 0.30 -> 0.60 -> 1.00 at p = 0.18
-      let symbolOpacity = 1;
-      if (p < 0.18) {
-        symbolOpacity = 0.15 + (p / 0.18) * 0.85;
-      } else if (p > 0.55) {
-        // Complete dissolution by p = 0.65
-        symbolOpacity = Math.max(0, 1 - (p - 0.55) / 0.15);
-      }
-
-      if (symbolOpacity > 0.01) {
+      if (p >= 0.35 && p <= 0.85) {
+        const botP = (p - 0.35) / 0.50;
         ctx.save();
-        ctx.globalAlpha = symbolOpacity;
+        ctx.translate(currentCX, currentCY);
 
-        // 1. ROTATING RETRO ORBIT (Accelerates smoothly then fragments)
-        if (p < 0.48) {
-          const orbitFade = p < 0.35 ? 1 : 1 - (p - 0.35) / 0.13;
-          ctx.globalAlpha = symbolOpacity * orbitFade;
+        // Core glow
+        const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 45);
+        coreGrad.addColorStop(0, 'rgba(56, 189, 248, 0.4)');
+        coreGrad.addColorStop(1, 'rgba(2, 6, 23, 0)');
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 45, 0, Math.PI * 2);
+        ctx.fill();
 
-          const orbitRx = isMobile ? 80 : 125;
-          const orbitRy = isMobile ? 32 : 48;
-          
-          // Rotation speed accelerates from 0.5 to 12 rad/s
-          const orbitSpin = p < 0.18 
-            ? elapsed * 0.001 
-            : 0.18 * TOTAL_DURATION_MS * 0.001 + Math.pow((p - 0.18) / 0.30, 2) * 14;
+        for (let i = 0; i < botParticles.length; i++) {
+          const bp = botParticles[i];
+          bp.angle += bp.speed * (direction === 'backward' ? -1 : 1);
+          const currentDist = bp.dist * (1 + Math.sin(botP * Math.PI) * 0.5);
+          const bx = Math.cos(bp.angle) * currentDist;
+          const by = Math.sin(bp.angle) * currentDist;
 
-          ctx.save();
-          ctx.translate(currentCX, currentCY);
-          ctx.rotate(-0.48); // Baseline 2000s angle
-
-          // Pixelated / dashed orbit ring
+          ctx.fillStyle = bp.color;
+          ctx.globalAlpha = Math.sin(botP * Math.PI) * 0.8;
           ctx.beginPath();
-          ctx.ellipse(0, 0, orbitRx, orbitRy, 0, 0, Math.PI * 2);
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = isMobile ? 1.5 : 2;
-          ctx.setLineDash([8, 6, 2, 6]);
-          ctx.stroke();
-
-          // Orbit Beacon 1
-          const b1X = Math.cos(orbitSpin) * orbitRx;
-          const b1Y = Math.sin(orbitSpin) * orbitRy;
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(b1X - 3, b1Y - 3, 6, 6);
-          ctx.fillStyle = '#38bdf8';
-          ctx.fillRect(b1X - 4.5, b1Y - 4.5, 9, 9);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(b1X - 2, b1Y - 2, 4, 4);
-
-          // Orbit Beacon 2
-          const b2X = Math.cos(orbitSpin + Math.PI) * orbitRx;
-          const b2Y = Math.sin(orbitSpin + Math.PI) * orbitRy;
-          ctx.fillStyle = '#60a5fa';
-          ctx.fillRect(b2X - 2.5, b2Y - 2.5, 5, 5);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(b2X - 1.5, b2Y - 1.5, 3, 3);
-
-          ctx.restore();
+          ctx.arc(bx, by, bp.size, 0, Math.PI * 2);
+          ctx.fill();
         }
-
-        // 2. PIXEL "M" BLOCKS RENDERING & FRAGMENTATION
-        for (let i = 0; i < pixelBlocks.length; i++) {
-          const pb = pixelBlocks[i];
-
-          // Trigger detachment based on progress
-          if (p >= pb.detachTime && !pb.detached) {
-            pb.detached = true;
-          }
-
-          if (!pb.detached) {
-            // Static / intact crisp pixel block
-            ctx.fillStyle = pb.color;
-            ctx.fillRect(pb.originX, pb.originY, pb.size - 0.5, pb.size - 0.5);
-          } else {
-            // Detaching pixel fragment -> Quantum dust particle
-            const detachAge = p - pb.detachTime;
-            
-            // Physics update
-            pb.x += pb.vx * (1 + detachAge * 4);
-            pb.y += pb.vy * (1 + detachAge * 4);
-            pb.z += pb.vz * (1 + detachAge * 6);
-
-            // In Phase 4 (p >= 0.70), gently converge particles towards center
-            if (p >= 0.70) {
-              const convRate = (p - 0.70) / 0.30;
-              const targetX = currentCX + (Math.sin(i) * 140);
-              const targetY = currentCY - 80 + (Math.cos(i) * 35);
-              pb.x += (targetX - pb.x) * convRate * 0.12;
-              pb.y += (targetY - pb.y) * convRate * 0.12;
-            }
-
-            // Shrink from square pixel to fine point of light
-            const currentSize = Math.max(1.2, pb.size * Math.max(0.2, 1 - detachAge * 2.5));
-            const pAlpha = Math.max(0, 1 - detachAge * 1.8);
-
-            ctx.fillStyle = pb.color;
-            ctx.globalAlpha = symbolOpacity * pAlpha;
-
-            if (detachAge < 0.15) {
-              // Square pixel block
-              ctx.fillRect(pb.x, pb.y, currentSize, currentSize);
-            } else {
-              // Glowing circular particle point
-              ctx.beginPath();
-              ctx.arc(pb.x, pb.y, currentSize * 0.8, 0, Math.PI * 2);
-              ctx.fill();
-            }
-          }
-        }
-
         ctx.restore();
       }
 
       // =======================================================================
-      // D. PURE NUMERIC YEARS DISPLAY (2000 -> 2026)
-      // Only numbers, no descriptions. Dissolves completely by p = 0.38
+      // D. PURE NUMERIC YEARS DISPLAY (2000 -> 2026 or 2026 -> 2000)
       // =======================================================================
       if (p < 0.38) {
         const yearProgress = p / 0.35;
-        const yVal = Math.floor(2000 + yearProgress * 26);
-        setCurrentYear(Math.min(2026, yVal));
+        if (direction === 'forward') {
+          const yVal = Math.floor(2000 + yearProgress * 26);
+          setCurrentYear(Math.min(2026, yVal));
+        } else {
+          const yVal = Math.floor(2026 - yearProgress * 26);
+          setCurrentYear(Math.max(2000, yVal));
+        }
 
         if (p < 0.18) {
           setYearOpacity(p / 0.18);
         } else if (p < 0.28) {
           setYearOpacity(1);
         } else {
-          // Dissolve smoothly with blur + opacity into pure warp space
           const fade = (p - 0.28) / 0.10;
           setYearOpacity(Math.max(0, 1 - fade));
         }
@@ -425,12 +262,12 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       }
 
       // =======================================================================
-      // E. ARRIVAL TRANSITION FLASH / HARMONIC CONVERGENCE (p >= 0.88)
+      // E. ARRIVAL FLASH (p >= 0.88)
       // =======================================================================
       if (p >= 0.88) {
         const exitP = (p - 0.88) / 0.12;
         const flashAlpha = Math.sin(exitP * Math.PI) * 0.55;
-        ctx.fillStyle = '#061826';
+        ctx.fillStyle = direction === 'forward' ? '#061826' : '#001b2a';
         ctx.globalAlpha = flashAlpha;
         ctx.fillRect(0, 0, width, height);
       }
@@ -454,7 +291,7 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [onComplete]);
+  }, [onComplete, direction]);
 
   return (
     <div
@@ -481,7 +318,7 @@ export const TimeTravelSpiral: React.FC<TimeTravelSpiralProps> = ({ onComplete, 
       </button>
 
       {/* 
-        PURE YEARS DISPLAY ONLY (2000 -> 2026) 
+        PURE YEARS DISPLAY ONLY (2000 -> 2026 or 2026 -> 2000) 
         Dissolves with blur + opacity into pure warp space.
       */}
       {yearOpacity > 0 && (

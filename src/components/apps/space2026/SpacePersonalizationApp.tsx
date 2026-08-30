@@ -75,6 +75,7 @@ export const SpacePersonalizationApp: React.FC<SpacePersonalizationAppProps> = (
       if (updates.sound) soundFx.playMBotChirp();
     }
     window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: updates.enabled } }));
   };
 
   const wallpapers: { id: SpaceWallpaperId; title: string; subtitle: string; previewGrad: string; tag: string }[] = [

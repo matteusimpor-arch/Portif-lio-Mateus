@@ -27,7 +27,8 @@ import {
   Info,
   Layers,
   BookOpen,
-  Eye
+  Eye,
+  Bot
 } from 'lucide-react';
 import { WindowAppId, WindowState, NotificationItem } from '../types';
 import { soundFx } from '../utils/soundEffects';
@@ -66,6 +67,14 @@ export const Taskbar: React.FC<TaskbarProps> = ({
   const [activeSubmenu, setActiveSubmenu] = useState<'programs' | 'documents' | 'games' | 'settings' | 'help' | null>(null);
   const [currentTime, setCurrentTime] = useState<string>('2:26 PM');
   const [siteStats, setSiteStats] = useState<SiteStatistics>({ totalVisits: 1, totalSignatures: 0 });
+  const [isMBotEnabled, setIsMBotEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      return localStorage.getItem('mBotEnabled') !== 'false';
+    } catch (e) {
+      return true;
+    }
+  });
   const startRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to real-time site stats in Taskbar
@@ -75,6 +84,42 @@ export const Taskbar: React.FC<TaskbarProps> = ({
     });
     return () => unsub();
   }, []);
+
+  // Sync M-BOT visibility state with global events and storage
+  useEffect(() => {
+    const handleMBotStatus = (e: Event) => {
+      const ce = e as CustomEvent<{ enabled?: boolean }>;
+      if (ce.detail?.enabled !== undefined) {
+        setIsMBotEnabled(ce.detail.enabled);
+      } else {
+        try {
+          setIsMBotEnabled(localStorage.getItem('mBotEnabled') !== 'false');
+        } catch (err) {}
+      }
+    };
+
+    window.addEventListener('mbot-status-changed', handleMBotStatus);
+    window.addEventListener('storage', handleMBotStatus);
+
+    return () => {
+      window.removeEventListener('mbot-status-changed', handleMBotStatus);
+      window.removeEventListener('storage', handleMBotStatus);
+    };
+  }, []);
+
+  const handleToggleMBot = (forceState?: boolean) => {
+    const nextState = forceState !== undefined ? forceState : !isMBotEnabled;
+    setIsMBotEnabled(nextState);
+    try {
+      localStorage.setItem('mBotEnabled', String(nextState));
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('mbot-toggle', { detail: { enabled: nextState } }));
+    window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: nextState } }));
+    soundFx.playClick();
+    if (nextState) {
+      soundFx.playMBotChirp();
+    }
+  };
 
   // Clock format
   useEffect(() => {
@@ -217,6 +262,19 @@ export const Taskbar: React.FC<TaskbarProps> = ({
           >
             <span className="text-[10px]">🌀</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-cyan-300 to-amber-300 font-black tracking-wider">TRAVEL</span>
+          </button>
+
+          {/* M-BOT System Tray Status / Quick Toggle */}
+          <button
+            onClick={() => handleToggleMBot()}
+            className={`p-0.5 cursor-pointer rounded-xs flex items-center justify-center transition ${
+              isMBotEnabled
+                ? 'text-blue-900 hover:text-black hover:bg-black/10'
+                : 'text-amber-700 bg-amber-200/80 border border-amber-500 animate-pulse'
+            }`}
+            title={isMBotEnabled ? 'M-BOT Companheiro Ativo (Clique para ocultar)' : 'M-BOT Oculto (Clique para desocultar e exibir)'}
+          >
+            <Bot className="w-3.5 h-3.5" />
           </button>
 
           {/* Audio Toggle */}
@@ -460,6 +518,20 @@ export const Taskbar: React.FC<TaskbarProps> = ({
                     <Monitor className="w-3.5 h-3.5 text-gray-800" />
                     <span>Linhas CRT ({isScanlinesEnabled ? 'Ligado' : 'Desligado'})</span>
                   </div>
+                  <div
+                    onClick={() => {
+                      handleToggleMBot();
+                    }}
+                    className="px-2 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer flex items-center justify-between border-t border-gray-400 mt-1 pt-1.5"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-3.5 h-3.5 text-blue-700" />
+                      <span>M-BOT Mascote</span>
+                    </div>
+                    <span className={`text-[10px] font-mono font-bold ${isMBotEnabled ? 'text-green-800' : 'text-amber-800'}`}>
+                      {isMBotEnabled ? 'Exibido' : 'Oculto'}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -487,6 +559,44 @@ export const Taskbar: React.FC<TaskbarProps> = ({
               <HelpCircle className="w-4 h-4 text-yellow-700" />
               <span>Ajuda & Clippy</span>
             </div>
+
+            {/* 7. M-BOT (DESOCULTAR / EXIBIR / INTERAGIR) */}
+            {!isMBotEnabled ? (
+              <div
+                onClick={() => {
+                  handleToggleMBot(true);
+                  setIsStartOpen(false);
+                }}
+                className="px-3 py-1.5 bg-amber-200/90 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center justify-between font-bold text-blue-950 group border border-amber-400 shadow-xs my-0.5"
+                title="Clique para desocultar e reativar o mascote M-BOT no desktop"
+              >
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-blue-900 group-hover:text-white shrink-0 animate-bounce" />
+                  <span className="truncate">Desocultar M-BOT</span>
+                </div>
+                <span className="text-[9px] px-1 py-0.5 bg-amber-400 group-hover:bg-amber-300 text-slate-950 rounded-xs font-mono font-bold shrink-0">
+                  RESTAURAR
+                </span>
+              </div>
+            ) : (
+              <div
+                onClick={() => {
+                  setIsStartOpen(false);
+                  soundFx.playClick();
+                  window.dispatchEvent(new CustomEvent('mbot-interact'));
+                }}
+                className="px-3 py-1.5 hover:bg-[#000080] hover:text-white cursor-pointer rounded-xs flex items-center justify-between group"
+                title="M-BOT Companheiro Ativo (Clique para interagir)"
+              >
+                <div className="flex items-center gap-2">
+                  <Bot className="w-4 h-4 text-blue-700 group-hover:text-white shrink-0" />
+                  <span>M-BOT Mascote</span>
+                </div>
+                <span className="text-[10px] text-green-700 group-hover:text-green-300 font-mono font-bold">
+                  ATIVO
+                </span>
+              </div>
+            )}
 
             {/* Divider */}
             <div className="my-1 border-t border-gray-400 border-b border-white" />
