@@ -131,6 +131,14 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   const posRef = useRef<{ x: number; y: number }>(pos);
   posRef.current = pos;
 
+  const facingRef = useRef<'left' | 'right'>(facing);
+  facingRef.current = facing;
+
+  const mousePosRef = useRef<{ x: number; y: number }>({
+    x: typeof window !== 'undefined' ? window.innerWidth / 2 : 500,
+    y: typeof window !== 'undefined' ? window.innerHeight / 2 : 300,
+  });
+
   const currentWaypointIndexRef = useRef<number>(0);
   const animFrameIdRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
@@ -259,48 +267,80 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
     return () => clearInterval(blinkInterval);
   }, [config.enabled, botState]);
 
+  // Helper to calculate exact pupil offset and head angle looking at mouse cursor
+  const updateGazeAt = useCallback((mouseX: number, mouseY: number, botX: number, botY: number, curFacing: 'left' | 'right') => {
+    if (botState === 'traveling' || botState === 'entering_vortex') return;
+
+    // Center of M-BOT's eyes in screen viewport coordinates (~54px from left, ~38px from top)
+    const botEyeCenterX = botX + 54;
+    const botEyeCenterY = botY + 38;
+
+    const dx = mouseX - botEyeCenterX;
+    const dy = mouseY - botEyeCenterY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 1) {
+      setEyeOffset({ x: 0, y: 0 });
+      return;
+    }
+
+    // Maximum pupil displacement in SVG coordinate units
+    const maxOffsetX = 5.2;
+    const maxOffsetY = 4.2;
+
+    const normX = dx / dist;
+    const normY = dy / dist;
+
+    // Smooth response curve: responsive up close and full gaze anywhere on the screen
+    const strength = Math.min(1, Math.max(0.2, dist / 80));
+
+    // Flip horizontal direction for scaleX(-1) flipped container when facing right
+    const localDirX = curFacing === 'left' ? normX : -normX;
+
+    const ex = localDirX * maxOffsetX * strength;
+    const ey = normY * maxOffsetY * strength;
+
+    setEyeOffset({ x: ex, y: ey });
+
+    // Subtle head tilt following the mouse cursor
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const rawAngle = (dx / screenW) * 16;
+    const clampedAngle = Math.max(-9, Math.min(9, rawAngle));
+    setHeadAngle(curFacing === 'left' ? clampedAngle : -clampedAngle);
+
+    // Antenna lights up when mouse cursor is near M-BOT
+    if (dist < 150) {
+      setAntennaGlowing(true);
+    } else {
+      setAntennaGlowing(false);
+    }
+  }, [botState]);
+
   // =========================================================================
-  // 3. CURSOR PROXIMITY TRACKING
+  // 3. CURSOR GAZE TRACKING (ACROSS THE ENTIRE SCREEN)
   // =========================================================================
   useEffect(() => {
     if (!config.enabled || !config.cursorInteraction) return;
 
     const handleMouseMove = (e: MouseEvent) => {
+      mousePosRef.current = { x: e.clientX, y: e.clientY };
+
       if (isDraggingRef.current) return;
 
-      if (botState === 'walking' || botState === 'idle' || botState === 'inviting') {
-        const botCenterX = posRef.current.x + 55;
-        const botCenterY = posRef.current.y + 60;
-
-        const dx = e.clientX - botCenterX;
-        const dy = e.clientY - botCenterY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < 380) {
-          const maxOffset = 6.0;
-          const ex = Math.max(-maxOffset, Math.min(maxOffset, (dx / dist) * maxOffset));
-          const ey = Math.max(-maxOffset, Math.min(maxOffset, (dy / dist) * maxOffset));
-          setEyeOffset({ x: ex, y: ey });
-
-          const angle = Math.max(-10, Math.min(10, (dx / 240) * 10));
-          setHeadAngle(angle);
-
-          if (dist < 160) {
-            setAntennaGlowing(true);
-          } else {
-            setAntennaGlowing(false);
-          }
-        } else {
-          setEyeOffset({ x: facing === 'right' ? 3.5 : -3.5, y: 0 });
-          setHeadAngle(0);
-          setAntennaGlowing(false);
-        }
+      if (
+        botState === 'walking' ||
+        botState === 'idle' ||
+        botState === 'inviting' ||
+        botState === 'observing' ||
+        botState === 'waving'
+      ) {
+        updateGazeAt(e.clientX, e.clientY, posRef.current.x, posRef.current.y, facingRef.current);
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [config.enabled, config.cursorInteraction, botState, facing]);
+  }, [config.enabled, config.cursorInteraction, botState, updateGazeAt]);
 
   // =========================================================================
   // 4. BUTTERY SMOOTH REAL-TIME PATROL (DELTA-TIME BASED - NO SUDDEN RUSHES)
@@ -361,7 +401,11 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
 
         const nextFacing = dx > 0 ? 'right' : 'left';
         setFacing(nextFacing);
-        setEyeOffset({ x: nextFacing === 'right' ? 3.5 : -3.5, y: 0 });
+        facingRef.current = nextFacing;
+
+        // Keep eyes locked onto cursor position as M-BOT rolls along
+        updateGazeAt(mousePosRef.current.x, mousePosRef.current.y, newX, newY, nextFacing);
+
         setPos({ x: newX, y: newY });
       }
 
@@ -376,7 +420,7 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
         animFrameIdRef.current = null;
       }
     };
-  }, [config.enabled, config.behavior, botState, showInvitation]);
+  }, [config.enabled, config.behavior, botState, showInvitation, updateGazeAt]);
 
   // =========================================================================
   // 5. OPEN INVITATION DIALOGUE ON CLICK (NO SUDDEN WARP / TELEPORT)
