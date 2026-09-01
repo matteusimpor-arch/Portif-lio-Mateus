@@ -809,9 +809,18 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
                 >
                   {/* Modern Futuristic App Icon Badge */}
                   <div
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr ${app.iconBg} p-2.5 flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all shrink-0`}
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr ${
+                      app.id === 'trash' && trashItems.length > 0
+                        ? 'from-rose-600 to-red-600 shadow-[0_0_20px_rgba(239,68,68,0.5)]'
+                        : app.iconBg
+                    } p-2.5 flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all shrink-0 relative`}
                   >
                     <IconComp className="w-5 h-5 sm:w-6 sm:h-6" />
+                    {app.id === 'trash' && trashItems.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-slate-950 rounded-full text-[9px] font-mono font-bold flex items-center justify-center shadow-md animate-pulse">
+                        {trashItems.length}
+                      </span>
+                    )}
                   </div>
 
                   <span className="text-[11px] font-mono font-medium text-slate-200 mt-1.5 break-words leading-tight w-full text-center group-hover:text-cyan-300 transition-colors select-none">

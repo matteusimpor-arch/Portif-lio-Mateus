@@ -487,6 +487,7 @@ export default function App() {
         onLaunchTimeTravel={handleLaunchTimeTravel}
         onTestScreensaver={handleTestScreensaver}
         folders={retroFolders}
+        trashItems={trashItems}
         onCreateFolder={handleCreateRetroFolder}
         onRenameFolder={handleRenameRetroFolder}
         onDeleteFolder={handleDeleteRetroFolder}

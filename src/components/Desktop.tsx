@@ -30,7 +30,7 @@ import {
   AlertTriangle,
   FolderOpen
 } from 'lucide-react';
-import { WindowAppId, ThemeConfig, DesktopFolderItem } from '../types';
+import { WindowAppId, ThemeConfig, DesktopFolderItem, TrashItem } from '../types';
 import { soundFx } from '../utils/soundEffects';
 import { DID_YOU_KNOW_FACTS } from '../data/portfolioData';
 import { ClippyFloatingAssistant } from './ClippyFloatingAssistant';
@@ -44,6 +44,7 @@ interface DesktopProps {
   onLaunchTimeTravel: () => void;
   onTestScreensaver?: () => void;
   folders?: DesktopFolderItem[];
+  trashItems?: TrashItem[];
   onCreateFolder?: (name?: string) => void;
   onRenameFolder?: (id: string, newName: string) => void;
   onDeleteFolder?: (id: string) => void;
@@ -83,6 +84,7 @@ export const Desktop: React.FC<DesktopProps> = ({
   onLaunchTimeTravel,
   onTestScreensaver,
   folders = [],
+  trashItems = [],
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
@@ -90,8 +92,6 @@ export const Desktop: React.FC<DesktopProps> = ({
   onUpdateFolderPosition,
 }) => {
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
-  const [isFactDismissed, setIsFactDismissed] = useState<boolean>(true);
-  const [currentFactIndex, setCurrentFactIndex] = useState<number>(0);
 
   // Context Menu State
   const [contextMenu, setContextMenu] = useState<{
@@ -115,15 +115,6 @@ export const Desktop: React.FC<DesktopProps> = ({
 
   // Long press timer for mobile
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Rotate "Você Sabia?" facts automatically every 8 seconds
-  useEffect(() => {
-    if (isFactDismissed) return;
-    const timer = setInterval(() => {
-      setCurrentFactIndex((prev) => (prev + 1) % DID_YOU_KNOW_FACTS.length);
-    }, 8500);
-    return () => clearInterval(timer);
-  }, [isFactDismissed]);
 
   // Focus rename input on editing
   useEffect(() => {
@@ -508,18 +499,43 @@ export const Desktop: React.FC<DesktopProps> = ({
 
       case 'time-spiral':
         return (
-          <div className="w-12 h-12 relative flex items-center justify-center animate-pulse">
-            <div className="w-10 h-10 bg-gradient-to-tr from-cyan-400 via-blue-600 to-indigo-900 border-2 border-cyan-300 rounded-full flex items-center justify-center text-xl shadow-lg">
-              🌀
+          <div className="w-12 h-12 relative flex items-center justify-center">
+            <div className="w-10 h-10 bg-slate-900 border-2 border-cyan-400 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden group-hover:scale-105 transition-transform">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#06b6d4_0%,#1e3a8a_55%,#020617_100%)] opacity-90 animate-spin" style={{ animationDuration: '8s' }} />
+              <span className="relative z-10 text-lg select-none">🌀</span>
             </div>
           </div>
         );
 
       case 'recycle-bin':
+        const isTrashFull = trashItems.length > 0;
         return (
           <div className="w-12 h-12 relative flex items-center justify-center">
-            <div className="w-8 h-10 bg-slate-300 border-2 border-slate-600 shadow-md relative flex flex-col items-center justify-center">
-              <Trash2 className="w-5 h-5 text-slate-700" />
+            <div className="w-9 h-10 relative flex flex-col items-center justify-end">
+              {/* If full, show crumpled paper overflowing from top */}
+              {isTrashFull && (
+                <div className="absolute -top-1 left-1.5 w-6 h-3 flex items-center justify-center z-10">
+                  <div className="w-2.5 h-2.5 bg-white border border-slate-600 rotate-12 shadow-xs" />
+                  <div className="w-3 h-2.5 bg-blue-100 border border-slate-600 -rotate-12 -ml-1 shadow-xs" />
+                </div>
+              )}
+
+              {/* Trash Bin Can Body */}
+              <div className="w-8 h-8 bg-gradient-to-b from-slate-200 to-slate-400 border-2 border-slate-700 shadow-md relative flex flex-col items-center justify-center">
+                {/* Ribbed lines for 3D metallic bin feel */}
+                <div className="w-full flex justify-around px-1">
+                  <div className="w-0.5 h-4 bg-slate-500" />
+                  <div className="w-0.5 h-4 bg-slate-500" />
+                  <div className="w-0.5 h-4 bg-slate-500" />
+                </div>
+                {/* Green recycle triangle logo */}
+                <div className="absolute bottom-1 w-3.5 h-3.5 flex items-center justify-center opacity-80">
+                  <Trash2 className={`w-3 h-3 ${isTrashFull ? 'text-emerald-700 font-bold' : 'text-slate-700'}`} />
+                </div>
+              </div>
+
+              {/* Trash Bin Top Rim */}
+              <div className="absolute top-1.5 w-9 h-1.5 bg-slate-300 border-t-2 border-l-2 border-r-2 border-slate-700" />
             </div>
           </div>
         );
@@ -676,35 +692,6 @@ export const Desktop: React.FC<DesktopProps> = ({
         onLaunchTimeTravel={onLaunchTimeTravel}
       />
 
-      {/* "Você Sabia?" Floating Tip Banner - DESKTOP ONLY (Disabled on Mobile) */}
-      {!isFactDismissed && (
-        <aside
-          aria-label="Dica do Sistema"
-          className="hidden md:block fixed top-4 right-4 z-20 w-80 bg-[#ffffe1] text-gray-900 border-2 border-black p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.4)] text-xs font-sans animate-fadeIn"
-        >
-          <div className="flex items-center justify-between font-bold border-b border-gray-400 pb-1 mb-2">
-            <div className="flex items-center gap-1.5 text-blue-900">
-              <Lightbulb className="w-4 h-4 text-amber-500" />
-              <span>DICA DO SISTEMA 2000</span>
-            </div>
-            <button
-              onClick={() => setIsFactDismissed(true)}
-              className="text-gray-600 hover:text-black font-bold px-1 hover:bg-gray-200 cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          {DID_YOU_KNOW_FACTS[currentFactIndex]?.title && (
-            <div className="font-bold text-[11px] text-blue-950 mb-1">
-              {DID_YOU_KNOW_FACTS[currentFactIndex].title}
-            </div>
-          )}
-          <p className="leading-snug text-gray-800">
-            {DID_YOU_KNOW_FACTS[currentFactIndex]?.fact}
-          </p>
-        </aside>
-      )}
-
       {/* Retro OS 00 Context Menu */}
       {contextMenu?.visible && (
         <div
@@ -804,14 +791,14 @@ export const Desktop: React.FC<DesktopProps> = ({
               <div className="h-px bg-gray-400 my-1 mx-1 border-b border-white" />
               <button
                 onClick={() => {
-                  setIsFactDismissed(false);
+                  window.dispatchEvent(new CustomEvent('mbot-show-fact'));
                   setContextMenu(null);
                   try { soundFx.playClick(); } catch (e) {}
                 }}
                 className="w-full text-left px-3 py-1 hover:bg-blue-800 hover:text-white flex items-center gap-2 cursor-pointer"
               >
                 <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
-                <span>Dica do Sistema (Você Sabia?)</span>
+                <span>Dica do M-BOT (Você Sabia?)</span>
               </button>
               <div className="h-px bg-gray-400 my-1 mx-1 border-b border-white" />
               <button

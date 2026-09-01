@@ -3,22 +3,21 @@ import {
   Sparkles,
   Volume2,
   VolumeX,
-  Compass,
   X,
-  Move,
   Rocket,
-  ArrowRight,
-  RotateCcw
+  Lightbulb,
+  ChevronRight,
+  RotateCcw,
+  Bot
 } from 'lucide-react';
 import { soundFx } from '../utils/soundEffects';
 import { SpaceThemeId } from '../types';
+import { DID_YOU_KNOW_FACTS } from '../data/portfolioData';
 
 export interface MBotConfig {
   enabled: boolean;
-  behavior: 'roam' | 'stay';
   cursorInteraction: boolean;
   sound: boolean;
-  position?: { x: number; y: number };
 }
 
 interface MBotCompanionProps {
@@ -32,124 +31,76 @@ interface MBotCompanionProps {
 // Bot State Machine Types
 type BotState =
   | 'idle'
-  | 'walking'
-  | 'inviting'
-  | 'observing'
-  | 'waving'
-  | 'dragging'
-  | 'traveling'
+  | 'showing_fact'
+  | 'menu_open'
+  | 'pointing_travel'
+  | 'moving_to_travel'
   | 'entering_vortex'
   | 'reconstructing';
-
-// Dimensions and Screen Margins (Guaranteeing 100% visibility)
-const BOT_BOUNDS = {
-  width: 110,
-  height: 125,
-  padding: 16,
-  bottomSafety: 65, // Safety margin above desktop taskbar
-};
-
-// Clamps (x, y) coordinates so M-BOT is always 100% visible inside the viewport
-const clampToScreen = (x: number, y: number): { x: number; y: number } => {
-  if (typeof window === 'undefined') return { x, y };
-  const screenW = window.innerWidth;
-  const screenH = window.innerHeight;
-  const minX = BOT_BOUNDS.padding;
-  const maxX = Math.max(minX, screenW - BOT_BOUNDS.width - BOT_BOUNDS.padding);
-  const minY = BOT_BOUNDS.padding;
-  const maxY = Math.max(minY, screenH - BOT_BOUNDS.height - BOT_BOUNDS.bottomSafety);
-
-  return {
-    x: Math.max(minX, Math.min(maxX, x)),
-    y: Math.max(minY, Math.min(maxY, y)),
-  };
-};
-
-// Normalized Circuit Checkpoints across Desktop (fraction of screen width/height)
-const PATROL_CIRCUIT_POINTS = [
-  { xRatio: 0.82, yRatio: 0.72 }, // Bottom-Right
-  { xRatio: 0.52, yRatio: 0.78 }, // Bottom-Center
-  { xRatio: 0.16, yRatio: 0.65 }, // Bottom-Left
-  { xRatio: 0.14, yRatio: 0.24 }, // Top-Left
-  { xRatio: 0.48, yRatio: 0.16 }, // Top-Center
-  { xRatio: 0.80, yRatio: 0.20 }, // Top-Right
-  { xRatio: 0.62, yRatio: 0.48 }, // Center-Right
-  { xRatio: 0.32, yRatio: 0.45 }, // Center-Left
-];
 
 export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   mode = 'retro',
   spaceTheme = 'space-blue',
-  onOpenSettings,
   onLaunchTimeTravel,
   isTraveling = false,
 }) => {
   // Load configuration from localStorage
   const [config, setConfig] = useState<MBotConfig>(() => {
     if (typeof window === 'undefined') {
-      return { enabled: true, behavior: 'roam', cursorInteraction: true, sound: false };
+      return { enabled: true, cursorInteraction: true, sound: true };
     }
     try {
       const enabled = localStorage.getItem('mBotEnabled') !== 'false';
-      const behavior = (localStorage.getItem('mBotBehavior') as 'roam' | 'stay') || 'roam';
       const cursorInteraction = localStorage.getItem('mBotCursorInteraction') !== 'false';
-      const sound = localStorage.getItem('mBotSound') === 'true';
-      const posStr = localStorage.getItem('mBotPosition');
-      const position = posStr ? JSON.parse(posStr) : undefined;
-      return { enabled, behavior, cursorInteraction, sound, position };
+      const sound = localStorage.getItem('mBotSound') !== 'false';
+      return { enabled, cursorInteraction, sound };
     } catch (e) {
-      return { enabled: true, behavior: 'roam', cursorInteraction: true, sound: false };
+      return { enabled: true, cursorInteraction: true, sound: true };
     }
   });
 
-  // Current real position (always accurate, no delayed CSS jumps)
-  const [pos, setPos] = useState<{ x: number; y: number }>(() => {
-    if (typeof window !== 'undefined') {
-      return clampToScreen(window.innerWidth - 240, window.innerHeight - 250);
-    }
-    return { x: 300, y: 300 };
-  });
-
-  // Bot State Machine
+  // State Machine
   const [botState, setBotState] = useState<BotState>('reconstructing');
-  const [facing, setFacing] = useState<'left' | 'right'>('left');
   const [eyeOffset, setEyeOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [headAngle, setHeadAngle] = useState<number>(0);
   const [antennaGlowing, setAntennaGlowing] = useState<boolean>(false);
   const [isBlinking, setIsBlinking] = useState<boolean>(false);
-  const [treadRolling, setTreadRolling] = useState<boolean>(true);
-  const [isWaving, setIsWaving] = useState<boolean>(false);
-  const [speechBubble, setSpeechBubble] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState<{ x: number; y: number } | null>(null);
-  const [showInvitation, setShowInvitation] = useState<boolean>(false);
+  const [speechBubbleText, setSpeechBubbleText] = useState<string | null>(null);
   const [reconstructionScale, setReconstructionScale] = useState<number>(0.2);
   const [reconstructionOpacity, setReconstructionOpacity] = useState<number>(0.2);
   const [isHovered, setIsHovered] = useState<boolean>(false);
-  const [isHolding, setIsHolding] = useState<boolean>(false);
 
-  // Position and patrol refs for buttery-smooth RAF animation
-  const posRef = useRef<{ x: number; y: number }>(pos);
-  posRef.current = pos;
+  // Time Travel Dynamic Flight Coordinates (used ONLY during travel animation)
+  const [flightPos, setFlightPos] = useState<{ x: number; y: number } | null>(null);
 
-  const facingRef = useRef<'left' | 'right'>(facing);
-  facingRef.current = facing;
+  // "Você Sabia?" Curiosidades Index & History
+  const [currentFactIndex, setCurrentFactIndex] = useState<number>(() => {
+    try {
+      const saved = sessionStorage.getItem('mbot_last_fact_index');
+      return saved ? parseInt(saved, 10) % DID_YOU_KNOW_FACTS.length : 0;
+    } catch (e) {
+      return 0;
+    }
+  });
 
   const mousePosRef = useRef<{ x: number; y: number }>({
     x: typeof window !== 'undefined' ? window.innerWidth / 2 : 500,
     y: typeof window !== 'undefined' ? window.innerHeight / 2 : 300,
   });
 
-  const currentWaypointIndexRef = useRef<number>(0);
-  const animFrameIdRef = useRef<number | null>(null);
-  const lastTimeRef = useRef<number>(0);
+  const botElementRef = useRef<HTMLDivElement | null>(null);
+  const autoFactTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hideFactTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const flightAnimRef = useRef<number | null>(null);
 
-  // Pointer Drag vs Click tracking refs
-  const isPointerDownRef = useRef<boolean>(false);
-  const isDraggingRef = useRef<boolean>(false);
-  const pointerStartTimeRef = useRef<number>(0);
-  const dragStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const botStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Sound effects helper
+  const playChirp = useCallback(() => {
+    if (config.sound) {
+      try {
+        soundFx.playMBotChirp();
+      } catch (e) {}
+    }
+  }, [config.sound]);
 
   // Update configuration helper
   const updateConfig = (newConfig: Partial<MBotConfig>) => {
@@ -160,61 +111,27 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
           localStorage.setItem('mBotEnabled', String(updated.enabled));
           window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: updated.enabled } }));
         }
-        if (newConfig.behavior !== undefined) localStorage.setItem('mBotBehavior', updated.behavior);
-        if (newConfig.cursorInteraction !== undefined) localStorage.setItem('mBotCursorInteraction', String(updated.cursorInteraction));
-        if (newConfig.sound !== undefined) localStorage.setItem('mBotSound', String(updated.sound));
+        if (newConfig.cursorInteraction !== undefined) {
+          localStorage.setItem('mBotCursorInteraction', String(updated.cursorInteraction));
+        }
+        if (newConfig.sound !== undefined) {
+          localStorage.setItem('mBotSound', String(updated.sound));
+        }
       } catch (e) {}
       return updated;
     });
   };
 
-  // Sound effects helpers
-  const playChirp = useCallback(() => {
-    if (config.sound) {
-      try {
-        soundFx.playMBotChirp();
-      } catch (e) {}
-    }
-  }, [config.sound]);
-
-  // Show temporary speech balloon
-  const showQuickSpeech = useCallback((text: string, durationMs = 2800) => {
-    if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
-    setSpeechBubble(text);
-    speechTimeoutRef.current = setTimeout(() => {
-      setSpeechBubble(null);
-    }, durationMs);
-  }, []);
-
-  // Listen to window resize to ensure M-BOT stays 100% within screen
-  useEffect(() => {
-    const handleResize = () => {
-      setPos((prev) => clampToScreen(prev.x, prev.y));
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Listen to external toggle events from taskbar or settings
+  // Listen to external toggle events
   useEffect(() => {
     const handleStatusChanged = (e: CustomEvent) => {
       if (e.detail && typeof e.detail.enabled === 'boolean') {
         setConfig((prev) => ({ ...prev, enabled: e.detail.enabled }));
       }
     };
-
-    const handleToggle = () => {
-      updateConfig({ enabled: !config.enabled });
-    };
-
     window.addEventListener('mbot-status-changed', handleStatusChanged as EventListener);
-    window.addEventListener('mbot-toggle', handleToggle);
-
-    return () => {
-      window.removeEventListener('mbot-status-changed', handleStatusChanged as EventListener);
-      window.removeEventListener('mbot-toggle', handleToggle);
-    };
-  }, [config.enabled]);
+    return () => window.removeEventListener('mbot-status-changed', handleStatusChanged as EventListener);
+  }, []);
 
   // =========================================================================
   // 1. RECONSTRUCTION ENTRANCE ON LOAD / MODE SWITCH
@@ -224,20 +141,20 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
     setReconstructionScale(0.1);
     setReconstructionOpacity(0.1);
     setAntennaGlowing(true);
+    setFlightPos(null);
 
     const step1 = setTimeout(() => {
-      setReconstructionScale(0.75);
-      setReconstructionOpacity(0.85);
+      setReconstructionScale(0.85);
+      setReconstructionOpacity(0.9);
       playChirp();
-    }, 200);
+    }, 180);
 
     const step2 = setTimeout(() => {
       setReconstructionScale(1.0);
       setReconstructionOpacity(1.0);
       setAntennaGlowing(false);
-      setBotState('walking');
-      setTreadRolling(true);
-    }, 550);
+      setBotState('idle');
+    }, 480);
 
     return () => {
       clearTimeout(step1);
@@ -252,7 +169,7 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
     if (!config.enabled) return;
 
     const blinkInterval = setInterval(() => {
-      if (botState === 'walking' || botState === 'idle' || botState === 'inviting') {
+      if (botState === 'idle' || botState === 'showing_fact' || botState === 'menu_open') {
         setIsBlinking(true);
         setTimeout(() => setIsBlinking(false), 140);
         if (Math.random() < 0.25) {
@@ -262,1054 +179,857 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
           }, 240);
         }
       }
-    }, 3200 + Math.random() * 3000);
+    }, 3200 + Math.random() * 3200);
 
     return () => clearInterval(blinkInterval);
   }, [config.enabled, botState]);
 
-  // Helper to calculate exact pupil offset and head angle looking at mouse cursor
-  const updateGazeAt = useCallback((mouseX: number, mouseY: number, botX: number, botY: number, curFacing: 'left' | 'right') => {
-    if (botState === 'traveling' || botState === 'entering_vortex') return;
+  // =========================================================================
+  // 3. CURSOR GAZE TRACKING (PUPILS & SUBTLE HEAD TILT)
+  // =========================================================================
+  const updateGaze = useCallback((mouseX: number, mouseY: number) => {
+    if (botState === 'moving_to_travel' || botState === 'entering_vortex') return;
 
-    // Center of M-BOT's eyes in screen viewport coordinates (~54px from left, ~38px from top)
-    const botEyeCenterX = botX + 54;
-    const botEyeCenterY = botY + 38;
+    if (!botElementRef.current) return;
+    const rect = botElementRef.current.getBoundingClientRect();
+    const botCenterX = rect.left + rect.width / 2;
+    const botCenterY = rect.top + rect.height / 2;
 
-    const dx = mouseX - botEyeCenterX;
-    const dy = mouseY - botEyeCenterY;
+    const dx = mouseX - botCenterX;
+    const dy = mouseY - botCenterY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist < 1) {
+    if (dist < 2) {
       setEyeOffset({ x: 0, y: 0 });
       return;
     }
 
     // Maximum pupil displacement in SVG coordinate units
-    const maxOffsetX = 5.2;
-    const maxOffsetY = 4.2;
+    const maxOffsetX = 5.0;
+    const maxOffsetY = 4.0;
 
     const normX = dx / dist;
     const normY = dy / dist;
 
-    // Smooth response curve: responsive up close and full gaze anywhere on the screen
-    const strength = Math.min(1, Math.max(0.2, dist / 80));
+    // Smooth response curve up to ~450px distance
+    const strength = Math.min(1, Math.max(0.15, dist / 90));
 
-    // Flip horizontal direction for scaleX(-1) flipped container when facing right
-    const localDirX = curFacing === 'left' ? normX : -normX;
-
-    const ex = localDirX * maxOffsetX * strength;
+    // When positioned in top-right, looking left means negative dx
+    const ex = normX * maxOffsetX * strength;
     const ey = normY * maxOffsetY * strength;
 
     setEyeOffset({ x: ex, y: ey });
 
-    // Subtle head tilt following the mouse cursor
-    const screenW = typeof window !== 'undefined' ? window.innerWidth : 1200;
-    const rawAngle = (dx / screenW) * 16;
-    const clampedAngle = Math.max(-9, Math.min(9, rawAngle));
-    setHeadAngle(curFacing === 'left' ? clampedAngle : -clampedAngle);
+    // Subtle head tilt following the cursor
+    const rawAngle = (dx / (typeof window !== 'undefined' ? window.innerWidth : 1200)) * 14;
+    const clampedAngle = Math.max(-8, Math.min(8, rawAngle));
+    setHeadAngle(clampedAngle);
 
-    // Antenna lights up when mouse cursor is near M-BOT
-    if (dist < 150) {
+    // Antenna lights up when cursor is very close (<120px)
+    if (dist < 120) {
       setAntennaGlowing(true);
-    } else {
+    } else if (botState !== 'pointing_travel') {
       setAntennaGlowing(false);
     }
   }, [botState]);
 
-  // =========================================================================
-  // 3. CURSOR GAZE TRACKING (ACROSS THE ENTIRE SCREEN)
-  // =========================================================================
   useEffect(() => {
     if (!config.enabled || !config.cursorInteraction) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       mousePosRef.current = { x: e.clientX, y: e.clientY };
-
-      if (isDraggingRef.current) return;
-
-      if (
-        botState === 'walking' ||
-        botState === 'idle' ||
-        botState === 'inviting' ||
-        botState === 'observing' ||
-        botState === 'waving'
-      ) {
-        updateGazeAt(e.clientX, e.clientY, posRef.current.x, posRef.current.y, facingRef.current);
-      }
+      updateGaze(e.clientX, e.clientY);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [config.enabled, config.cursorInteraction, botState, updateGazeAt]);
+  }, [config.enabled, config.cursorInteraction, updateGaze]);
 
   // =========================================================================
-  // 4. BUTTERY SMOOTH REAL-TIME PATROL (DELTA-TIME BASED - NO SUDDEN RUSHES)
+  // 4. "VOCÊ SABIA?" AUTOMATIC FACT ROTATION SCHEDULE (NON-INTRUSIVE)
   // =========================================================================
+  const showNextFact = useCallback((manual = false) => {
+    setCurrentFactIndex((prevIndex) => {
+      const nextIndex = (prevIndex + 1) % DID_YOU_KNOW_FACTS.length;
+      try {
+        sessionStorage.setItem('mbot_last_fact_index', String(nextIndex));
+      } catch (e) {}
+      return nextIndex;
+    });
+
+    setBotState('showing_fact');
+    playChirp();
+
+    // Auto close fact after 8.5 seconds if not manually interacted with
+    if (hideFactTimerRef.current) clearTimeout(hideFactTimerRef.current);
+    hideFactTimerRef.current = setTimeout(() => {
+      setBotState((current) => (current === 'showing_fact' ? 'idle' : current));
+    }, 8500);
+  }, [playChirp]);
+
+  // Listen to external commands to show a fact or toggle bot
   useEffect(() => {
-    if (
-      !config.enabled ||
-      config.behavior === 'stay' ||
-      botState !== 'walking' ||
-      showInvitation ||
-      isDraggingRef.current ||
-      isPointerDownRef.current
-    ) {
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
-        animFrameIdRef.current = null;
-      }
-      return;
-    }
-
-    lastTimeRef.current = performance.now();
-
-    const step = (now: number) => {
-      const deltaSec = Math.min(0.08, (now - lastTimeRef.current) / 1000);
-      lastTimeRef.current = now;
-
-      if (
-        !config.enabled ||
-        config.behavior === 'stay' ||
-        botState !== 'walking' ||
-        showInvitation ||
-        isDraggingRef.current ||
-        isPointerDownRef.current
-      ) {
-        return;
-      }
-
-      const screenW = window.innerWidth;
-      const screenH = window.innerHeight;
-      const wp = PATROL_CIRCUIT_POINTS[currentWaypointIndexRef.current];
-      const target = clampToScreen(wp.xRatio * screenW, wp.yRatio * screenH);
-
-      const current = posRef.current;
-      const dx = target.x - current.x;
-      const dy = target.y - current.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      // Target reached -> advance to next circuit point
-      if (dist < 8) {
-        currentWaypointIndexRef.current = (currentWaypointIndexRef.current + 1) % PATROL_CIRCUIT_POINTS.length;
-      } else {
-        // Move towards target at ~42px per second
-        const speedPxPerSec = 42;
-        const moveDist = speedPxPerSec * deltaSec;
-        const ratio = Math.min(1, moveDist / dist);
-        const newX = current.x + dx * ratio;
-        const newY = current.y + dy * ratio;
-
-        const nextFacing = dx > 0 ? 'right' : 'left';
-        setFacing(nextFacing);
-        facingRef.current = nextFacing;
-
-        // Keep eyes locked onto cursor position as M-BOT rolls along
-        updateGazeAt(mousePosRef.current.x, mousePosRef.current.y, newX, newY, nextFacing);
-
-        setPos({ x: newX, y: newY });
-      }
-
-      animFrameIdRef.current = requestAnimationFrame(step);
+    const handleShowFact = () => {
+      showNextFact(true);
+    };
+    const handleToggle = () => {
+      updateConfig({ enabled: !config.enabled });
     };
 
-    animFrameIdRef.current = requestAnimationFrame(step);
+    window.addEventListener('mbot-show-fact', handleShowFact);
+    window.addEventListener('mbot-toggle', handleToggle);
+    return () => {
+      window.removeEventListener('mbot-show-fact', handleShowFact);
+      window.removeEventListener('mbot-toggle', handleToggle);
+    };
+  }, [config.enabled, showNextFact]);
+
+  useEffect(() => {
+    if (!config.enabled) return;
+
+    // Check how many automatic displays occurred this session (limit to 3 to prevent fatigue)
+    let autoCount = 0;
+    try {
+      autoCount = parseInt(sessionStorage.getItem('mbot_auto_fact_count') || '0', 10);
+    } catch (e) {}
+
+    if (autoCount >= 3) return;
+
+    // First appearance after 12 seconds
+    const initialDelay = autoCount === 0 ? 12000 : 26000;
+
+    autoFactTimerRef.current = setTimeout(() => {
+      if (botState === 'idle') {
+        try {
+          sessionStorage.setItem('mbot_auto_fact_count', String(autoCount + 1));
+        } catch (e) {}
+        showNextFact(false);
+      }
+    }, initialDelay);
 
     return () => {
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
-        animFrameIdRef.current = null;
-      }
+      if (autoFactTimerRef.current) clearTimeout(autoFactTimerRef.current);
+      if (hideFactTimerRef.current) clearTimeout(hideFactTimerRef.current);
     };
-  }, [config.enabled, config.behavior, botState, showInvitation, updateGazeAt]);
+  }, [config.enabled, botState, showNextFact]);
 
   // =========================================================================
-  // 5. OPEN INVITATION DIALOGUE ON CLICK (NO SUDDEN WARP / TELEPORT)
+  // 5. INTERACTIVE CLICK ON M-BOT -> OPEN INTERACTION MENU
   // =========================================================================
-  const handleBotClick = useCallback(() => {
-    if (botState === 'traveling' || botState === 'entering_vortex') return;
+  const handleBotClick = () => {
+    if (botState === 'moving_to_travel' || botState === 'entering_vortex') return;
 
-    // Pause walking right at current position
-    setBotState('inviting');
-    setTreadRolling(false);
-    setIsWaving(true);
-    setAntennaGlowing(true);
-    setHeadAngle(-4);
-    setShowInvitation(true);
-    setMenuOpen(null);
+    if (hideFactTimerRef.current) clearTimeout(hideFactTimerRef.current);
+
+    if (botState === 'menu_open') {
+      setBotState('idle');
+      return;
+    }
 
     try {
       soundFx.playMBotCurious();
     } catch (e) {}
-  }, [botState]);
 
-  // Accept Space / Retro invitation -> Launch Time Travel!
-  const handleAcceptInvitation = () => {
-    setShowInvitation(false);
-    setBotState('traveling');
-    setIsWaving(true);
+    setBotState('menu_open');
+  };
+
+  // =========================================================================
+  // 6. TIME TRAVEL GUIDANCE FLOW (POINT -> DEPART FROM CORNER -> VORTEX)
+  // =========================================================================
+  const handleInitiateTravel = () => {
+    setBotState('pointing_travel');
     setAntennaGlowing(true);
-    setTreadRolling(false);
-    setEyeOffset({ x: 0, y: 0 });
 
     try {
       if (mode === 'retro') {
         soundFx.playFanfare();
       } else {
-        soundFx.playMBotCurious();
+        soundFx.playTimeTravelWarp();
       }
-    } catch (err) {}
+    } catch (e) {}
 
-    showQuickSpeech(
+    setSpeechBubbleText(
       mode === 'retro'
-        ? '🚀 Salto temporal confirmado! Rumo a 2026...'
-        : '🌀 Dobra temporal confirmada! Rumo ao Ano 2000...',
-      2400
+        ? '🚀 Me siga até o portal!'
+        : '🌀 Iniciando dobra temporal...'
     );
 
+    // After brief pointing indication, bot takes off towards center
     setTimeout(() => {
-      setBotState('entering_vortex');
-      setReconstructionScale(0.1);
-      setReconstructionOpacity(0.1);
+      setSpeechBubbleText(null);
+      setBotState('moving_to_travel');
 
-      setTimeout(() => {
-        if (onLaunchTimeTravel) {
-          onLaunchTimeTravel(mode === 'retro' ? 'forward' : 'backward');
+      const startX = typeof window !== 'undefined' ? window.innerWidth - 110 : 800;
+      const startY = 24;
+      const targetX = (typeof window !== 'undefined' ? window.innerWidth / 2 : 500) - 44;
+      const targetY = (typeof window !== 'undefined' ? window.innerHeight / 2 : 350) - 48;
+
+      setFlightPos({ x: startX, y: startY });
+
+      const startTime = performance.now();
+      const durationMs = 850;
+
+      const animateFlight = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / durationMs);
+
+        // Ease-in-out curve
+        const ease = progress < 0.5
+          ? 2 * progress * progress
+          : -1 + (4 - 2 * progress) * progress;
+
+        const currentX = startX + (targetX - startX) * ease;
+        const currentY = startY + (targetY - startY) * ease;
+
+        setFlightPos({ x: currentX, y: currentY });
+
+        if (progress < 1) {
+          flightAnimRef.current = requestAnimationFrame(animateFlight);
+        } else {
+          // Arrived at portal vortex center -> Shrink into portal hole
+          setBotState('entering_vortex');
+          setReconstructionScale(0.05);
+          setReconstructionOpacity(0);
+
+          setTimeout(() => {
+            if (onLaunchTimeTravel) {
+              onLaunchTimeTravel(mode === 'retro' ? 'forward' : 'backward');
+            }
+          }, 600);
         }
-      }, 700);
+      };
+
+      flightAnimRef.current = requestAnimationFrame(animateFlight);
     }, 650);
   };
 
-  // Decline/Close invitation -> Resume patrol smoothly
-  const handleDeclineInvitation = () => {
-    setShowInvitation(false);
-    setIsWaving(false);
-    setAntennaGlowing(false);
-    showQuickSpeech('Sem problemas! Continuarei patrulhando por aqui 🤖', 2400);
-
-    setTimeout(() => {
-      setBotState('walking');
-      setTreadRolling(true);
-    }, 500);
+  // Close fact bubble or interaction menu
+  const handleCloseOverlay = () => {
+    if (hideFactTimerRef.current) clearTimeout(hideFactTimerRef.current);
+    setBotState('idle');
   };
 
-  // =========================================================================
-  // 6. CLICK & HOLD DRAG SYSTEM (SEAMLESS DRAGGING WITH REAL-TIME CLAMPING)
-  // =========================================================================
-  useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (!isPointerDownRef.current) return;
+  if (!config.enabled || isTraveling) {
+    return null;
+  }
 
-      const dx = e.clientX - dragStartPosRef.current.x;
-      const dy = e.clientY - dragStartPosRef.current.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      // Trigger active dragging if moved or held
-      if (dist > 4 || (Date.now() - pointerStartTimeRef.current > 180 && dist > 1)) {
-        if (!isDraggingRef.current) {
-          isDraggingRef.current = true;
-          setShowInvitation(false);
-          setBotState('dragging');
-          setTreadRolling(false);
-          setAntennaGlowing(true);
-          setMenuOpen(null);
-        }
-
-        const newPos = clampToScreen(
-          botStartPosRef.current.x + dx,
-          botStartPosRef.current.y + dy
-        );
-        setPos(newPos);
-      }
-    };
-
-    const handleGlobalMouseUp = () => {
-      if (!isPointerDownRef.current) return;
-      isPointerDownRef.current = false;
-      setIsHolding(false);
-
-      if (isDraggingRef.current) {
-        // User dragged and released at new position
-        isDraggingRef.current = false;
-        setBotState('walking');
-        setTreadRolling(true);
-        setAntennaGlowing(false);
-        try {
-          localStorage.setItem('mBotPosition', JSON.stringify(posRef.current));
-        } catch (e) {}
-      } else {
-        // Simple click without dragging -> Open invitation dialogue!
-        handleBotClick();
-      }
-    };
-
-    window.addEventListener('mousemove', handleGlobalMouseMove);
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-
-    return () => {
-      window.removeEventListener('mousemove', handleGlobalMouseMove);
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
-  }, [handleBotClick]);
-
-  // Mouse Down directly on M-BOT
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only primary left click
-    e.preventDefault();
-    e.stopPropagation();
-
-    isPointerDownRef.current = true;
-    isDraggingRef.current = false;
-    setIsHolding(true);
-    pointerStartTimeRef.current = Date.now();
-    dragStartPosRef.current = { x: e.clientX, y: e.clientY };
-    botStartPosRef.current = { x: posRef.current.x, y: posRef.current.y };
+  // Theme color accents for Space 2026 mode
+  const spaceThemeConfig = {
+    'space-blue': { led: '#22d3ee', glow: 'rgba(6, 182, 212, 0.45)', accent: '#0284c7' },
+    'cyber-neon': { led: '#34d399', glow: 'rgba(52, 211, 153, 0.45)', accent: '#059669' },
+    'retro-amber': { led: '#fbbf24', glow: 'rgba(251, 191, 36, 0.45)', accent: '#d97706' },
+    'deep-void': { led: '#a855f7', glow: 'rgba(168, 85, 247, 0.45)', accent: '#7c3aed' },
   };
+  const spaceStyles = spaceThemeConfig[spaceTheme] || spaceThemeConfig['space-blue'];
 
-  // Touch Handlers for Mobile & Tablet
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 0) return;
-    const t = e.touches[0];
-    isPointerDownRef.current = true;
-    isDraggingRef.current = false;
-    setIsHolding(true);
-    pointerStartTimeRef.current = Date.now();
-    dragStartPosRef.current = { x: t.clientX, y: t.clientY };
-    botStartPosRef.current = { x: posRef.current.x, y: posRef.current.y };
-  };
+  const currentFact = DID_YOU_KNOW_FACTS[currentFactIndex] || DID_YOU_KNOW_FACTS[0];
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isPointerDownRef.current || e.touches.length === 0) return;
-    const t = e.touches[0];
-    const dx = t.clientX - dragStartPosRef.current.x;
-    const dy = t.clientY - dragStartPosRef.current.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist > 5) {
-      if (!isDraggingRef.current) {
-        isDraggingRef.current = true;
-        setShowInvitation(false);
-        setBotState('dragging');
-        setTreadRolling(false);
-        setAntennaGlowing(true);
-      }
-
-      const newPos = clampToScreen(
-        botStartPosRef.current.x + dx,
-        botStartPosRef.current.y + dy
-      );
-      setPos(newPos);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!isPointerDownRef.current) return;
-    isPointerDownRef.current = false;
-    setIsHolding(false);
-
-    if (isDraggingRef.current) {
-      isDraggingRef.current = false;
-      setBotState('walking');
-      setTreadRolling(true);
-      setAntennaGlowing(false);
-      try {
-        localStorage.setItem('mBotPosition', JSON.stringify(posRef.current));
-      } catch (e) {}
-    } else {
-      handleBotClick();
-    }
-  };
-
-  // Right Click Context Menu
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    isPointerDownRef.current = false;
-    isDraggingRef.current = false;
-    setIsHolding(false);
-
-    const menuX = Math.min(window.innerWidth - 220, Math.max(10, e.clientX));
-    const menuY = Math.min(window.innerHeight - 240, Math.max(10, e.clientY));
-    setMenuOpen({ x: menuX, y: menuY });
-  };
-
-  if (!config.enabled) return null;
-
-  // Colors for Space Mode theme
-  const getSpaceThemeStyles = () => {
-    switch (spaceTheme) {
-      case 'neon-purple':
-        return { led: '#d946ef', accent: '#a855f7', glow: 'rgba(217,70,239,0.6)' };
-      case 'emerald-matrix':
-        return { led: '#10b981', accent: '#059669', glow: 'rgba(16,185,129,0.6)' };
-      case 'amber-gold':
-        return { led: '#f59e0b', accent: '#d97706', glow: 'rgba(245,158,11,0.6)' };
-      case 'crimson-dark':
-        return { led: '#ef4444', accent: '#dc2626', glow: 'rgba(239,68,68,0.6)' };
-      default:
-        return { led: '#06b6d4', accent: '#0284c7', glow: 'rgba(6,182,212,0.6)' };
-    }
-  };
-
-  const spaceStyles = getSpaceThemeStyles();
+  const isFlying = botState === 'moving_to_travel' || botState === 'entering_vortex';
 
   return (
     <>
       {/* =========================================================
-          M-BOT MAIN ROOT CONTAINER
-          Z-INDEX: 38 (Always 100% visible on top of desktop icons)
-          Elevated to z-50 during active dragging
+          M-BOT FIXED TOP-RIGHT CONTAINER (Z-INDEX 20)
+          Layer Hierarchy:
+          Wallpaper -> Icons -> M-BOT (z-20) -> Windows (z-30+) -> Menus (z-50)
          ========================================================= */}
       <div
-        id="mbot-companion-root"
-        style={{
-          transform: `translate3d(${pos.x}px, ${pos.y}px, 0) scale(${reconstructionScale})`,
-          transition:
-            botState === 'entering_vortex'
-              ? 'transform 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.7s ease-in'
-              : botState === 'reconstructing'
-              ? 'transform 0.35s ease-out, opacity 0.35s ease-out'
-              : 'none',
-          zIndex: botState === 'dragging' || showInvitation ? 50 : 38,
-          opacity: reconstructionOpacity,
-          touchAction: 'none',
-        }}
-        className={`fixed top-0 left-0 select-none pointer-events-auto filter drop-shadow-[0_6px_16px_rgba(0,0,0,0.45)] ${
-          isHolding ? 'cursor-grabbing' : 'cursor-grab'
-        }`}
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onContextMenu={handleContextMenu}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => {
-          setIsHovered(false);
-          if (!isPointerDownRef.current) setIsHolding(false);
-        }}
-        title={
-          mode === 'retro'
-            ? 'M-BOT: Clique e segure para arrastar • Clique para falar com ele'
-            : 'M-BOT: Clique e segure para arrastar • Clique para interagir'
+        style={
+          isFlying && flightPos
+            ? {
+                position: 'fixed',
+                left: `${flightPos.x}px`,
+                top: `${flightPos.y}px`,
+                zIndex: 45,
+                transform: `scale(${reconstructionScale}) rotate(${botState === 'entering_vortex' ? '180deg' : '0deg'})`,
+                opacity: reconstructionOpacity,
+                transition: botState === 'entering_vortex' ? 'transform 0.5s ease-in, opacity 0.5s ease-in' : 'none',
+              }
+            : {
+                position: 'fixed',
+                top: 'max(16px, env(safe-area-inset-top, 16px))',
+                right: 'max(16px, env(safe-area-inset-right, 16px))',
+                zIndex: 20,
+                transform: `scale(${reconstructionScale})`,
+                opacity: reconstructionOpacity,
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease',
+              }
         }
+        className="pointer-events-none select-none flex flex-col items-end"
       >
-        {/* Hover Hint Tooltip (Only when not showing invitation or speech) */}
-        {isHovered && !speechBubble && !showInvitation && botState !== 'traveling' && botState !== 'entering_vortex' && !isDraggingRef.current && (
-          <div
-            className={`absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-mono shadow-xl animate-fadeIn pointer-events-none z-50 flex items-center gap-1.5 ${
-              mode === 'retro'
-                ? 'bg-[#000080] text-white border border-white font-bold shadow-[2px_2px_0px_#000]'
-                : 'bg-cyan-500 text-slate-950 font-bold border border-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.7)]'
-            }`}
-          >
-            <Move className="w-3 h-3 text-amber-300 animate-pulse" />
-            <span>{mode === 'retro' ? 'Clique para interagir • Arraste para mover' : 'Clique para interagir • Arraste para mover'}</span>
-          </div>
-        )}
-
-        {/* Short Temporary Speech Bubble */}
-        {speechBubble && !showInvitation && (
-          <div
-            className={`absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs font-mono shadow-xl animate-fadeIn pointer-events-none z-50 ${
-              mode === 'retro'
-                ? 'bg-[#ffffe1] text-gray-900 border-2 border-black font-bold shadow-[3px_3px_0px_#000]'
-                : 'bg-slate-950/95 text-cyan-200 border border-cyan-400/70 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.5)]'
-            }`}
-          >
-            {speechBubble}
-            <div
-              className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 ${
-                mode === 'retro' ? 'border-t-black' : 'border-t-cyan-400/70'
-              }`}
-            />
-          </div>
-        )}
-
         {/* =========================================================
-            INTERACTIVE INVITATION DIALOGUE (CONVITE PARA MODO SPACE)
+            SPEECH BALLOON: "VOCÊ SABIA?" (DICAS & CURIOSIDADES)
            ========================================================= */}
-        {showInvitation && (
+        {botState === 'showing_fact' && !isFlying && (
           <div
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            className={`absolute -top-36 sm:-top-40 left-1/2 -translate-x-1/2 w-72 sm:w-80 p-3 sm:p-3.5 rounded-xl shadow-2xl animate-scaleIn pointer-events-auto z-50 ${
+            className={`pointer-events-auto absolute top-1 right-[calc(100%+14px)] w-[250px] sm:w-[280px] max-w-[75vw] p-3 shadow-2xl animate-fadeIn ${
               mode === 'retro'
-                ? 'bg-[#ece9d8] border-2 border-[#0055ea] text-gray-900 shadow-[4px_4px_12px_rgba(0,0,0,0.6)] font-sans'
-                : 'bg-slate-950/95 border-2 border-cyan-400 text-slate-100 backdrop-blur-xl shadow-[0_0_30px_rgba(6,182,212,0.5)] font-mono'
+                ? 'bg-[#ffffd8] text-slate-900 border-2 border-black font-sans shadow-[4px_4px_0px_rgba(0,0,0,0.45)]'
+                : 'bg-slate-950/95 text-slate-100 border border-cyan-400/50 rounded-2xl font-mono backdrop-blur-xl shadow-[0_0_25px_rgba(6,182,212,0.3)]'
             }`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-gray-300/40">
-              <div className="flex items-center gap-1.5 font-bold text-xs">
-                {mode === 'retro' ? (
-                  <>
-                    <Rocket className="w-4 h-4 text-blue-600 animate-bounce" />
-                    <span className="text-blue-900 font-bold">M-BOT 00 • Viagem no Tempo</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" />
-                    <span className="text-cyan-300 font-bold">M-BOT 26 • Salto Quântico</span>
-                  </>
-                )}
+            <div
+              className={`flex items-center justify-between font-bold text-xs pb-1.5 mb-2 border-b ${
+                mode === 'retro'
+                  ? 'border-slate-400 text-blue-900'
+                  : 'border-white/10 text-cyan-300'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Lightbulb className={`w-3.5 h-3.5 ${mode === 'retro' ? 'text-amber-600' : 'text-amber-400'}`} />
+                <span className="tracking-wide">VOCÊ SABIA?</span>
               </div>
               <button
-                onClick={handleDeclineInvitation}
-                className="text-gray-500 hover:text-red-500 transition p-0.5 rounded cursor-pointer"
+                onClick={handleCloseOverlay}
+                className="text-slate-500 hover:text-red-500 p-0.5 cursor-pointer transition"
                 title="Fechar"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Message Body */}
-            <p className="text-xs leading-relaxed mb-3">
-              {mode === 'retro' ? (
-                <>
-                  Olá! Gostaria de fazer uma <strong>Viagem Temporal</strong> rumo ao <strong>Modo Space 2026</strong>?
-                </>
-              ) : (
-                <>
-                  Saudações! Deseja abrir a dobra quântica e <strong>retornar ao MATEUS OS 2000</strong>?
-                </>
-              )}
+            {/* Fact Title & Description */}
+            {currentFact.title && (
+              <div className={`font-bold text-[11px] mb-1 ${mode === 'retro' ? 'text-blue-950' : 'text-cyan-200'}`}>
+                {currentFact.title}
+              </div>
+            )}
+            <p className="text-[11px] leading-relaxed mb-3">
+              {currentFact.fact}
             </p>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
+            {/* Footer Navigation */}
+            <div className="flex items-center justify-between pt-1 border-t border-slate-300/40 text-[10px]">
+              <span className="opacity-60 font-mono">
+                {currentFactIndex + 1} / {DID_YOU_KNOW_FACTS.length}
+              </span>
               <button
-                onClick={handleAcceptInvitation}
-                className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition transform active:scale-95 cursor-pointer shadow-md ${
+                onClick={() => showNextFact(true)}
+                className={`flex items-center gap-1 px-2 py-1 rounded font-bold cursor-pointer transition active:scale-95 ${
                   mode === 'retro'
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-400 shadow-[2px_2px_0px_#000]'
-                    : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white border border-blue-400 shadow-xs'
+                    : 'bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{mode === 'retro' ? 'Sim, viajar!' : 'Sim, retornar!'}</span>
-              </button>
-
-              <button
-                onClick={handleDeclineInvitation}
-                className={`py-1.5 px-3 rounded-lg text-xs font-medium transition cursor-pointer ${
-                  mode === 'retro'
-                    ? 'bg-gray-200 hover:bg-gray-300 text-gray-800 border border-gray-400'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600'
-                }`}
-              >
-                Agora não
+                <span>Outra</span>
+                <ChevronRight className="w-3 h-3" />
               </button>
             </div>
 
-            {/* Speech Balloon Down Arrow */}
+            {/* Pointer Tail pointing right to M-BOT */}
             <div
-              className={`absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-6 border-x-transparent border-t-8 ${
-                mode === 'retro' ? 'border-t-[#0055ea]' : 'border-t-cyan-400'
+              className={`absolute top-6 -right-2 w-0 h-0 border-y-6 border-y-transparent border-l-8 ${
+                mode === 'retro' ? 'border-l-black' : 'border-l-cyan-400'
               }`}
             />
           </div>
         )}
 
         {/* =========================================================
-            CHARACTER SVG CONTAINER (LARGE, 100% VISIBLE & SHARP)
-            Dimensions: ~106px x 120px on desktop
+            INTERACTION MENU (CLIQUE NO M-BOT)
+           ========================================================= */}
+        {botState === 'menu_open' && !isFlying && (
+          <div
+            className={`pointer-events-auto absolute top-1 right-[calc(100%+14px)] w-[240px] sm:w-[260px] max-w-[75vw] p-3 shadow-2xl animate-fadeIn ${
+              mode === 'retro'
+                ? 'bg-[#ece9d8] text-slate-900 border-2 border-white border-r-slate-800 border-b-slate-800 font-sans shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+                : 'bg-slate-950/95 text-slate-100 border border-cyan-400/50 rounded-2xl font-mono backdrop-blur-xl shadow-[0_0_30px_rgba(6,182,212,0.35)]'
+            }`}
+          >
+            {/* Menu Header */}
+            <div
+              className={`flex items-center justify-between font-bold text-xs pb-1.5 mb-2 border-b ${
+                mode === 'retro'
+                  ? 'border-slate-400 text-blue-900'
+                  : 'border-white/10 text-cyan-300'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <Bot className="w-4 h-4" />
+                <span>{mode === 'retro' ? 'M-BOT 00' : 'M-BOT 26'}</span>
+              </div>
+              <button
+                onClick={handleCloseOverlay}
+                className="text-slate-500 hover:text-red-500 p-0.5 cursor-pointer transition"
+                title="Fechar"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Question Greeting */}
+            <p className="text-xs mb-3 font-medium">
+              {mode === 'retro'
+                ? 'Quer conhecer o futuro?'
+                : 'Quer voltar aos anos 2000?'}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={handleInitiateTravel}
+                className={`w-full py-2 px-3 rounded text-xs font-bold flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer shadow-md ${
+                  mode === 'retro'
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white border border-blue-400 shadow-[1px_1px_0px_#000]'
+                    : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.7)]'
+                }`}
+              >
+                {mode === 'retro' ? (
+                  <>
+                    <Rocket className="w-3.5 h-3.5" />
+                    <span>IR PARA O SPACE</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>VOLTAR PARA 2000</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  showNextFact(true);
+                }}
+                className={`w-full py-1.5 px-3 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  mode === 'retro'
+                    ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-400 shadow-xs'
+                    : 'bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-white/10'
+                }`}
+              >
+                <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                <span>VOCÊ SABIA?</span>
+              </button>
+
+              <button
+                onClick={handleCloseOverlay}
+                className={`w-full py-1 px-3 rounded text-[11px] transition text-center opacity-70 hover:opacity-100 cursor-pointer ${
+                  mode === 'retro' ? 'text-slate-700 hover:bg-slate-200' : 'text-slate-400 hover:bg-white/5'
+                }`}
+              >
+                FECHAR
+              </button>
+            </div>
+
+            {/* Pointer Tail */}
+            <div
+              className={`absolute top-6 -right-2 w-0 h-0 border-y-6 border-y-transparent border-l-8 ${
+                mode === 'retro' ? 'border-l-slate-400' : 'border-l-cyan-400'
+              }`}
+            />
+          </div>
+        )}
+
+        {/* =========================================================
+            BRIEF POINTING SPEECH BUBBLE (TRAVELING)
+           ========================================================= */}
+        {speechBubbleText && (
+          <div
+            className={`pointer-events-auto absolute top-2 right-[calc(100%+12px)] whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold shadow-xl animate-bounce ${
+              mode === 'retro'
+                ? 'bg-blue-600 text-white border-2 border-white'
+                : 'bg-cyan-500 text-slate-950 border border-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.8)]'
+            }`}
+          >
+            {speechBubbleText}
+          </div>
+        )}
+
+        {/* =========================================================
+            FIXED CHARACTER BOT BUTTON (~64-96px)
            ========================================================= */}
         <div
-          style={{
-            transform: `scaleX(${facing === 'left' ? 1 : -1}) ${
-              botState === 'walking'
-                ? 'translateY(-2px)'
-                : botState === 'dragging'
-                ? 'rotate(-8deg) scale(1.08)'
-                : ''
-            }`,
-          }}
-          className={`relative transition-transform duration-200 w-[84px] h-[96px] sm:w-[98px] sm:h-[110px] md:w-[108px] md:h-[122px] flex flex-col items-center justify-end group ${
-            botState === 'walking' ? 'animate-bounce-subtle' : ''
+          ref={botElementRef}
+          onClick={handleBotClick}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          className={`pointer-events-auto cursor-pointer relative flex flex-col items-center justify-center p-1 rounded-2xl transition-transform duration-200 ${
+            isHovered ? 'scale-108' : 'scale-100'
           }`}
+          title={
+            mode === 'retro'
+              ? 'M-BOT 00 • Clique para interagir ou viajar para 2026'
+              : 'M-BOT 26 • Clique para interagir ou voltar ao OS 00'
+          }
         >
-          {/* =========================================================
-              M-BOT 00 (RETRO 2000 EDITION)
-              OLHOS: Fundo Branco, Pupilas Pretas, Reflexos Brancos
-             ========================================================= */}
-          {mode === 'retro' && (
-            <svg
-              viewBox="0 0 100 110"
-              className="w-full h-full overflow-visible"
-              style={{ filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.45))' }}
-            >
-              <defs>
-                <linearGradient id="retroMetalChassis" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#94a3b8" />
-                  <stop offset="50%" stopColor="#64748b" />
-                  <stop offset="100%" stopColor="#475569" />
-                </linearGradient>
-                <linearGradient id="retroBluePlate" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#2563eb" />
-                  <stop offset="100%" stopColor="#1e3a8a" />
-                </linearGradient>
-                <linearGradient id="retroEyeGoggle" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#cbd5e1" />
-                  <stop offset="60%" stopColor="#64748b" />
-                  <stop offset="100%" stopColor="#334155" />
-                </linearGradient>
-                <linearGradient id="retroTreadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#1e293b" />
-                  <stop offset="50%" stopColor="#334155" />
-                  <stop offset="100%" stopColor="#0f172a" />
-                </linearGradient>
-              </defs>
-
-              {/* Top Antenna */}
-              <g
-                style={{
-                  transformOrigin: '50px 20px',
-                  transform: antennaGlowing ? 'rotate(12deg)' : 'none',
-                  transition: 'transform 0.2s ease',
-                }}
-              >
-                <line x1="50" y1="18" x2="50" y2="5" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" />
-                <circle
-                  cx="50"
-                  cy="4"
-                  r="4.2"
-                  fill={antennaGlowing ? '#ef4444' : '#f59e0b'}
-                  stroke="#000"
-                  strokeWidth="1"
-                  className={antennaGlowing ? 'animate-pulse' : ''}
-                />
-                {antennaGlowing && (
-                  <circle cx="50" cy="4" r="7.5" fill="#ef4444" opacity="0.4" className="animate-ping" />
-                )}
-              </g>
-
-              {/* Left Arm */}
-              <g
-                style={{
-                  transformOrigin: '22px 56px',
-                  transform: isWaving
-                    ? 'rotate(-60deg)'
-                    : botState === 'dragging'
-                    ? 'rotate(30deg)'
-                    : 'rotate(-5deg)',
-                  transition: 'transform 0.3s ease',
-                }}
-              >
-                <circle cx="22" cy="56" r="4.5" fill="#334155" stroke="#000" strokeWidth="1.2" />
-                <rect x="11" y="53" width="11" height="7" rx="2" fill="#64748b" stroke="#000" strokeWidth="1.2" />
-                <rect x="4" y="54" width="8" height="5" fill="#94a3b8" stroke="#000" strokeWidth="1" />
-                <path d="M 4 53 L 0 49 L 0 54 Z" fill="#475569" stroke="#000" strokeWidth="1" />
-                <path d="M 4 58 L 0 62 L 0 57 Z" fill="#475569" stroke="#000" strokeWidth="1" />
-              </g>
-
-              {/* Right Arm */}
-              <g
-                style={{
-                  transformOrigin: '78px 56px',
-                  transform: isWaving
-                    ? 'rotate(50deg)'
-                    : botState === 'dragging'
-                    ? 'rotate(-30deg)'
-                    : botState === 'walking'
-                    ? 'rotate(18deg)'
-                    : 'rotate(5deg)',
-                  transition: 'transform 0.3s ease',
-                }}
-              >
-                <circle cx="78" cy="56" r="4.5" fill="#334155" stroke="#000" strokeWidth="1.2" />
-                <rect x="78" y="53" width="11" height="7" rx="2" fill="#64748b" stroke="#000" strokeWidth="1.2" />
-                <rect x="88" y="54" width="8" height="5" fill="#94a3b8" stroke="#000" strokeWidth="1" />
-                <path d="M 96 53 L 100 49 L 100 54 Z" fill="#475569" stroke="#000" strokeWidth="1" />
-                <path d="M 96 58 L 100 62 L 100 57 Z" fill="#475569" stroke="#000" strokeWidth="1" />
-              </g>
-
-              {/* Main Body Chassis */}
-              <rect
-                x="24"
-                y="48"
-                width="52"
-                height="38"
-                rx="7"
-                fill="url(#retroMetalChassis)"
-                stroke="#000"
-                strokeWidth="1.6"
-              />
-              <circle cx="28" cy="52" r="1.5" fill="#1e293b" />
-              <circle cx="72" cy="52" r="1.5" fill="#1e293b" />
-              <circle cx="28" cy="82" r="1.5" fill="#1e293b" />
-              <circle cx="72" cy="82" r="1.5" fill="#1e293b" />
-
-              {/* Front Plate */}
-              <rect x="30" y="53" width="40" height="28" rx="4" fill="url(#retroBluePlate)" stroke="#000" strokeWidth="1.2" />
-
-              {/* Ventilation Slits */}
-              <line x1="34" y1="58" x2="42" y2="58" stroke="#93c5fd" strokeWidth="1.2" />
-              <line x1="34" y1="61" x2="42" y2="61" stroke="#93c5fd" strokeWidth="1.2" />
-
-              {/* Status LEDs */}
-              <circle cx="64" cy="58" r="2" fill="#22c55e" stroke="#000" strokeWidth="0.6" />
-              <circle cx="59" cy="58" r="2" fill="#eab308" stroke="#000" strokeWidth="0.6" />
-
-              {/* Mateus OS Emblem: "M" */}
-              <rect x="41" y="65" width="18" height="12" rx="2" fill="#ffffff" stroke="#000" strokeWidth="1" />
-              <text
-                x="50"
-                y="74.5"
-                textAnchor="middle"
-                fontSize="9"
-                fontWeight="900"
-                fontFamily="monospace"
-                fill="#1e3a8a"
-              >
-                M
-              </text>
-
-              {/* Articulated Neck & Eyes */}
-              <g
-                style={{
-                  transformOrigin: '50px 48px',
-                  transform: `rotate(${headAngle}deg)`,
-                  transition: 'transform 0.25s ease-out',
-                }}
-              >
-                <rect x="45" y="37" width="10" height="13" rx="2" fill="#334155" stroke="#000" strokeWidth="1.2" />
-                <circle cx="50" cy="40" r="4" fill="#64748b" stroke="#000" strokeWidth="1.2" />
-
-                {/* Left Eye: White Background + Black Pupil */}
-                <g>
-                  <ellipse cx="33" cy="25" rx="15" ry="14" fill="url(#retroEyeGoggle)" stroke="#000" strokeWidth="1.6" />
-                  <ellipse cx="33" cy="25" rx="12" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
-                  <g
-                    style={{
-                      transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
-                      transition: 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
-                    }}
-                  >
-                    <circle cx="33" cy="25" r={isBlinking ? 1.8 : 6.8} fill="#000000" />
-                    {!isBlinking && (
-                      <>
-                        <circle cx="31" cy="22.5" r="2.4" fill="#ffffff" />
-                        <circle cx="35.5" cy="27.8" r="1.3" fill="#ffffff" />
-                      </>
-                    )}
-                  </g>
-                  {isBlinking && (
-                    <line x1="21" y1="25" x2="45" y2="25" stroke="#334155" strokeWidth="3" strokeLinecap="round" />
-                  )}
-                </g>
-
-                {/* Right Eye: White Background + Black Pupil */}
-                <g>
-                  <ellipse cx="67" cy="25" rx="15" ry="14" fill="url(#retroEyeGoggle)" stroke="#000" strokeWidth="1.6" />
-                  <ellipse cx="67" cy="25" rx="12" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
-                  <g
-                    style={{
-                      transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
-                      transition: 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
-                    }}
-                  >
-                    <circle cx="67" cy="25" r={isBlinking ? 1.8 : 6.8} fill="#000000" />
-                    {!isBlinking && (
-                      <>
-                        <circle cx="65" cy="22.5" r="2.4" fill="#ffffff" />
-                        <circle cx="69.5" cy="27.8" r="1.3" fill="#ffffff" />
-                      </>
-                    )}
-                  </g>
-                  {isBlinking && (
-                    <line x1="55" y1="25" x2="79" y2="25" stroke="#334155" strokeWidth="3" strokeLinecap="round" />
-                  )}
-                </g>
-              </g>
-
-              {/* Tank Treads */}
-              <g>
-                <path d="M 12 98 L 22 75 L 34 75 L 42 98 Z" fill="url(#retroTreadGrad)" stroke="#000" strokeWidth="1.6" />
-                <circle cx="18" cy="93" r="4.2" fill="#475569" stroke="#000" strokeWidth="1" />
-                <circle cx="28" cy="81" r="3.4" fill="#475569" stroke="#000" strokeWidth="1" />
-                <circle cx="36" cy="93" r="4.2" fill="#475569" stroke="#000" strokeWidth="1" />
-                <line x1="12" y1="98" x2="42" y2="98" stroke="#0f172a" strokeWidth="3" strokeDasharray={treadRolling ? "3,2" : "none"} />
-              </g>
-
-              <g>
-                <path d="M 58 98 L 66 75 L 78 75 L 88 98 Z" fill="url(#retroTreadGrad)" stroke="#000" strokeWidth="1.6" />
-                <circle cx="64" cy="93" r="4.2" fill="#475569" stroke="#000" strokeWidth="1" />
-                <circle cx="72" cy="81" r="3.4" fill="#475569" stroke="#000" strokeWidth="1" />
-                <circle cx="82" cy="93" r="4.2" fill="#475569" stroke="#000" strokeWidth="1" />
-                <line x1="58" y1="98" x2="88" y2="98" stroke="#0f172a" strokeWidth="3" strokeDasharray={treadRolling ? "3,2" : "none"} />
-              </g>
-            </svg>
-          )}
-
-          {/* =========================================================
-              M-BOT 26 (SPACE 2026 CYBERNETIC EDITION)
-              OLHOS: Fundo Branco, Pupilas Pretas, Reflexos Brancos
-             ========================================================= */}
+          {/* Subtle Glow Ring in Space Mode */}
           {mode === 'space' && (
-            <svg
-              viewBox="0 0 100 110"
-              className="w-full h-full overflow-visible"
-              style={{ filter: `drop-shadow(0 0 14px ${spaceStyles.glow})` }}
-            >
-              <defs>
-                <linearGradient id="spaceDarkMetal" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#1e293b" />
-                  <stop offset="50%" stopColor="#0f172a" />
-                  <stop offset="100%" stopColor="#020617" />
-                </linearGradient>
-              </defs>
-
-              {/* Quantum Antenna */}
-              <g
-                style={{
-                  transformOrigin: '50px 20px',
-                  transform: antennaGlowing ? 'rotate(12deg)' : 'none',
-                  transition: 'transform 0.2s ease',
-                }}
-              >
-                <line x1="50" y1="18" x2="50" y2="5" stroke="#475569" strokeWidth="2" strokeLinecap="round" />
-                <circle cx="50" cy="4" r="4.2" fill={spaceStyles.led} stroke="#0f172a" strokeWidth="1" />
-                <circle cx="50" cy="4" r="7.5" fill={spaceStyles.led} opacity="0.4" className="animate-pulse" />
-              </g>
-
-              {/* Left Cyber Arm */}
-              <g
-                style={{
-                  transformOrigin: '22px 56px',
-                  transform: isWaving
-                    ? 'rotate(-60deg)'
-                    : botState === 'dragging'
-                    ? 'rotate(30deg)'
-                    : 'rotate(-5deg)',
-                  transition: 'transform 0.3s ease',
-                }}
-              >
-                <circle cx="22" cy="56" r="4.5" fill="#334155" stroke={spaceStyles.led} strokeWidth="1.2" />
-                <rect x="11" y="53" width="11" height="7" rx="2" fill="#0f172a" stroke="#475569" strokeWidth="1.2" />
-                <rect x="4" y="54" width="8" height="5" fill={spaceStyles.accent} opacity="0.9" rx="1.5" />
-              </g>
-
-              {/* Right Cyber Arm */}
-              <g
-                style={{
-                  transformOrigin: '78px 56px',
-                  transform: isWaving
-                    ? 'rotate(50deg)'
-                    : botState === 'dragging'
-                    ? 'rotate(-30deg)'
-                    : botState === 'walking'
-                    ? 'rotate(18deg)'
-                    : 'rotate(5deg)',
-                  transition: 'transform 0.3s ease',
-                }}
-              >
-                <circle cx="78" cy="56" r="4.5" fill="#334155" stroke={spaceStyles.led} strokeWidth="1.2" />
-                <rect x="78" y="53" width="11" height="7" rx="2" fill="#0f172a" stroke="#475569" strokeWidth="1.2" />
-                <rect x="88" y="54" width="8" height="5" fill={spaceStyles.accent} opacity="0.9" rx="1.5" />
-              </g>
-
-              {/* Space Chassis */}
-              <rect
-                x="24"
-                y="48"
-                width="52"
-                height="38"
-                rx="8"
-                fill="url(#spaceDarkMetal)"
-                stroke={spaceStyles.led}
-                strokeWidth="1.5"
-              />
-              <rect x="29" y="53" width="42" height="28" rx="5" fill="#0f172a" stroke="#334155" strokeWidth="1.2" />
-              <line x1="33" y1="58" x2="45" y2="58" stroke={spaceStyles.led} strokeWidth="2" className="animate-pulse" />
-              <circle cx="66" cy="58" r="2.2" fill={spaceStyles.led} />
-
-              {/* Mateus OS Space Emblem: M•26 */}
-              <rect x="35" y="65" width="30" height="12" rx="3" fill="#020617" stroke={spaceStyles.led} strokeWidth="1" />
-              <text
-                x="50"
-                y="74"
-                textAnchor="middle"
-                fontSize="8"
-                fontWeight="900"
-                fontFamily="monospace"
-                fill={spaceStyles.led}
-                letterSpacing="1"
-              >
-                M•26
-              </text>
-
-              {/* Cyber Neck & Eyes (Same White/Black Format) */}
-              <g
-                style={{
-                  transformOrigin: '50px 48px',
-                  transform: `rotate(${headAngle}deg)`,
-                  transition: 'transform 0.25s ease-out',
-                }}
-              >
-                <rect x="45" y="37" width="10" height="13" rx="3" fill="#334155" stroke="#475569" strokeWidth="1.2" />
-                <circle cx="50" cy="40" r="4" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.2" />
-
-                {/* Left Eye: Pure White Background + Black Pupil */}
-                <g>
-                  <ellipse cx="33" cy="25" rx="15" ry="14" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.6" />
-                  <ellipse cx="33" cy="25" rx="12" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
-                  <g
-                    style={{
-                      transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
-                      transition: 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
-                    }}
-                  >
-                    <circle cx="33" cy="25" r={isBlinking ? 1.8 : 6.8} fill="#000000" />
-                    {!isBlinking && (
-                      <>
-                        <circle cx="31" cy="22.5" r="2.4" fill="#ffffff" />
-                        <circle cx="35.5" cy="27.8" r="1.3" fill="#ffffff" />
-                      </>
-                    )}
-                  </g>
-                  {isBlinking && (
-                    <line x1="21" y1="25" x2="45" y2="25" stroke="#475569" strokeWidth="3" strokeLinecap="round" />
-                  )}
-                </g>
-
-                {/* Right Eye: Pure White Background + Black Pupil */}
-                <g>
-                  <ellipse cx="67" cy="25" rx="15" ry="14" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.6" />
-                  <ellipse cx="67" cy="25" rx="12" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
-                  <g
-                    style={{
-                      transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
-                      transition: 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
-                    }}
-                  >
-                    <circle cx="67" cy="25" r={isBlinking ? 1.8 : 6.8} fill="#000000" />
-                    {!isBlinking && (
-                      <>
-                        <circle cx="65" cy="22.5" r="2.4" fill="#ffffff" />
-                        <circle cx="69.5" cy="27.8" r="1.3" fill="#ffffff" />
-                      </>
-                    )}
-                  </g>
-                  {isBlinking && (
-                    <line x1="55" y1="25" x2="79" y2="25" stroke="#475569" strokeWidth="3" strokeLinecap="round" />
-                  )}
-                </g>
-              </g>
-
-              {/* Cyber Treads */}
-              <g>
-                <path d="M 12 98 L 22 75 L 34 75 L 42 98 Z" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.5" />
-                <circle cx="18" cy="93" r="4" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
-                <circle cx="28" cy="81" r="3.2" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
-                <circle cx="36" cy="93" r="4" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
-                <line x1="12" y1="98" x2="42" y2="98" stroke={spaceStyles.led} strokeWidth="2.5" strokeDasharray={treadRolling ? "3,2" : "none"} />
-              </g>
-
-              <g>
-                <path d="M 58 98 L 66 75 L 78 75 L 88 98 Z" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.5" />
-                <circle cx="64" cy="93" r="4" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
-                <circle cx="72" cy="81" r="3.2" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
-                <circle cx="82" cy="93" r="4" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
-                <line x1="58" y1="98" x2="88" y2="98" stroke={spaceStyles.led} strokeWidth="2.5" strokeDasharray={treadRolling ? "3,2" : "none"} />
-              </g>
-            </svg>
+            <div
+              className="absolute inset-0 rounded-full opacity-40 blur-lg pointer-events-none transition-opacity"
+              style={{ background: spaceStyles.glow }}
+            />
           )}
+
+          {/* SVG Character Display */}
+          <div className="relative w-[64px] h-[72px] sm:w-[76px] sm:h-[86px] md:w-[88px] md:h-[98px] flex flex-col items-center justify-end">
+            {/* =========================================================
+                M-BOT 00 (RETRO 2000 EDITION)
+               ========================================================= */}
+            {mode === 'retro' && (
+              <svg
+                viewBox="0 0 100 110"
+                className="w-full h-full overflow-visible"
+                style={{ filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.4))' }}
+              >
+                <defs>
+                  <linearGradient id="retroMetalChassisFixed" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#94a3b8" />
+                    <stop offset="50%" stopColor="#64748b" />
+                    <stop offset="100%" stopColor="#475569" />
+                  </linearGradient>
+                  <linearGradient id="retroBluePlateFixed" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#2563eb" />
+                    <stop offset="100%" stopColor="#1e3a8a" />
+                  </linearGradient>
+                  <linearGradient id="retroEyeGoggleFixed" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#cbd5e1" />
+                    <stop offset="60%" stopColor="#64748b" />
+                    <stop offset="100%" stopColor="#334155" />
+                  </linearGradient>
+                  <linearGradient id="retroTreadGradFixed" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#1e293b" />
+                    <stop offset="50%" stopColor="#334155" />
+                    <stop offset="100%" stopColor="#0f172a" />
+                  </linearGradient>
+                </defs>
+
+                {/* Top Antenna */}
+                <g
+                  style={{
+                    transformOrigin: '50px 20px',
+                    transform: antennaGlowing ? 'rotate(12deg)' : 'none',
+                    transition: 'transform 0.2s ease',
+                  }}
+                >
+                  <line x1="50" y1="18" x2="50" y2="5" stroke="#334155" strokeWidth="2.5" strokeLinecap="round" />
+                  <circle
+                    cx="50"
+                    cy="4"
+                    r="4.2"
+                    fill={antennaGlowing ? '#ef4444' : '#f59e0b'}
+                    stroke="#000"
+                    strokeWidth="1"
+                    className={antennaGlowing ? 'animate-pulse' : ''}
+                  />
+                  {antennaGlowing && (
+                    <circle cx="50" cy="4" r="7.5" fill="#ef4444" opacity="0.4" className="animate-ping" />
+                  )}
+                </g>
+
+                {/* Left Arm */}
+                <g
+                  style={{
+                    transformOrigin: '22px 56px',
+                    transform: botState === 'pointing_travel' ? 'rotate(-75deg)' : isHovered ? 'rotate(-25deg)' : 'rotate(-5deg)',
+                    transition: 'transform 0.3s ease',
+                  }}
+                >
+                  <circle cx="22" cy="56" r="4.5" fill="#334155" stroke="#000" strokeWidth="1.2" />
+                  <rect x="11" y="53" width="11" height="7" rx="2" fill="#64748b" stroke="#000" strokeWidth="1.2" />
+                  <rect x="4" y="54" width="8" height="5" fill="#94a3b8" stroke="#000" strokeWidth="1" />
+                  <path d="M 4 53 L 0 49 L 0 54 Z" fill="#475569" stroke="#000" strokeWidth="1" />
+                  <path d="M 4 58 L 0 62 L 0 57 Z" fill="#475569" stroke="#000" strokeWidth="1" />
+                </g>
+
+                {/* Right Arm */}
+                <g
+                  style={{
+                    transformOrigin: '78px 56px',
+                    transform: isHovered ? 'rotate(25deg)' : 'rotate(5deg)',
+                    transition: 'transform 0.3s ease',
+                  }}
+                >
+                  <circle cx="78" cy="56" r="4.5" fill="#334155" stroke="#000" strokeWidth="1.2" />
+                  <rect x="78" y="53" width="11" height="7" rx="2" fill="#64748b" stroke="#000" strokeWidth="1.2" />
+                  <rect x="88" y="54" width="8" height="5" fill="#94a3b8" stroke="#000" strokeWidth="1" />
+                  <path d="M 96 53 L 100 49 L 100 54 Z" fill="#475569" stroke="#000" strokeWidth="1" />
+                  <path d="M 96 58 L 100 62 L 100 57 Z" fill="#475569" stroke="#000" strokeWidth="1" />
+                </g>
+
+                {/* Main Body Chassis */}
+                <rect
+                  x="24"
+                  y="48"
+                  width="52"
+                  height="38"
+                  rx="7"
+                  fill="url(#retroMetalChassisFixed)"
+                  stroke="#000"
+                  strokeWidth="1.6"
+                />
+                <circle cx="28" cy="52" r="1.5" fill="#1e293b" />
+                <circle cx="72" cy="52" r="1.5" fill="#1e293b" />
+                <circle cx="28" cy="82" r="1.5" fill="#1e293b" />
+                <circle cx="72" cy="82" r="1.5" fill="#1e293b" />
+
+                {/* Front Plate */}
+                <rect x="30" y="53" width="40" height="28" rx="4" fill="url(#retroBluePlateFixed)" stroke="#000" strokeWidth="1.2" />
+
+                {/* Ventilation Slits */}
+                <line x1="34" y1="58" x2="42" y2="58" stroke="#93c5fd" strokeWidth="1.2" />
+                <line x1="34" y1="61" x2="42" y2="61" stroke="#93c5fd" strokeWidth="1.2" />
+
+                {/* Status LEDs */}
+                <circle cx="64" cy="58" r="2" fill="#22c55e" stroke="#000" strokeWidth="0.6" />
+                <circle cx="59" cy="58" r="2" fill="#eab308" stroke="#000" strokeWidth="0.6" />
+
+                {/* Mateus OS Emblem: "M" */}
+                <rect x="41" y="65" width="18" height="12" rx="2" fill="#ffffff" stroke="#000" strokeWidth="1" />
+                <text
+                  x="50"
+                  y="74.5"
+                  textAnchor="middle"
+                  fontSize="9"
+                  fontWeight="900"
+                  fontFamily="monospace"
+                  fill="#1e3a8a"
+                >
+                  M
+                </text>
+
+                {/* Articulated Neck & Eyes */}
+                <g
+                  style={{
+                    transformOrigin: '50px 48px',
+                    transform: `rotate(${headAngle}deg)`,
+                    transition: 'transform 0.25s ease-out',
+                  }}
+                >
+                  <rect x="45" y="37" width="10" height="13" rx="2" fill="#334155" stroke="#000" strokeWidth="1.2" />
+                  <circle cx="50" cy="40" r="4" fill="#64748b" stroke="#000" strokeWidth="1.2" />
+
+                  {/* Left Eye: White Background + Black Pupil */}
+                  <g>
+                    <ellipse cx="33" cy="25" rx="15" ry="14" fill="url(#retroEyeGoggleFixed)" stroke="#000" strokeWidth="1.6" />
+                    <ellipse cx="33" cy="25" rx="12" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
+                    <g
+                      style={{
+                        transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
+                        transition: 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
+                      }}
+                    >
+                      <circle cx="33" cy="25" r={isBlinking ? 1.8 : 6.8} fill="#000000" />
+                      {!isBlinking && (
+                        <>
+                          <circle cx="31" cy="22.5" r="2.4" fill="#ffffff" />
+                          <circle cx="35.5" cy="27.8" r="1.3" fill="#ffffff" />
+                        </>
+                      )}
+                    </g>
+                    {isBlinking && (
+                      <line x1="21" y1="25" x2="45" y2="25" stroke="#334155" strokeWidth="3" strokeLinecap="round" />
+                    )}
+                  </g>
+
+                  {/* Right Eye: White Background + Black Pupil */}
+                  <g>
+                    <ellipse cx="67" cy="25" rx="15" ry="14" fill="url(#retroEyeGoggleFixed)" stroke="#000" strokeWidth="1.6" />
+                    <ellipse cx="67" cy="25" rx="12" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
+                    <g
+                      style={{
+                        transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
+                        transition: 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
+                      }}
+                    >
+                      <circle cx="67" cy="25" r={isBlinking ? 1.8 : 6.8} fill="#000000" />
+                      {!isBlinking && (
+                        <>
+                          <circle cx="65" cy="22.5" r="2.4" fill="#ffffff" />
+                          <circle cx="69.5" cy="27.8" r="1.3" fill="#ffffff" />
+                        </>
+                      )}
+                    </g>
+                    {isBlinking && (
+                      <line x1="55" y1="25" x2="79" y2="25" stroke="#334155" strokeWidth="3" strokeLinecap="round" />
+                    )}
+                  </g>
+                </g>
+
+                {/* Base Treads */}
+                <g>
+                  <path d="M 12 98 L 22 75 L 34 75 L 42 98 Z" fill="url(#retroTreadGradFixed)" stroke="#000" strokeWidth="1.6" />
+                  <circle cx="18" cy="93" r="4.2" fill="#475569" stroke="#000" strokeWidth="1" />
+                  <circle cx="28" cy="81" r="3.4" fill="#475569" stroke="#000" strokeWidth="1" />
+                  <circle cx="36" cy="93" r="4.2" fill="#475569" stroke="#000" strokeWidth="1" />
+                  <line x1="12" y1="98" x2="42" y2="98" stroke="#0f172a" strokeWidth="3" />
+                </g>
+
+                <g>
+                  <path d="M 58 98 L 66 75 L 78 75 L 88 98 Z" fill="url(#retroTreadGradFixed)" stroke="#000" strokeWidth="1.6" />
+                  <circle cx="64" cy="93" r="4.2" fill="#475569" stroke="#000" strokeWidth="1" />
+                  <circle cx="72" cy="81" r="3.4" fill="#475569" stroke="#000" strokeWidth="1" />
+                  <circle cx="82" cy="93" r="4.2" fill="#475569" stroke="#000" strokeWidth="1" />
+                  <line x1="58" y1="98" x2="88" y2="98" stroke="#0f172a" strokeWidth="3" />
+                </g>
+              </svg>
+            )}
+
+            {/* =========================================================
+                M-BOT 26 (SPACE 2026 CYBERNETIC EDITION)
+               ========================================================= */}
+            {mode === 'space' && (
+              <svg
+                viewBox="0 0 100 110"
+                className="w-full h-full overflow-visible"
+                style={{ filter: `drop-shadow(0 0 10px ${spaceStyles.glow})` }}
+              >
+                <defs>
+                  <linearGradient id="spaceDarkMetalFixed" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#1e293b" />
+                    <stop offset="50%" stopColor="#0f172a" />
+                    <stop offset="100%" stopColor="#020617" />
+                  </linearGradient>
+                </defs>
+
+                {/* Quantum Antenna */}
+                <g
+                  style={{
+                    transformOrigin: '50px 20px',
+                    transform: antennaGlowing ? 'rotate(12deg)' : 'none',
+                    transition: 'transform 0.2s ease',
+                  }}
+                >
+                  <line x1="50" y1="18" x2="50" y2="5" stroke="#475569" strokeWidth="2" strokeLinecap="round" />
+                  <circle cx="50" cy="4" r="4.2" fill={spaceStyles.led} stroke="#0f172a" strokeWidth="1" />
+                  <circle cx="50" cy="4" r="7.5" fill={spaceStyles.led} opacity="0.4" className="animate-pulse" />
+                </g>
+
+                {/* Left Cyber Arm */}
+                <g
+                  style={{
+                    transformOrigin: '22px 56px',
+                    transform: botState === 'pointing_travel' ? 'rotate(-75deg)' : isHovered ? 'rotate(-25deg)' : 'rotate(-5deg)',
+                    transition: 'transform 0.3s ease',
+                  }}
+                >
+                  <circle cx="22" cy="56" r="4.5" fill="#334155" stroke={spaceStyles.led} strokeWidth="1.2" />
+                  <rect x="11" y="53" width="11" height="7" rx="2" fill="#0f172a" stroke="#475569" strokeWidth="1.2" />
+                  <rect x="4" y="54" width="8" height="5" fill={spaceStyles.accent} opacity="0.9" rx="1.5" />
+                </g>
+
+                {/* Right Cyber Arm */}
+                <g
+                  style={{
+                    transformOrigin: '78px 56px',
+                    transform: isHovered ? 'rotate(25deg)' : 'rotate(5deg)',
+                    transition: 'transform 0.3s ease',
+                  }}
+                >
+                  <circle cx="78" cy="56" r="4.5" fill="#334155" stroke={spaceStyles.led} strokeWidth="1.2" />
+                  <rect x="78" y="53" width="11" height="7" rx="2" fill="#0f172a" stroke="#475569" strokeWidth="1.2" />
+                  <rect x="88" y="54" width="8" height="5" fill={spaceStyles.accent} opacity="0.9" rx="1.5" />
+                </g>
+
+                {/* Space Chassis */}
+                <rect
+                  x="24"
+                  y="48"
+                  width="52"
+                  height="38"
+                  rx="8"
+                  fill="url(#spaceDarkMetalFixed)"
+                  stroke={spaceStyles.led}
+                  strokeWidth="1.5"
+                />
+                <rect x="29" y="53" width="42" height="28" rx="5" fill="#0f172a" stroke="#334155" strokeWidth="1.2" />
+                <line x1="33" y1="58" x2="45" y2="58" stroke={spaceStyles.led} strokeWidth="2" className="animate-pulse" />
+                <circle cx="66" cy="58" r="2.2" fill={spaceStyles.led} />
+
+                {/* Mateus OS Space Emblem: M•26 */}
+                <rect x="35" y="65" width="30" height="12" rx="3" fill="#020617" stroke={spaceStyles.led} strokeWidth="1" />
+                <text
+                  x="50"
+                  y="74"
+                  textAnchor="middle"
+                  fontSize="8"
+                  fontWeight="900"
+                  fontFamily="monospace"
+                  fill={spaceStyles.led}
+                  letterSpacing="1"
+                >
+                  M•26
+                </text>
+
+                {/* Cyber Neck & Eyes */}
+                <g
+                  style={{
+                    transformOrigin: '50px 48px',
+                    transform: `rotate(${headAngle}deg)`,
+                    transition: 'transform 0.25s ease-out',
+                  }}
+                >
+                  <rect x="45" y="37" width="10" height="13" rx="3" fill="#334155" stroke="#475569" strokeWidth="1.2" />
+                  <circle cx="50" cy="40" r="4" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.2" />
+
+                  {/* Left Eye: Pure White Background + Black Pupil */}
+                  <g>
+                    <ellipse cx="33" cy="25" rx="15" ry="14" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.6" />
+                    <ellipse cx="33" cy="25" rx="12" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
+                    <g
+                      style={{
+                        transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
+                        transition: 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
+                      }}
+                    >
+                      <circle cx="33" cy="25" r={isBlinking ? 1.8 : 6.8} fill="#000000" />
+                      {!isBlinking && (
+                        <>
+                          <circle cx="31" cy="22.5" r="2.4" fill="#ffffff" />
+                          <circle cx="35.5" cy="27.8" r="1.3" fill="#ffffff" />
+                        </>
+                      )}
+                    </g>
+                    {isBlinking && (
+                      <line x1="21" y1="25" x2="45" y2="25" stroke="#475569" strokeWidth="3" strokeLinecap="round" />
+                    )}
+                  </g>
+
+                  {/* Right Eye: Pure White Background + Black Pupil */}
+                  <g>
+                    <ellipse cx="67" cy="25" rx="15" ry="14" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.6" />
+                    <ellipse cx="67" cy="25" rx="12" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
+                    <g
+                      style={{
+                        transform: `translate(${eyeOffset.x}px, ${eyeOffset.y}px)`,
+                        transition: 'transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1.2)',
+                      }}
+                    >
+                      <circle cx="67" cy="25" r={isBlinking ? 1.8 : 6.8} fill="#000000" />
+                      {!isBlinking && (
+                        <>
+                          <circle cx="65" cy="22.5" r="2.4" fill="#ffffff" />
+                          <circle cx="69.5" cy="27.8" r="1.3" fill="#ffffff" />
+                        </>
+                      )}
+                    </g>
+                    {isBlinking && (
+                      <line x1="55" y1="25" x2="79" y2="25" stroke="#475569" strokeWidth="3" strokeLinecap="round" />
+                    )}
+                  </g>
+                </g>
+
+                {/* Base Cyber Treads */}
+                <g>
+                  <path d="M 12 98 L 22 75 L 34 75 L 42 98 Z" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.5" />
+                  <circle cx="18" cy="93" r="4" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
+                  <circle cx="28" cy="81" r="3.2" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
+                  <circle cx="36" cy="93" r="4" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
+                  <line x1="12" y1="98" x2="42" y2="98" stroke={spaceStyles.led} strokeWidth="2.5" />
+                </g>
+
+                <g>
+                  <path d="M 58 98 L 66 75 L 78 75 L 88 98 Z" fill="#0f172a" stroke={spaceStyles.led} strokeWidth="1.5" />
+                  <circle cx="64" cy="93" r="4" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
+                  <circle cx="72" cy="81" r="3.2" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
+                  <circle cx="82" cy="93" r="4" fill="#1e293b" stroke={spaceStyles.led} strokeWidth="1" />
+                  <line x1="58" y1="98" x2="88" y2="98" stroke={spaceStyles.led} strokeWidth="2.5" />
+                </g>
+              </svg>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* =========================================================
-          M-BOT CONTEXT MENU (RIGHT CLICK)
-         ========================================================= */}
-      {menuOpen && (
-        <div
-          style={{ top: `${menuOpen.y}px`, left: `${menuOpen.x}px` }}
-          className={`fixed z-50 w-60 py-1.5 text-xs select-none shadow-2xl animate-fadeIn ${
-            mode === 'retro'
-              ? 'bg-[#c0c0c0] border-2 border-white border-r-gray-800 border-b-gray-800 font-sans text-gray-900'
-              : 'bg-slate-950/95 border border-cyan-500/50 rounded-2xl font-mono text-slate-100 backdrop-blur-2xl shadow-[0_0_30px_rgba(6,182,212,0.3)]'
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div
-            className={`px-3 py-1 font-bold flex items-center justify-between border-b ${
-              mode === 'retro'
-                ? 'border-gray-400 text-blue-900'
-                : 'border-white/10 text-cyan-300'
-            }`}
-          >
-            <span>{mode === 'retro' ? 'M-BOT 00 (Guia)' : 'M-BOT 26 (Cyber)'}</span>
-            <button
-              onClick={() => setMenuOpen(null)}
-              className="text-gray-500 hover:text-black cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          <button
-            onClick={(e) => {
-              setMenuOpen(null);
-              handleBotClick();
-            }}
-            className={`w-full text-left px-3 py-1.5 flex items-center gap-2 cursor-pointer transition ${
-              mode === 'retro'
-                ? 'hover:bg-[#000080] hover:text-white'
-                : 'hover:bg-cyan-500/20 hover:text-cyan-300'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span className="font-bold">{mode === 'retro' ? 'Convite: Viajar para 2026' : 'Convite: Retornar para 2000'}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              updateConfig({ behavior: config.behavior === 'roam' ? 'stay' : 'roam' });
-              setMenuOpen(null);
-            }}
-            className={`w-full text-left px-3 py-1.5 flex items-center gap-2 cursor-pointer transition ${
-              mode === 'retro'
-                ? 'hover:bg-[#000080] hover:text-white'
-                : 'hover:bg-cyan-500/20 hover:text-cyan-300'
-            }`}
-          >
-            <Compass className="w-3.5 h-3.5 text-blue-500" />
-            <span>Percurso: {config.behavior === 'roam' ? 'Ativo (Circuito)' : 'Pausado'}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              updateConfig({ sound: !config.sound });
-              setMenuOpen(null);
-            }}
-            className={`w-full text-left px-3 py-1.5 flex items-center gap-2 cursor-pointer transition ${
-              mode === 'retro'
-                ? 'hover:bg-[#000080] hover:text-white'
-                : 'hover:bg-cyan-500/20 hover:text-cyan-300'
-            }`}
-          >
-            {config.sound ? (
-              <Volume2 className="w-3.5 h-3.5 text-green-600" />
-            ) : (
-              <VolumeX className="w-3.5 h-3.5 text-gray-500" />
-            )}
-            <span>Sons do Robô: {config.sound ? 'Ativado' : 'Desativado'}</span>
-          </button>
-
-          <button
-            onClick={() => {
-              updateConfig({ enabled: false });
-              setMenuOpen(null);
-            }}
-            className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-red-600 cursor-pointer transition border-t ${
-              mode === 'retro'
-                ? 'border-gray-400 hover:bg-red-700 hover:text-white'
-                : 'border-white/10 hover:bg-red-500/20'
-            }`}
-          >
-            <X className="w-3.5 h-3.5" />
-            <span>Ocultar M-BOT</span>
-          </button>
-        </div>
-      )}
     </>
   );
 };
