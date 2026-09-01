@@ -34,7 +34,6 @@ import { WindowAppId, ThemeConfig, DesktopFolderItem, TrashItem } from '../types
 import { soundFx } from '../utils/soundEffects';
 import { DID_YOU_KNOW_FACTS } from '../data/portfolioData';
 import { ClippyFloatingAssistant } from './ClippyFloatingAssistant';
-import { RetroCentralWatermark } from './RetroCentralWatermark';
 import { MBotCompanion } from './MBotCompanion';
 import { getFolderFiles, formatFileSize } from '../utils/folderStorage';
 
@@ -555,11 +554,6 @@ export const Desktop: React.FC<DesktopProps> = ({
       onMouseUp={handleMouseUp}
       className={`fixed inset-0 select-none overflow-hidden pb-12 transition-colors duration-500 ${getWallpaperBackground()}`}
     >
-      {/* Central Visual Watermark Symbol (M + Segmented Pixel Orbit) - OS 00 Signature */}
-      <div className="absolute inset-0 bottom-12 flex items-center justify-center pointer-events-none z-0">
-        <RetroCentralWatermark opacity={0.15} />
-      </div>
-
       {/* Desktop Layout - Classic Windows Left-Aligned Vertical Columns */}
       <div className="relative w-full h-[calc(100vh-56px)] p-3 sm:p-4 flex flex-col flex-wrap content-start items-start gap-y-3 gap-x-3 sm:gap-x-4 z-10 pointer-events-auto overflow-x-auto overflow-y-hidden custom-scrollbar pb-14">
         {/* Standard Desktop Apps */}

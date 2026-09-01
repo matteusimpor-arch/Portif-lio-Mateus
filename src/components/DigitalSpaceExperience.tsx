@@ -739,32 +739,7 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
       />
 
       {/* --- DESKTOP CANVAS WORKSPACE --- */}
-      <div className="relative z-10 w-full h-[calc(100vh-64px)] p-4 sm:p-6 md:p-8 flex flex-col justify-between pointer-events-none overflow-y-auto custom-scrollbar pb-20">
-        {/* TOP BAR / NAVIGATION / SYSTEM STATUS */}
-        <div className="w-full flex items-center justify-between pointer-events-auto">
-          {/* Back to Retro (OS 00) Button */}
-          <button
-            onClick={() => {
-              try { soundFx.playClick(); } catch (e) {}
-              onBackToRetro();
-            }}
-            className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-black/60 hover:bg-slate-900/80 border border-white/10 hover:border-cyan-400/50 text-slate-300 hover:text-white transition-all backdrop-blur-xl group cursor-pointer shadow-lg hover:shadow-[0_0_20px_rgba(6,182,212,0.3)]"
-          >
-            <ArrowLeft className="w-4 h-4 text-cyan-400 group-hover:-translate-x-0.5 transition-transform" />
-            <span className="font-mono text-xs font-bold tracking-wider">
-              RETORNAR AO MATEUS OS 00
-            </span>
-          </button>
-
-          {/* Quick System Indicators & Official Brand Logo */}
-          <div className="flex items-center gap-3">
-            <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 backdrop-blur-xl text-[11px] font-mono text-cyan-400 flex items-center gap-2.5 shadow-lg">
-              <MateusLogo mode="space" size={24} animated={true} />
-              <span className="hidden sm:inline">SPACE OS 2026 // {currentTheme.toUpperCase()}</span>
-            </div>
-          </div>
-        </div>
-
+      <div className="relative z-10 w-full h-[calc(100vh-64px)] p-4 sm:p-6 md:p-8 flex flex-col justify-center pointer-events-none overflow-y-auto custom-scrollbar pb-20">
         {/* --- CENTER AREA: SOPHISTICATED SIGNATURE & ICONS GRID --- */}
         <div className="w-full flex-1 flex flex-col items-center justify-center my-auto pointer-events-auto">
           {/* Official Space 2026 Animated Logo Monogram */}
