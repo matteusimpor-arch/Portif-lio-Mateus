@@ -35,6 +35,7 @@ import { soundFx } from '../utils/soundEffects';
 import { DID_YOU_KNOW_FACTS } from '../data/portfolioData';
 import { ClippyFloatingAssistant } from './ClippyFloatingAssistant';
 import { MBotCompanion } from './MBotCompanion';
+import { RetroNameDisplay } from './RetroNameDisplay';
 import { getFolderFiles, formatFileSize } from '../utils/folderStorage';
 
 interface DesktopProps {
@@ -554,6 +555,11 @@ export const Desktop: React.FC<DesktopProps> = ({
       onMouseUp={handleMouseUp}
       className={`fixed inset-0 select-none overflow-hidden pb-12 transition-colors duration-500 ${getWallpaperBackground()}`}
     >
+      {/* Retro Name Branding in 8-bit / Pixel Vintage Characters */}
+      <div className="absolute inset-0 bottom-14 flex items-center justify-center pointer-events-none z-0">
+        <RetroNameDisplay />
+      </div>
+
       {/* Desktop Layout - Classic Windows Left-Aligned Vertical Columns */}
       <div className="relative w-full h-[calc(100vh-56px)] p-3 sm:p-4 flex flex-col flex-wrap content-start items-start gap-y-3 gap-x-3 sm:gap-x-4 z-10 pointer-events-auto overflow-x-auto overflow-y-hidden custom-scrollbar pb-14">
         {/* Standard Desktop Apps */}
