@@ -113,8 +113,72 @@ export const Desktop: React.FC<DesktopProps> = ({
   const [draggingFolderId, setDraggingFolderId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Requisito 04: Destaque inicial de um ícone (apenas 1x por sessão, duração 800-1200ms)
+  const [highlightedHintIcon, setHighlightedHintIcon] = useState<string | null>(null);
+
+  // Requisito 05: Travel como elemento de mistério (pulso ou luz breve a cada 30-45s)
+  const [isTravelGlimmering, setIsTravelGlimmering] = useState<boolean>(false);
+
+  // Requisito 06: Duplo clique no desktop abre README.TXT
+  const [showReadmeNote, setShowReadmeNote] = useState<boolean>(false);
+  const lastReadmeOpenRef = useRef<number>(0);
+
   // Long press timer for mobile
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Efeito Requisito 05: Pulso misterioso ocasional no ícone de Viagem no Tempo (a cada 30–45s)
+  useEffect(() => {
+    const triggerMysteryGlimmer = () => {
+      setIsTravelGlimmering(true);
+      setTimeout(() => {
+        setIsTravelGlimmering(false);
+      }, 850);
+    };
+
+    const interval = setInterval(() => {
+      triggerMysteryGlimmer();
+    }, 32000 + Math.random() * 12000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Efeito Requisito 04: Destaque inicial sutil de 1 único ícone aleatório
+  useEffect(() => {
+    let alreadyDone = false;
+    try {
+      alreadyDone = sessionStorage.getItem('desktop_icon_hint_done') === 'true';
+    } catch (e) {}
+
+    if (alreadyDone) return;
+
+    const triggerHint = () => {
+      try {
+        if (sessionStorage.getItem('desktop_icon_hint_done') === 'true') return;
+        sessionStorage.setItem('desktop_icon_hint_done', 'true');
+      } catch (e) {}
+
+      const candidates: WindowAppId[] = ['projects', 'games', 'timetravel', 'about'];
+      const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+      setHighlightedHintIcon(chosen);
+
+      setTimeout(() => {
+        setHighlightedHintIcon(null);
+      }, 1000);
+    };
+
+    // Aguarda o gancho inicial do M-BOT terminar ou aciona após timeout de segurança
+    const handleHookCompleted = () => {
+      setTimeout(triggerHint, 600);
+    };
+
+    window.addEventListener('mbot-hook-completed', handleHookCompleted);
+    const fallbackTimer = setTimeout(triggerHint, 10500);
+
+    return () => {
+      window.removeEventListener('mbot-hook-completed', handleHookCompleted);
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
 
   // Focus rename input on editing
   useEffect(() => {
@@ -516,9 +580,25 @@ export const Desktop: React.FC<DesktopProps> = ({
       case 'time-spiral':
         return (
           <div className="w-12 h-12 relative flex items-center justify-center">
-            <div className="w-10 h-10 bg-slate-900 border-2 border-cyan-400 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden group-hover:scale-105 transition-transform">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#06b6d4_0%,#1e3a8a_55%,#020617_100%)] opacity-90 animate-spin" style={{ animationDuration: '8s' }} />
-              <span className="relative z-10 text-lg select-none">🌀</span>
+            <div
+              className={`w-10 h-10 bg-slate-900 border-2 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden transition-all duration-300 ${
+                isTravelGlimmering
+                  ? 'border-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.8)] scale-105'
+                  : 'border-cyan-500/60'
+              }`}
+            >
+              <div
+                className={`absolute inset-0 bg-[radial-gradient(circle_at_center,#06b6d4_0%,#1e3a8a_55%,#020617_100%)] opacity-90 transition-transform duration-700 ${
+                  isTravelGlimmering ? 'rotate-180 scale-110' : 'rotate-0 scale-100'
+                }`}
+              />
+              <span
+                className={`relative z-10 text-lg select-none transition-transform duration-300 ${
+                  isTravelGlimmering ? 'scale-115' : 'scale-100'
+                }`}
+              >
+                🌀
+              </span>
             </div>
           </div>
         );
@@ -561,10 +641,25 @@ export const Desktop: React.FC<DesktopProps> = ({
     }
   };
 
+  // Requisito 06: Duplo clique no desktop abre README.TXT
+  const handleCanvasDoubleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const isClickOnIcon = target.closest('[data-desktop-icon="true"]') || target.closest('[data-desktop-folder="true"]');
+    if (isClickOnIcon) return;
+
+    const now = Date.now();
+    if (now - lastReadmeOpenRef.current > 5000) {
+      lastReadmeOpenRef.current = now;
+      try { soundFx.playWindowOpen(); } catch (err) {}
+      setShowReadmeNote(true);
+    }
+  };
+
   return (
     <main
       id="desktop-main-canvas"
       onContextMenu={(e) => handleContextMenu(e)}
+      onDoubleClick={handleCanvasDoubleClick}
       onTouchStart={(e) => handleTouchStart(e)}
       onTouchEnd={handleTouchEnd}
       onMouseMove={handleMouseMove}
@@ -581,18 +676,22 @@ export const Desktop: React.FC<DesktopProps> = ({
         {/* Standard Desktop Apps */}
         {desktopItems.map((item) => {
           const isSelected = selectedIcon === item.id;
+          const isHinted = highlightedHintIcon === item.id;
           return (
             <div
               key={item.id}
+              data-desktop-icon="true"
               onClick={() => handleIconClick(item.id)}
               onDoubleClick={() => handleIconDoubleClick(item.id)}
-              className={`flex flex-col items-center justify-start p-1.5 pb-2 rounded-xs w-[84px] sm:w-[92px] min-h-[82px] sm:min-h-[88px] h-auto text-center cursor-pointer transition-colors ${
+              className={`group flex flex-col items-center justify-start p-1.5 pb-2 rounded-xs w-[84px] sm:w-[92px] min-h-[82px] sm:min-h-[88px] h-auto text-center cursor-pointer transition-all duration-150 select-none ${
                 isSelected
                   ? 'bg-blue-900/70 border border-dotted border-white/90 shadow-xs'
-                  : 'hover:bg-white/10'
+                  : isHinted
+                  ? 'bg-amber-400/25 border border-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.65)] animate-pulse'
+                  : 'hover:bg-white/20 hover:border hover:border-dotted hover:border-white/50 active:bg-blue-900/40 border border-transparent'
               }`}
             >
-              <div className="relative shrink-0">
+              <div className="relative shrink-0 transition-transform duration-150 group-hover:scale-105 group-active:scale-95">
                 {renderIconVisual(item.iconType)}
                 {item.badge && (
                   <span
@@ -605,10 +704,12 @@ export const Desktop: React.FC<DesktopProps> = ({
                 )}
               </div>
               <span
-                className={`text-[11px] font-sans mt-1 px-1 break-words leading-snug max-w-full select-none ${
+                className={`text-[11px] font-sans mt-1 px-1 break-words leading-snug max-w-full select-none rounded-xs transition-colors ${
                   isSelected
                     ? 'bg-[#000080] text-white'
-                    : 'text-white drop-shadow-[1px_1px_2px_rgba(0,0,0,0.95)]'
+                    : isHinted
+                    ? 'bg-amber-900/90 text-amber-200 font-bold'
+                    : 'text-white drop-shadow-[1px_1px_2px_rgba(0,0,0,0.95)] group-hover:bg-[#000080]/60'
                 }`}
               >
                 {item.title}
@@ -626,6 +727,7 @@ export const Desktop: React.FC<DesktopProps> = ({
           const folderContent = (
             <div
               key={folder.id}
+              data-desktop-folder="true"
               style={
                 hasCustomPos
                   ? { position: 'fixed', left: `${folder.x}px`, top: `${folder.y}px`, zIndex: 15 }
@@ -648,10 +750,10 @@ export const Desktop: React.FC<DesktopProps> = ({
               onContextMenu={(e) => handleContextMenu(e, folder)}
               onTouchStart={(e) => handleTouchStart(e, folder)}
               onTouchEnd={handleTouchEnd}
-              className={`flex flex-col items-center justify-start p-1.5 pb-2 rounded-xs w-[84px] sm:w-[92px] min-h-[82px] sm:min-h-[88px] h-auto text-center cursor-pointer transition-colors ${
+              className={`flex flex-col items-center justify-start p-1.5 pb-2 rounded-xs w-[84px] sm:w-[92px] min-h-[82px] sm:min-h-[88px] h-auto text-center cursor-pointer transition-all duration-150 select-none ${
                 isSelected
                   ? 'bg-blue-900/70 border border-dotted border-white/90 shadow-xs'
-                  : 'hover:bg-white/10'
+                  : 'hover:bg-white/20 hover:border hover:border-dotted hover:border-white/50 active:bg-blue-900/40 border border-transparent'
               }`}
             >
               {/* Windows 2000 Yellow Folder Icon */}
@@ -878,6 +980,61 @@ export const Desktop: React.FC<DesktopProps> = ({
               >
                 Não
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          README.TXT NOTEPAD EASTER EGG (Requisito 06)
+         ========================================================= */}
+      {showReadmeNote && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center p-4 pointer-events-auto bg-black/20 backdrop-blur-[1px]"
+          onClick={() => setShowReadmeNote(false)}
+        >
+          <div
+            className="w-[320px] sm:w-[380px] bg-[#ece9d8] border-2 border-white border-r-slate-900 border-b-slate-900 shadow-[6px_6px_0px_rgba(0,0,0,0.6)] font-sans select-text text-slate-900 animate-fadeIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Window Header */}
+            <div className="bg-gradient-to-r from-[#000080] to-[#1084d0] text-white px-2 py-1 flex items-center justify-between font-bold text-xs select-none">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs">📝</span>
+                <span className="tracking-wide">README.TXT - Bloco de Notas</span>
+              </div>
+              <button
+                onClick={() => {
+                  try { soundFx.playClick(); } catch (err) {}
+                  setShowReadmeNote(false);
+                }}
+                className="w-4 h-4 bg-[#ece9d8] border border-white border-r-slate-800 border-b-slate-800 text-slate-900 flex items-center justify-center font-bold text-[10px] hover:bg-red-500 hover:text-white cursor-pointer active:border-slate-800 active:border-r-white active:border-b-white"
+                title="Fechar"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Menu Bar */}
+            <div className="bg-[#ece9d8] px-2 py-0.5 border-b border-slate-300 text-[11px] flex gap-3 text-slate-800 select-none">
+              <span className="hover:bg-blue-800 hover:text-white px-1 cursor-pointer">Arquivo</span>
+              <span className="hover:bg-blue-800 hover:text-white px-1 cursor-pointer">Editar</span>
+              <span className="hover:bg-blue-800 hover:text-white px-1 cursor-pointer">Formatar</span>
+              <span className="hover:bg-blue-800 hover:text-white px-1 cursor-pointer">Ajuda</span>
+            </div>
+
+            {/* Document Content Area */}
+            <div className="p-3 bg-white border border-slate-400 m-1 text-xs font-mono min-h-[105px] leading-relaxed text-slate-900 shadow-inner select-text">
+              <p className="font-bold text-blue-950 mb-2">README.TXT</p>
+              <p className="mb-2">Você está explorando o Mateus OS 00.</p>
+              <p className="text-slate-700 italic">Algumas coisas aparecem apenas para quem procura.</p>
+            </div>
+
+            {/* Status Bar */}
+            <div className="px-2 py-1 bg-[#ece9d8] border-t border-slate-300 text-[10px] text-slate-600 flex justify-between select-none">
+              <span>Lin 1, Col 1</span>
+              <span>100%</span>
+              <span>Windows (CRLF)</span>
             </div>
           </div>
         </div>

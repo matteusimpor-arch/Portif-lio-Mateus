@@ -1,32 +1,43 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, Play, RotateCcw, Volume2, Shield, Sparkles, Flag, ArrowRight, Zap, Target, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Trophy, Volume2, Sparkles, Play, Pause, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundFx } from '../../utils/soundEffects';
-
-interface Team {
-  id: string;
-  name: string;
-  flag: string;
-  primaryColor: string;
-  secondaryColor: string;
-  starPlayer: string;
-}
-
-const TEAMS: Team[] = [
-  { id: 'bra', name: 'Brasil', flag: '🇧🇷', primaryColor: '#facc15', secondaryColor: '#15803d', starPlayer: 'Rivaldo & Ronaldo #9' },
-  { id: 'fra', name: 'França', flag: '🇫🇷', primaryColor: '#1d4ed8', secondaryColor: '#ef4444', starPlayer: 'Zidane & Henry #10' },
-  { id: 'ita', name: 'Itália', flag: '🇮🇹', primaryColor: '#2563eb', secondaryColor: '#ffffff', starPlayer: 'Totti & Del Piero #10' },
-  { id: 'arg', name: 'Argentina', flag: '🇦🇷', primaryColor: '#38bdf8', secondaryColor: '#ffffff', starPlayer: 'Batistuta & Verón #9' },
-  { id: 'ger', name: 'Alemanha', flag: '🇩🇪', primaryColor: '#f8fafc', secondaryColor: '#0f172a', starPlayer: 'Kahn & Ballack #13' },
-  { id: 'ned', name: 'Holanda', flag: '🇳🇱', primaryColor: '#ea580c', secondaryColor: '#ffffff', starPlayer: 'Kluivert & Davids #8' },
-  { id: 'por', name: 'Portugal', flag: '🇵🇹', primaryColor: '#dc2626', secondaryColor: '#16a34a', starPlayer: 'Luís Figo #7' },
-];
-
-type GamePhase = 'AIM_X' | 'AIM_Y' | 'POWER' | 'BALL_FLIGHT' | 'RESULT' | 'MATCH_OVER';
+import { getGameHighScore, saveGameHighScore, setGameActiveStatus } from '../../utils/gameStorage';
 
 interface SoccerGameProps {
   onBackToHub?: () => void;
   mode?: 'retro' | 'space';
+}
+
+interface Player {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  speed: number;
+  color: string;
+  name: string;
+}
+
+interface Ball {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  friction: number;
+}
+
+interface Goalkeeper {
+  x: number;
+  y: number;
+  vy: number;
+  width: number;
+  height: number;
+  minY: number;
+  maxY: number;
+  color: string;
 }
 
 export const SoccerGame: React.FC<SoccerGameProps> = ({
@@ -35,641 +46,794 @@ export const SoccerGame: React.FC<SoccerGameProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const [playerTeam, setPlayerTeam] = useState<Team>(TEAMS[0]);
-  const [cpuTeam, setCpuTeam] = useState<Team>(TEAMS[1]);
-  const [gameMode, setGameMode] = useState<'penalties' | 'freekicks'>('penalties');
+  const [scorePlayer, setScorePlayer] = useState<number>(0);
+  const [scoreCpu, setScoreCpu] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(90); // 90 second match
+  const [isMatchActive, setIsMatchActive] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [isMatchOver, setIsMatchOver] = useState<boolean>(false);
+  const [goalCelebration, setGoalCelebration] = useState<string | null>(null);
 
-  // Match state
-  const [currentRound, setCurrentRound] = useState<number>(1);
-  const [playerScores, setPlayerScores] = useState<boolean[]>([]);
-  const [cpuScores, setCpuScores] = useState<boolean[]>([]);
-  const [phase, setPhase] = useState<GamePhase>('AIM_X');
-  const [bannerText, setBannerText] = useState<string>('SEU CHUTE: MIRE A DIREÇÃO (ESQUERDA / DIREITA)');
-  const [totalScore, setTotalScore] = useState<number>(0);
-  const [shotsTaken, setShotsTaken] = useState<number>(0);
-  const [goalsScored, setGoalsScored] = useState<number>(0);
+  // Notify M-BOT
+  useEffect(() => {
+    setGameActiveStatus(true, 'Futebol');
+    return () => setGameActiveStatus(false);
+  }, []);
 
-  // Kick parameters
-  const [aimX, setAimX] = useState<number>(0.5);
-  const [aimY, setAimY] = useState<number>(0.5);
-  const [power, setPower] = useState<number>(0.7);
-
-  // Oscillators for meter
-  const [oscX, setOscX] = useState<number>(0.5);
-  const [oscY, setOscY] = useState<number>(0.5);
-  const [oscPower, setOscPower] = useState<number>(0.5);
-
-  // Animation values
-  const [ballState, setBallState] = useState<{
-    x: number;
-    y: number;
-    scale: number;
-    spin: number;
-    targetX: number;
-    targetY: number;
-    active: boolean;
-  }>({
-    x: 180,
-    y: 260,
-    scale: 1,
-    spin: 0,
-    targetX: 180,
-    targetY: 100,
-    active: false,
+  const keys = useRef<{ up: boolean; down: boolean; left: boolean; right: boolean; kick: boolean }>({
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    kick: false,
   });
 
-  const [goalieState, setGoalieState] = useState<{
-    x: number;
-    y: number;
-    action: 'idle' | 'jump-left' | 'jump-right' | 'jump-center' | 'jump-top-left' | 'jump-top-right';
-  }>({
-    x: 180,
-    y: 110,
-    action: 'idle',
+  const gameStateRef = useRef({
+    width: 640,
+    height: 380,
+    player: {
+      x: 200,
+      y: 190,
+      vx: 0,
+      vy: 0,
+      radius: 14,
+      speed: 3.5,
+      color: '#2563eb', // Blue
+      name: 'Mateus',
+    } as Player,
+    cpu: {
+      x: 440,
+      y: 190,
+      vx: 0,
+      vy: 0,
+      radius: 14,
+      speed: 3.0,
+      color: '#dc2626', // Red
+      name: 'CPU',
+    } as Player,
+    ball: {
+      x: 320,
+      y: 190,
+      vx: 0,
+      vy: 0,
+      radius: 8,
+      friction: 0.985,
+    } as Ball,
+    gkPlayer: {
+      x: 35,
+      y: 190,
+      vy: 0,
+      width: 12,
+      height: 48,
+      minY: 130,
+      maxY: 250,
+      color: '#facc15', // Yellow GK jersey
+    } as Goalkeeper,
+    gkCpu: {
+      x: 605,
+      y: 190,
+      vy: 0,
+      width: 12,
+      height: 48,
+      minY: 130,
+      maxY: 250,
+      color: '#10b981', // Emerald GK jersey
+    } as Goalkeeper,
+    isGoalScored: false,
+    celebrationTimer: 0,
+    playerScore: 0,
+    cpuScore: 0,
+    gameTime: 90,
   });
+
+  // Reset ball and players to center positions after goal
+  const resetKickoff = (scorer: 'player' | 'cpu') => {
+    const s = gameStateRef.current;
+    s.player.x = 220;
+    s.player.y = 190;
+    s.player.vx = 0;
+    s.player.vy = 0;
+
+    s.cpu.x = 420;
+    s.cpu.y = 190;
+    s.cpu.vx = 0;
+    s.cpu.vy = 0;
+
+    s.ball.x = 320;
+    s.ball.y = 190;
+    s.ball.vx = scorer === 'player' ? -1 : 1;
+    s.ball.vy = 0;
+
+    s.gkPlayer.y = 190;
+    s.gkCpu.y = 190;
+
+    s.isGoalScored = false;
+  };
 
   const startMatch = () => {
     try {
       soundFx.playWhistle();
     } catch (e) {}
-    setCurrentRound(1);
-    setPlayerScores([]);
-    setCpuScores([]);
-    setPhase('AIM_X');
-    setBannerText('SEU CHUTE: MIRE A DIREÇÃO (ESQUERDA / DIREITA)');
-    setTotalScore(0);
-    setShotsTaken(0);
-    setGoalsScored(0);
-    resetBallAndGoalie();
+
+    const s = gameStateRef.current;
+    s.playerScore = 0;
+    s.cpuScore = 0;
+    s.gameTime = 90;
+    setScorePlayer(0);
+    setScoreCpu(0);
+    setTimeLeft(90);
+    setIsMatchOver(false);
+    setIsPaused(false);
+    setGoalCelebration(null);
+    resetKickoff('cpu');
+    setIsMatchActive(true);
   };
 
-  const resetBallAndGoalie = () => {
-    setBallState({
-      x: 180,
-      y: 260,
-      scale: 1,
-      spin: 0,
-      targetX: 180,
-      targetY: 100,
-      active: false,
-    });
-    setGoalieState({
-      x: 180,
-      y: 110,
-      action: 'idle',
-    });
-  };
-
+  // Match clock countdown
   useEffect(() => {
-    startMatch();
-  }, [playerTeam, cpuTeam, gameMode]);
-
-  // Meter oscillation loop
-  useEffect(() => {
-    let animId: number;
-    let t = 0;
-
-    const oscLoop = () => {
-      t += 0.05;
-      if (phase === 'AIM_X') {
-        setOscX((Math.sin(t * 1.5) + 1) / 2);
-      } else if (phase === 'AIM_Y') {
-        setOscY((Math.sin(t * 1.8) + 1) / 2);
-      } else if (phase === 'POWER') {
-        setOscPower((Math.sin(t * 2.2) + 1) / 2);
-      }
-      animId = requestAnimationFrame(oscLoop);
-    };
-
-    animId = requestAnimationFrame(oscLoop);
-    return () => cancelAnimationFrame(animId);
-  }, [phase]);
-
-  // Handle player meter click / action
-  const handleKickAction = () => {
-    try {
-      soundFx.playClick();
-    } catch (e) {}
-
-    if (phase === 'AIM_X') {
-      setAimX(oscX);
-      setPhase('AIM_Y');
-      setBannerText('AGORA DEFINA A ALTURA DO CHUTE (RASTEIRO / ALTO)');
-    } else if (phase === 'AIM_Y') {
-      setAimY(oscY);
-      setPhase('POWER');
-      setBannerText('DEFINA A FORÇA DO CHUTE!');
-    } else if (phase === 'POWER') {
-      const selectedPower = oscPower;
-      setPower(selectedPower);
-      setPhase('BALL_FLIGHT');
-      executeShot(aimX, aimY, selectedPower);
+    let timer: NodeJS.Timeout | null = null;
+    if (isMatchActive && !isPaused && !isMatchOver) {
+      timer = setInterval(() => {
+        setTimeLeft((t) => {
+          if (t <= 1) {
+            setIsMatchOver(true);
+            setIsMatchActive(false);
+            try { soundFx.playWhistle(); } catch (e) {}
+            return 0;
+          }
+          return t - 1;
+        });
+      }, 1000);
     }
-  };
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isMatchActive, isPaused, isMatchOver]);
 
-  // Keyboard space / enter listener
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' || e.code === 'Enter') {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(e.code)) {
         e.preventDefault();
-        if (['AIM_X', 'AIM_Y', 'POWER'].includes(phase)) {
-          handleKickAction();
+      }
+
+      if (e.code === 'Escape') {
+        setIsPaused((p) => !p);
+        return;
+      }
+
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.current.up = true;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.current.down = true;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.current.left = true;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.current.right = true;
+      if (e.code === 'Space') {
+        keys.current.kick = true;
+        if (!isMatchActive || isMatchOver) {
+          startMatch();
         }
       }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) keys.current.up = false;
+      if (['ArrowDown', 'KeyS'].includes(e.code)) keys.current.down = false;
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) keys.current.left = false;
+      if (['ArrowRight', 'KeyD'].includes(e.code)) keys.current.right = false;
+      if (e.code === 'Space') keys.current.kick = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [phase, oscX, oscY, oscPower, aimX, aimY]);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isMatchActive, isMatchOver]);
 
-  // Execute ball flight and Goalkeeper AI defense
-  const executeShot = (ax: number, ay: number, pwr: number) => {
-    try {
-      soundFx.playBoost();
-    } catch (e) {}
-
-    // Goal boundaries: X from 80 to 280, Y from 50 to 130
-    const targetX = 80 + ax * 200;
-    const targetY = 130 - ay * 75;
-
-    // Goalkeeper AI decision
-    const goalieChoices: Array<'jump-left' | 'jump-right' | 'jump-center' | 'jump-top-left' | 'jump-top-right'> = [
-      'jump-left',
-      'jump-right',
-      'jump-center',
-      'jump-top-left',
-      'jump-top-right',
-    ];
-    // Goalkeeper has high probability to guess near targetX
-    let goalieAction: 'idle' | 'jump-left' | 'jump-right' | 'jump-center' | 'jump-top-left' | 'jump-top-right' = 'jump-center';
-    if (ax < 0.4) {
-      goalieAction = ay > 0.6 ? 'jump-top-left' : 'jump-left';
-    } else if (ax > 0.6) {
-      goalieAction = ay > 0.6 ? 'jump-top-right' : 'jump-right';
-    } else {
-      goalieAction = 'jump-center';
-    }
-
-    // 25% chance of misdirection/error by goalie
-    if (Math.random() < 0.28) {
-      goalieAction = goalieChoices[Math.floor(Math.random() * goalieChoices.length)];
-    }
-
-    setGoalieState({
-      x: 180 + (goalieAction.includes('left') ? -65 : goalieAction.includes('right') ? 65 : 0),
-      y: goalieAction.includes('top') ? 80 : 105,
-      action: goalieAction,
-    });
-
-    setBallState({
-      x: 180,
-      y: 260,
-      scale: 1,
-      spin: (ax - 0.5) * 15,
-      targetX,
-      targetY,
-      active: true,
-    });
-
-    // Check Goal vs Saved vs Missed
-    const goalieSaved =
-      (goalieAction.includes('left') && ax < 0.45) ||
-      (goalieAction.includes('right') && ax > 0.55) ||
-      (goalieAction === 'jump-center' && ax >= 0.4 && ax <= 0.6);
-
-    const isMissed = pwr > 0.95 || ax < 0.05 || ax > 0.95;
-    const isGoal = !goalieSaved && !isMissed;
-
-    setTimeout(() => {
-      setShotsTaken((s) => s + 1);
-      if (isGoal) {
-        setGoalsScored((g) => g + 1);
-        setTotalScore((s) => s + (gameMode === 'freekicks' ? 500 : 300));
-        setPlayerScores((prev) => [...prev, true]);
-        setBannerText('⚽ GOOOOOOL! GOLAÇO RETRÔ SUPER STAR SOCCER!');
-        try {
-          soundFx.playFanfare();
-        } catch (e) {}
-        confetti({ particleCount: 120, spread: 80 });
-      } else if (goalieSaved) {
-        setPlayerScores((prev) => [...prev, false]);
-        setBannerText('🧤 DEFEENDEU O GOLEIRO! ESPETACULAR DEFESA!');
-        try {
-          soundFx.playError();
-        } catch (e) {}
-      } else {
-        setPlayerScores((prev) => [...prev, false]);
-        setBannerText('❌ PRA FORA! A BOLA SUBIU DEMAIS!');
-        try {
-          soundFx.playError();
-        } catch (e) {}
-      }
-
-      setPhase('RESULT');
-
-      // Next round after delay
-      setTimeout(() => {
-        if (currentRound >= 5) {
-          setPhase('MATCH_OVER');
-          setBannerText('FIM DA DISPUTA DE PÊNALTIS!');
-        } else {
-          setCurrentRound((r) => r + 1);
-          setPhase('AIM_X');
-          setBannerText(`RODADA ${currentRound + 1}: SEU CHUTE - MIRE A DIREÇÃO`);
-          resetBallAndGoalie();
-        }
-      }, 2500);
-    }, 900);
-  };
-
-  // Main Canvas Rendering Loop
+  // Main RAF Physics and Render Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let renderAnimId: number;
+    let animId: number;
+    const WIDTH = 640;
+    const HEIGHT = 380;
+    const GOAL_TOP = 135;
+    const GOAL_BOTTOM = 245;
 
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const gameLoop = () => {
+      const state = gameStateRef.current;
+      const { player, cpu, ball, gkPlayer, gkCpu } = state;
 
-      // 1. Stadium Sky and Lights
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, 90);
-      skyGrad.addColorStop(0, '#0f172a');
-      skyGrad.addColorStop(1, '#1e293b');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, canvas.width, 90);
+      if (isMatchActive && !isPaused && !isMatchOver) {
+        if (state.isGoalScored) {
+          state.celebrationTimer++;
+          if (state.celebrationTimer > 120) {
+            setGoalCelebration(null);
+            resetKickoff('cpu');
+          }
+        } else {
+          // -----------------------------------------------------------
+          // 1. PLAYER MOVEMENT
+          // -----------------------------------------------------------
+          let pvx = 0;
+          let pvy = 0;
+          if (keys.current.up) pvy -= player.speed;
+          if (keys.current.down) pvy += player.speed;
+          if (keys.current.left) pvx -= player.speed;
+          if (keys.current.right) pvx += player.speed;
 
-      // Crowd dots
-      for (let i = 0; i < 40; i++) {
-        const cx = (i * 9) % canvas.width;
-        const cy = 20 + ((i * 7) % 50);
-        ctx.fillStyle = i % 3 === 0 ? '#facc15' : i % 2 === 0 ? '#ef4444' : '#38bdf8';
-        ctx.fillRect(cx, cy, 3, 3);
+          // Normalize diagonal
+          if (pvx !== 0 && pvy !== 0) {
+            pvx *= 0.707;
+            pvy *= 0.707;
+          }
+
+          player.x = Math.max(30, Math.min(WIDTH - 30, player.x + pvx));
+          player.y = Math.max(25, Math.min(HEIGHT - 25, player.y + pvy));
+
+          // -----------------------------------------------------------
+          // 2. CPU AI LOGIC
+          // -----------------------------------------------------------
+          const cpuDistToBall = Math.hypot(ball.x - cpu.x, ball.y - cpu.y);
+          const isDefending = ball.x < 280; // Ball is in player's half
+
+          let cpuTargetX = ball.x;
+          let cpuTargetY = ball.y;
+
+          if (isDefending && cpuDistToBall > 120) {
+            // Patrol midfield
+            cpuTargetX = 400;
+            cpuTargetY = 190 + Math.sin(Date.now() * 0.003) * 60;
+          }
+
+          const cpuDx = cpuTargetX - cpu.x;
+          const cpuDy = cpuTargetY - cpu.y;
+          const cpuDist = Math.hypot(cpuDx, cpuDy);
+
+          if (cpuDist > 5) {
+            cpu.x += (cpuDx / cpuDist) * cpu.speed;
+            cpu.y += (cpuDy / cpuDist) * cpu.speed;
+          }
+
+          // CPU constraints
+          cpu.x = Math.max(30, Math.min(WIDTH - 30, cpu.x));
+          cpu.y = Math.max(25, Math.min(HEIGHT - 25, cpu.y));
+
+          // -----------------------------------------------------------
+          // 3. GOALKEEPERS (GUARANTEED NEVER DISAPPEAR, PERMANENT FIX)
+          // -----------------------------------------------------------
+          // Player Goalkeeper tracks ball Y within goal post range
+          const targetGkPlayerY = Math.max(gkPlayer.minY + 20, Math.min(gkPlayer.maxY - 20, ball.y));
+          gkPlayer.y += (targetGkPlayerY - gkPlayer.y) * 0.18;
+
+          // CPU Goalkeeper tracks ball Y within goal post range
+          const targetGkCpuY = Math.max(gkCpu.minY + 20, Math.min(gkCpu.maxY - 20, ball.y));
+          gkCpu.y += (targetGkCpuY - gkCpu.y) * 0.18;
+
+          // -----------------------------------------------------------
+          // 4. BALL PHYSICS & TACKLE / DRIBBLE / SHOT
+          // -----------------------------------------------------------
+          ball.x += ball.vx;
+          ball.y += ball.vy;
+          ball.vx *= ball.friction;
+          ball.vy *= ball.friction;
+
+          // Stop micro drift
+          if (Math.hypot(ball.vx, ball.vy) < 0.05) {
+            ball.vx = 0;
+            ball.vy = 0;
+          }
+
+          // Player dribble / kick
+          const distToPlayer = Math.hypot(ball.x - player.x, ball.y - player.y);
+          if (distToPlayer < player.radius + ball.radius + 4) {
+            const angle = Math.atan2(ball.y - player.y, ball.x - player.x);
+            if (keys.current.kick) {
+              // POWER SHOT!
+              const shotPower = 11.5;
+              ball.vx = Math.cos(angle) * shotPower;
+              ball.vy = Math.sin(angle) * shotPower;
+              try { soundFx.playBounce(500); } catch (e) {}
+            } else {
+              // Nudge dribble
+              const nudgePower = 3.2;
+              ball.vx = Math.cos(angle) * nudgePower + pvx * 0.4;
+              ball.vy = Math.sin(angle) * nudgePower + pvy * 0.4;
+              try { soundFx.playBounce(300); } catch (e) {}
+            }
+          }
+
+          // CPU dribble / kick
+          if (cpuDistToBall < cpu.radius + ball.radius + 4) {
+            // CPU shoots towards player's goal (left)
+            const angleToGoal = Math.atan2(190 - ball.y, 25 - ball.x);
+            const cpuShotPower = cpu.x < 300 ? 9.5 : 4.5;
+            ball.vx = Math.cos(angleToGoal) * cpuShotPower + (Math.random() - 0.5);
+            ball.vy = Math.sin(angleToGoal) * cpuShotPower + (Math.random() - 0.5) * 2;
+            try { soundFx.playBounce(350); } catch (e) {}
+          }
+
+          // Goalkeeper Collisions (Defenses)
+          // Player GK Save
+          if (
+            ball.x - ball.radius < gkPlayer.x + gkPlayer.width &&
+            ball.x + ball.radius > gkPlayer.x &&
+            ball.y > gkPlayer.y - gkPlayer.height / 2 &&
+            ball.y < gkPlayer.y + gkPlayer.height / 2
+          ) {
+            ball.x = gkPlayer.x + gkPlayer.width + ball.radius + 2;
+            ball.vx = Math.abs(ball.vx) * 0.9 + 2;
+            ball.vy += (Math.random() - 0.5) * 4;
+            try { soundFx.playBounce(600); } catch (e) {}
+          }
+
+          // CPU GK Save
+          if (
+            ball.x + ball.radius > gkCpu.x - gkCpu.width &&
+            ball.x - ball.radius < gkCpu.x &&
+            ball.y > gkCpu.y - gkCpu.height / 2 &&
+            ball.y < gkCpu.y + gkCpu.height / 2
+          ) {
+            ball.x = gkCpu.x - gkCpu.width - ball.radius - 2;
+            ball.vx = -Math.abs(ball.vx) * 0.9 - 2;
+            ball.vy += (Math.random() - 0.5) * 4;
+            try { soundFx.playBounce(600); } catch (e) {}
+          }
+
+          // Pitch Side Bounds (Top & Bottom pitch walls)
+          if (ball.y - ball.radius < 20) {
+            ball.y = 20 + ball.radius;
+            ball.vy = -ball.vy * 0.8;
+          }
+          if (ball.y + ball.radius > HEIGHT - 20) {
+            ball.y = HEIGHT - 20 - ball.radius;
+            ball.vy = -ball.vy * 0.8;
+          }
+
+          // -----------------------------------------------------------
+          // 5. GOAL SCORING DETECTION
+          // -----------------------------------------------------------
+          // CPU Goal (Ball enters Left net)
+          if (ball.x - ball.radius < 24 && ball.y >= GOAL_TOP && ball.y <= GOAL_BOTTOM) {
+            state.isGoalScored = true;
+            state.celebrationTimer = 0;
+            state.cpuScore++;
+            setScoreCpu(state.cpuScore);
+            setGoalCelebration('GOL DO CPU! ⚽');
+            try { soundFx.playWhistle(); } catch (e) {}
+          } else if (ball.x - ball.radius < 24) {
+            // Rebound off left back line outside goal
+            ball.x = 24 + ball.radius;
+            ball.vx = -ball.vx * 0.8;
+          }
+
+          // PLAYER GOAL (Ball enters Right net!)
+          if (ball.x + ball.radius > WIDTH - 24 && ball.y >= GOAL_TOP && ball.y <= GOAL_BOTTOM) {
+            state.isGoalScored = true;
+            state.celebrationTimer = 0;
+            state.playerScore++;
+            setScorePlayer(state.playerScore);
+            setGoalCelebration('GOOOOOL DE MATEUS! 🏆⚽');
+            try {
+              soundFx.playWhistle();
+              soundFx.playFanfare();
+            } catch (e) {}
+            confetti({ particleCount: 140, spread: 80, origin: { y: 0.6 } });
+            saveGameHighScore('soccer', state.playerScore);
+          } else if (ball.x + ball.radius > WIDTH - 24) {
+            // Rebound off right back line outside goal
+            ball.x = WIDTH - 24 - ball.radius;
+            ball.vx = -ball.vx * 0.8;
+          }
+        }
       }
 
-      // Stadium Banner
-      ctx.fillStyle = '#000080';
-      ctx.fillRect(0, 75, canvas.width, 15);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 9px monospace';
-      ctx.fillText('⚽ INTERNATIONAL SUPER STAR SOCCER 2000 ⚽ MATEUS OS', 10, 86);
+      // -------------------------------------------------------------
+      // RENDERING TOP-DOWN PITCH
+      // -------------------------------------------------------------
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
 
-      // 2. Pitch / Grass
-      const grassY = 90;
-      for (let y = grassY; y < canvas.height; y += 18) {
-        ctx.fillStyle = Math.floor((y - grassY) / 18) % 2 === 0 ? '#15803d' : '#16a34a';
-        ctx.fillRect(0, y, canvas.width, 18);
+      const isRetro = mode === 'retro';
+
+      // Pitch Grass Pattern (striped)
+      for (let i = 0; i < WIDTH; i += 64) {
+        ctx.fillStyle = (i / 64) % 2 === 0
+          ? isRetro ? '#15803d' : '#064e3b'
+          : isRetro ? '#16a34a' : '#047857';
+        ctx.fillRect(i, 0, 64, HEIGHT);
       }
 
-      // Penalty Area Lines
+      // White Field Markings
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
+
+      // Outer Pitch Border
+      ctx.strokeRect(24, 18, WIDTH - 48, HEIGHT - 36);
+
+      // Halfway Line
       ctx.beginPath();
-      ctx.moveTo(40, 150);
-      ctx.lineTo(320, 150);
-      ctx.lineTo(350, canvas.height);
-      ctx.moveTo(40, 150);
-      ctx.lineTo(10, canvas.height);
-      ctx.arc(180, 260, 3, 0, Math.PI * 2);
+      ctx.moveTo(WIDTH / 2, 18);
+      ctx.lineTo(WIDTH / 2, HEIGHT - 18);
       ctx.stroke();
 
-      // 3. Goal Posts & Net
-      const goalLeft = 70;
-      const goalRight = 290;
-      const goalTop = 45;
-      const goalBottom = 135;
+      // Center Circle & Spot
+      ctx.beginPath();
+      ctx.arc(WIDTH / 2, HEIGHT / 2, 55, 0, Math.PI * 2);
+      ctx.stroke();
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-      ctx.fillRect(goalLeft, goalTop, goalRight - goalLeft, goalBottom - goalTop);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(WIDTH / 2, HEIGHT / 2, 3.5, 0, Math.PI * 2);
+      ctx.fill();
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-      ctx.lineWidth = 1;
-      for (let nx = goalLeft; nx <= goalRight; nx += 12) {
-        ctx.beginPath();
-        ctx.moveTo(nx, goalTop);
-        ctx.lineTo(nx, goalBottom);
-        ctx.stroke();
-      }
-      for (let ny = goalTop; ny <= goalBottom; ny += 10) {
-        ctx.beginPath();
-        ctx.moveTo(goalLeft, ny);
-        ctx.lineTo(goalRight, ny);
-        ctx.stroke();
-      }
-
+      // Left Penalty Box & Goal
+      ctx.strokeRect(24, 90, 85, 200);
+      ctx.strokeRect(24, 135, 35, 110);
+      // Net Left
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.fillRect(6, GOAL_TOP, 18, GOAL_BOTTOM - GOAL_TOP);
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 5;
-      ctx.strokeRect(goalLeft, goalTop, goalRight - goalLeft, goalBottom - goalTop);
+      ctx.strokeRect(6, GOAL_TOP, 18, GOAL_BOTTOM - GOAL_TOP);
 
-      // 4. Fully Proportioned Goalkeeper (Complete Body, Legs, Gloves & Boots)
+      // Right Penalty Box & Goal
+      ctx.strokeRect(WIDTH - 109, 90, 85, 200);
+      ctx.strokeRect(WIDTH - 59, 135, 35, 110);
+      // Net Right
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.fillRect(WIDTH - 24, GOAL_TOP, 18, GOAL_BOTTOM - GOAL_TOP);
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(WIDTH - 24, GOAL_TOP, 18, GOAL_BOTTOM - GOAL_TOP);
+
+      // Goalkeepers
+      // Player GK
+      ctx.fillStyle = gkPlayer.color;
+      ctx.fillRect(
+        gkPlayer.x - gkPlayer.width / 2,
+        gkPlayer.y - gkPlayer.height / 2,
+        gkPlayer.width,
+        gkPlayer.height
+      );
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(
+        gkPlayer.x - gkPlayer.width / 2,
+        gkPlayer.y - gkPlayer.height / 2,
+        gkPlayer.width,
+        gkPlayer.height
+      );
+
+      // CPU GK
+      ctx.fillStyle = gkCpu.color;
+      ctx.fillRect(
+        gkCpu.x - gkCpu.width / 2,
+        gkCpu.y - gkCpu.height / 2,
+        gkCpu.width,
+        gkCpu.height
+      );
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(
+        gkCpu.x - gkCpu.width / 2,
+        gkCpu.y - gkCpu.height / 2,
+        gkCpu.width,
+        gkCpu.height
+      );
+
+      // Players
+      // Player (Mateus)
       ctx.save();
-      ctx.translate(goalieState.x, goalieState.y);
+      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = player.color;
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-      const goalieCol = cpuTeam.primaryColor;
-      ctx.fillStyle = goalieCol;
+      // Number 10 on back
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('10', player.x, player.y);
 
-      if (goalieState.action === 'idle') {
-        // Torso / Jersey
-        ctx.fillRect(-12, -22, 24, 26);
-        // Head
-        ctx.fillStyle = '#fbcfe8';
-        ctx.beginPath();
-        ctx.arc(0, -30, 8, 0, Math.PI * 2);
-        ctx.fill();
-        // Hair
-        ctx.fillStyle = '#451a03';
-        ctx.beginPath();
-        ctx.arc(0, -34, 7, Math.PI, 0);
-        ctx.fill();
-        // Arms
-        ctx.fillStyle = goalieCol;
-        ctx.fillRect(-18, -18, 7, 14);
-        ctx.fillRect(11, -18, 7, 14);
-        // Gloves
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(-20, -4, 9, 8);
-        ctx.fillRect(11, -4, 9, 8);
-        // Shorts
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-11, 4, 22, 14);
-        // Legs
-        ctx.fillStyle = '#fbcfe8';
-        ctx.fillRect(-9, 18, 7, 14);
-        ctx.fillRect(2, 18, 7, 14);
-        // Boots
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(-10, 32, 9, 5);
-        ctx.fillRect(1, 32, 9, 5);
-      } else {
-        // Goalkeeper Diving / Jumping - FULL BODY PRESERVED
-        const isLeft = goalieState.action.includes('left');
-        const isRight = goalieState.action.includes('right');
-        const angle = isLeft ? -0.45 : isRight ? 0.45 : 0;
-
-        ctx.rotate(angle);
-
-        // Torso / Jersey
-        ctx.fillStyle = goalieCol;
-        ctx.fillRect(-14, -20, 28, 24);
-
-        // Head
-        ctx.fillStyle = '#fbcfe8';
-        ctx.beginPath();
-        ctx.arc(isLeft ? -6 : isRight ? 6 : 0, -28, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Stretched Arms & Gloves
-        ctx.fillStyle = goalieCol;
-        ctx.fillRect(isLeft ? -30 : -8, -18, 18, 8);
-        ctx.fillRect(isLeft ? -8 : 12, -18, 18, 8);
-
-        ctx.fillStyle = '#ffffff'; // White keeper gloves
-        ctx.fillRect(isLeft ? -34 : 28, -20, 10, 11);
-        ctx.fillRect(isLeft ? -18 : 14, -20, 10, 11);
-
-        // Shorts
-        ctx.fillStyle = '#0f172a';
-        ctx.fillRect(-12, 4, 24, 14);
-
-        // Extended Legs
-        ctx.fillStyle = '#fbcfe8';
-        ctx.fillRect(isLeft ? -4 : -12, 18, 8, 16);
-        ctx.fillRect(isLeft ? 6 : -2, 18, 8, 16);
-
-        // Boots
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(isLeft ? -5 : -13, 34, 10, 6);
-        ctx.fillRect(isLeft ? 5 : -3, 34, 10, 6);
-      }
-
+      // Player Name Tag
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('MATEUS', player.x, player.y - 18);
       ctx.restore();
 
-      // 5. Ball Rendering
-      if (phase === 'BALL_FLIGHT' || phase === 'RESULT') {
-        const b = ballState;
-        ctx.save();
-        ctx.translate(b.x, b.y);
-        ctx.rotate(b.spin);
+      // CPU Player
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = cpu.color;
+      ctx.beginPath();
+      ctx.arc(cpu.x, cpu.y, cpu.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-        ctx.beginPath();
-        ctx.arc(0, 0, 10 * b.scale, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+      // Number 7 on back
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 11px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('7', cpu.x, cpu.y);
 
-        // Hexagon dots on soccer ball
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(0, 0, 3 * b.scale, 0, Math.PI * 2);
-        ctx.fill();
+      // CPU Name Tag
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('CPU', cpu.x, cpu.y - 18);
+      ctx.restore();
 
-        ctx.restore();
-      } else {
-        // Ball resting on penalty spot
-        ctx.beginPath();
-        ctx.arc(180, 260, 10, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(180, 260, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      // Ball
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
 
-      renderAnimId = requestAnimationFrame(draw);
+      // Black soccer hexagons
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      animId = requestAnimationFrame(gameLoop);
     };
 
-    renderAnimId = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(renderAnimId);
-  }, [goalieState, ballState, phase, cpuTeam]);
+    animId = requestAnimationFrame(gameLoop);
+    return () => cancelAnimationFrame(animId);
+  }, [isMatchActive, isPaused, isMatchOver, mode]);
 
-  // Ball flight physics update loop
-  useEffect(() => {
-    if (phase !== 'BALL_FLIGHT') return;
+  const isRetro = mode === 'retro';
 
-    const interval = setInterval(() => {
-      setBallState((b) => {
-        const dx = b.targetX - b.x;
-        const dy = b.targetY - b.y;
-
-        const newX = b.x + dx * 0.18;
-        const newY = b.y + dy * 0.18;
-        const newScale = Math.max(0.45, b.scale - 0.05);
-
-        return {
-          ...b,
-          x: newX,
-          y: newY,
-          scale: newScale,
-          spin: b.spin + 0.3,
-        };
-      });
-    }, 30);
-
-    return () => clearInterval(interval);
-  }, [phase]);
+  // Format time (e.g. 01:25)
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
   return (
-    <div className="space-y-4 font-sans select-none text-slate-100 max-w-2xl mx-auto">
-      {/* Top Game Navigation Bar */}
-      <div className="bg-[#c0c0c0] p-2.5 border-2 border-white border-r-gray-800 border-b-gray-800 text-gray-900 flex flex-wrap items-center justify-between gap-3 shadow">
+    <div className="space-y-4 font-sans select-none text-slate-100 max-w-3xl mx-auto">
+      {/* Top Controls Bar */}
+      <div
+        className={`p-2.5 border-2 flex flex-wrap items-center justify-between gap-2 shadow ${
+          isRetro
+            ? 'bg-[#c0c0c0] border-white border-r-gray-800 border-b-gray-800 text-gray-900'
+            : 'bg-slate-900/90 border-cyan-500/40 text-cyan-200 rounded-lg backdrop-blur-md'
+        }`}
+      >
         <div className="flex items-center gap-2">
           {onBackToHub && (
             <button
               onClick={onBackToHub}
-              className="px-3 py-1.5 bg-[#d4d0c8] hover:bg-white text-gray-900 font-mono font-bold text-xs border-2 border-white border-r-gray-800 border-b-gray-800 cursor-pointer flex items-center gap-1.5 active:border-gray-800 active:border-r-white active:border-b-white transition"
+              className={`px-3 py-1.5 font-mono font-bold text-xs border-2 cursor-pointer flex items-center gap-1.5 transition ${
+                isRetro
+                  ? 'bg-[#d4d0c8] hover:bg-white text-gray-900 border-white border-r-gray-800 border-b-gray-800'
+                  : 'bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border-cyan-600 rounded'
+              }`}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>VOLTAR AOS JOGOS</span>
+              <span>VOLTAR AO ARCADE</span>
             </button>
           )}
-          <div className="font-mono font-black text-xs text-[#000080] flex items-center gap-1">
-            <span>⚽ FUTEBOL 2000 (SUPER STAR SOCCER)</span>
-          </div>
+          <span className="font-mono font-black text-xs text-blue-900 dark:text-cyan-300">
+            ⚽ {isRetro ? 'FUTEBOL INTERNACIONAL 2000' : 'CYBER SOCCER 2026'}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
+          {isMatchActive && !isMatchOver && (
+            <button
+              onClick={() => setIsPaused((p) => !p)}
+              className="px-2.5 py-1 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-mono font-bold text-xs border border-yellow-600 rounded flex items-center gap-1 cursor-pointer shadow"
+            >
+              {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+              <span>{isPaused ? 'CONTINUAR' : 'PAUSAR'}</span>
+            </button>
+          )}
+
           <button
             onClick={startMatch}
-            className="px-3 py-1.5 bg-[#d4d0c8] hover:bg-white text-black font-mono font-bold text-xs border-2 border-white border-r-gray-800 border-b-gray-800 cursor-pointer flex items-center gap-1 shadow"
+            className={`px-3 py-1 font-mono font-bold text-xs border-2 cursor-pointer flex items-center gap-1 shadow ${
+              isRetro
+                ? 'bg-[#d4d0c8] hover:bg-white text-black border-white border-r-gray-800 border-b-gray-800'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-slate-950 border-emerald-300 rounded'
+            }`}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>REINICIAR</span>
+            <span>NOVA PARTIDA</span>
           </button>
         </div>
       </div>
 
-      {/* Instructions Banner */}
-      <div className="bg-[#000080] text-yellow-300 px-3 py-1.5 border border-white text-xs font-mono flex flex-wrap items-center justify-between gap-2 shadow-inner">
-        <span>
-          <strong>CONTROLES:</strong> Aperte <code className="bg-black/60 px-1 py-0.5 rounded text-white">ESPAÇO</code> ou clique no botão para calibrar Mira X, Mira Y e Força!
-        </span>
-        <span className="text-white">
-          Placar: <strong className="text-yellow-300">{goalsScored} / {shotsTaken}</strong>
-        </span>
-      </div>
-
-      {/* Match Scoreboard */}
-      <div className="bg-slate-900 p-3 rounded-lg border border-slate-700 flex flex-wrap items-center justify-between gap-4 font-mono text-xs shadow-xl">
+      {/* Broadcast Scoreboard */}
+      <div
+        className={`px-4 py-2 border-2 rounded-lg flex items-center justify-between font-mono shadow-lg ${
+          isRetro
+            ? 'bg-[#000080] border-white text-white'
+            : 'bg-slate-950/90 border-cyan-500/50 text-cyan-100 backdrop-blur-md'
+        }`}
+      >
         <div className="flex items-center gap-3">
-          <span className="text-xl">{playerTeam.flag}</span>
-          <div>
-            <div className="font-black text-yellow-400">{playerTeam.name.toUpperCase()} (VOCÊ)</div>
-            <div className="text-[10px] text-slate-400">{playerTeam.starPlayer}</div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-blue-600 inline-block border border-white" />
+            <span className="font-black text-sm">MATEUS</span>
           </div>
+          <span className="text-2xl font-black text-yellow-300 px-2 py-0.5 bg-black/40 rounded border border-white/20">
+            {scorePlayer}
+          </span>
         </div>
 
-        {/* Penalty shootout indicator dots */}
-        <div className="flex items-center gap-1.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className={`w-4 h-4 rounded-full border border-slate-600 flex items-center justify-center text-[10px] font-black ${
-                playerScores[i] === true
-                  ? 'bg-emerald-500 text-white'
-                  : playerScores[i] === false
-                  ? 'bg-red-600 text-white'
-                  : 'bg-slate-800 text-slate-500'
-              }`}
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] text-white/70 tracking-widest font-bold">TEMPO DE JOGO</span>
+          <span className="text-lg font-black text-yellow-300">{formatTime(timeLeft)}</span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="text-2xl font-black text-yellow-300 px-2 py-0.5 bg-black/40 rounded border border-white/20">
+            {scoreCpu}
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-black text-sm">CPU</span>
+            <span className="w-3 h-3 rounded-full bg-red-600 inline-block border border-white" />
+          </div>
+        </div>
+      </div>
+
+      {/* Pitch Stadium Canvas */}
+      <div className="flex flex-col items-center justify-center p-1 relative">
+        <div
+          className={`relative p-2.5 rounded-2xl border-4 shadow-2xl overflow-hidden ${
+            isRetro
+              ? 'bg-[#1e293b] border-gray-400 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'
+              : 'bg-slate-950 border-emerald-500/50 shadow-[0_0_35px_rgba(16,185,129,0.25)]'
+          }`}
+        >
+          <canvas
+            ref={canvasRef}
+            width={640}
+            height={380}
+            className="w-full max-w-[640px] h-auto rounded-lg border-2 border-green-950 block shadow-inner"
+          />
+
+          {/* Goal celebration banner overlay */}
+          {goalCelebration && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 animate-bounce">
+              <div className="bg-yellow-400 text-slate-950 font-mono font-black text-xl sm:text-2xl px-6 py-3 rounded-2xl border-4 border-black shadow-2xl tracking-widest">
+                {goalCelebration}
+              </div>
+            </div>
+          )}
+
+          {/* Not active overlay */}
+          {!isMatchActive && !isMatchOver && (
+            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-center z-10">
+              <p className="font-mono text-lg font-bold text-white mb-3">PARTIDA DE 90 SEGUNDOS</p>
+              <button
+                onClick={startMatch}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-mono font-bold text-sm rounded cursor-pointer shadow transition"
+              >
+                APITAR INÍCIO ⚽
+              </button>
+            </div>
+          )}
+
+          {/* Touch Virtual Controls for Mobile */}
+          <div className="pt-3 flex items-center justify-between gap-4 select-none">
+            {/* D-Pad */}
+            <div className="flex flex-col items-center gap-1">
+              <button
+                onTouchStart={() => (keys.current.up = true)}
+                onTouchEnd={() => (keys.current.up = false)}
+                className="w-11 h-10 bg-black/80 text-white rounded-lg flex items-center justify-center active:bg-blue-700 shadow"
+              >
+                <ChevronUp className="w-6 h-6" />
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onTouchStart={() => (keys.current.left = true)}
+                  onTouchEnd={() => (keys.current.left = false)}
+                  className="w-11 h-10 bg-black/80 text-white rounded-lg flex items-center justify-center active:bg-blue-700 shadow"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onTouchStart={() => (keys.current.down = true)}
+                  onTouchEnd={() => (keys.current.down = false)}
+                  className="w-11 h-10 bg-black/80 text-white rounded-lg flex items-center justify-center active:bg-blue-700 shadow"
+                >
+                  <ChevronDown className="w-6 h-6" />
+                </button>
+                <button
+                  onTouchStart={() => (keys.current.right = true)}
+                  onTouchEnd={() => (keys.current.right = false)}
+                  className="w-11 h-10 bg-black/80 text-white rounded-lg flex items-center justify-center active:bg-blue-700 shadow"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Kick Button */}
+            <button
+              onTouchStart={() => (keys.current.kick = true)}
+              onTouchEnd={() => (keys.current.kick = false)}
+              onMouseDown={() => (keys.current.kick = true)}
+              onMouseUp={() => (keys.current.kick = false)}
+              className="px-6 py-4 bg-yellow-500 active:bg-yellow-400 text-slate-950 font-mono font-black text-sm rounded-2xl border-2 border-yellow-300 active:scale-95 shadow cursor-pointer flex items-center gap-1.5"
             >
-              {playerScores[i] === true ? '✓' : playerScores[i] === false ? '✕' : i + 1}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="font-black text-slate-300">{cpuTeam.name.toUpperCase()} (CPU)</div>
-            <div className="text-[10px] text-slate-400">{cpuTeam.starPlayer}</div>
+              <Zap className="w-5 h-5 fill-slate-950" />
+              <span>CHUTAR!</span>
+            </button>
           </div>
-          <span className="text-xl">{cpuTeam.flag}</span>
         </div>
       </div>
 
-      {/* Main Pitch Stadium Canvas */}
-      <div className="flex justify-center bg-black p-2 rounded-lg border-2 border-green-700 shadow-2xl">
-        <canvas
-          ref={canvasRef}
-          width={360}
-          height={300}
-          className="border border-green-500/40 bg-black rounded"
-        />
-      </div>
-
-      {/* Interactive Oscillating Meters & Touch Buttons */}
-      <div className="bg-slate-900/90 p-4 rounded-lg border border-slate-700 space-y-3 font-mono text-xs">
-        <div className="text-center font-bold text-yellow-300 bg-black/60 p-2 rounded border border-slate-800">
-          {bannerText}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Meter 1: Mira X */}
-          <div className={`p-2.5 rounded border ${phase === 'AIM_X' ? 'bg-blue-950 border-cyan-400 ring-2 ring-cyan-500' : 'bg-slate-800 border-slate-700 opacity-60'}`}>
-            <div className="flex justify-between text-[11px] mb-1 font-bold text-slate-300">
-              <span>1. DIREÇÃO (X)</span>
-              <span>{Math.round(oscX * 100)}%</span>
-            </div>
-            <div className="w-full bg-slate-950 h-3 rounded overflow-hidden relative border border-slate-700">
-              <div
-                className="bg-cyan-400 h-full transition-all duration-75"
-                style={{ width: `${oscX * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Meter 2: Altura Y */}
-          <div className={`p-2.5 rounded border ${phase === 'AIM_Y' ? 'bg-blue-950 border-cyan-400 ring-2 ring-cyan-500' : 'bg-slate-800 border-slate-700 opacity-60'}`}>
-            <div className="flex justify-between text-[11px] mb-1 font-bold text-slate-300">
-              <span>2. ALTURA (Y)</span>
-              <span>{Math.round(oscY * 100)}%</span>
-            </div>
-            <div className="w-full bg-slate-950 h-3 rounded overflow-hidden relative border border-slate-700">
-              <div
-                className="bg-amber-400 h-full transition-all duration-75"
-                style={{ width: `${oscY * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Meter 3: Força */}
-          <div className={`p-2.5 rounded border ${phase === 'POWER' ? 'bg-blue-950 border-cyan-400 ring-2 ring-cyan-500' : 'bg-slate-800 border-slate-700 opacity-60'}`}>
-            <div className="flex justify-between text-[11px] mb-1 font-bold text-slate-300">
-              <span>3. FORÇA</span>
-              <span>{Math.round(oscPower * 100)}%</span>
-            </div>
-            <div className="w-full bg-slate-950 h-3 rounded overflow-hidden relative border border-slate-700">
-              <div
-                className="bg-red-500 h-full transition-all duration-75"
-                style={{ width: `${oscPower * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Big Action Kick Button for Touch and Desktop */}
-        {['AIM_X', 'AIM_Y', 'POWER'].includes(phase) && (
-          <button
-            onClick={handleKickAction}
-            className="w-full py-4 bg-gradient-to-r from-emerald-600 via-green-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-black text-sm rounded-xl shadow-xl cursor-pointer active:scale-98 transition flex items-center justify-center gap-2"
+      {/* Match Over Modal */}
+      {isMatchOver && (
+        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div
+            className={`max-w-md w-full p-6 rounded-xl border-4 text-center space-y-4 shadow-2xl ${
+              isRetro
+                ? 'bg-[#c0c0c0] border-white text-slate-900 shadow-[8px_8px_0px_rgba(0,0,0,0.5)]'
+                : 'bg-slate-950 border-emerald-400 text-emerald-100'
+            }`}
           >
-            <Zap className="w-5 h-5 fill-current" />
-            <span>
-              {phase === 'AIM_X'
-                ? 'TRAVAR DIREÇÃO DO CHUTE'
-                : phase === 'AIM_Y'
-                ? 'TRAVAR ALTURA DO CHUTE'
-                : 'CHUTAR NO GOL!'}
-            </span>
-          </button>
-        )}
-      </div>
+            <div className="w-16 h-16 mx-auto rounded-full bg-yellow-400 flex items-center justify-center text-3xl shadow-lg">
+              {scorePlayer > scoreCpu ? '🏆' : scorePlayer === scoreCpu ? '🤝' : '⚽'}
+            </div>
+            <h2 className="text-2xl font-mono font-black tracking-wider text-green-700 dark:text-emerald-300">
+              FIM DE PARTIDA!
+            </h2>
+            <p className="text-sm font-mono leading-relaxed">
+              {scorePlayer > scoreCpu
+                ? 'VITÓRIA DE MATEUS! Excelente atuação contra o CPU!'
+                : scorePlayer === scoreCpu
+                ? 'EMPATE TÉCNICO! Grande equilíbrio em campo.'
+                : 'VITÓRIA DO CPU! Tente novamente para a revanche.'}
+            </p>
+
+            <div className="p-4 bg-white/60 dark:bg-slate-900 rounded font-mono text-base space-y-1 font-bold">
+              <div className="text-xl text-yellow-500 dark:text-yellow-300">
+                MATEUS {scorePlayer} X {scoreCpu} CPU
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-center pt-2">
+              <button
+                onClick={startMatch}
+                className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white font-mono font-bold text-xs rounded cursor-pointer shadow transition"
+              >
+                JOGAR REVANCHE
+              </button>
+              {onBackToHub && (
+                <button
+                  onClick={onBackToHub}
+                  className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white font-mono font-bold text-xs rounded cursor-pointer shadow transition"
+                >
+                  VOLTAR AO ARCADE
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

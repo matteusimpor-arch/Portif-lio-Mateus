@@ -2,18 +2,31 @@ import React, { useState } from 'react';
 import { Gamepad2, Sparkles, Trophy, ArrowLeft, Play, Bomb, Rocket, Smartphone, Shield, Zap, Flame, RotateCcw, ChevronRight } from 'lucide-react';
 import { soundFx } from '../../utils/soundEffects';
 
-// The 6 Official Game Components
+// The 9 Complete Game Components
 import { SolitaireGame } from '../games/SolitaireGame';
 import { SoccerGame } from '../games/SoccerGame';
 import { KartGame } from '../games/KartGame';
 import { MinesweeperGame } from '../games/MinesweeperGame';
 import { PinballGame } from '../games/PinballGame';
 import { SnakeGame } from '../games/SnakeGame';
+import { PongGame } from '../games/PongGame';
+import { BrickBreakerGame } from '../games/BrickBreakerGame';
+import { AsteroidDefenseGame } from '../games/AsteroidDefenseGame';
 
-export type GameId = 'solitaire' | 'soccer' | 'kart' | 'minesweeper' | 'pinball' | 'snake' | null;
+export type GameId =
+  | 'solitaire'
+  | 'soccer'
+  | 'kart'
+  | 'minesweeper'
+  | 'pinball'
+  | 'snake'
+  | 'pong'
+  | 'brickbreaker'
+  | 'asteroid'
+  | null;
 
 interface GameItem {
-  id: 'solitaire' | 'soccer' | 'kart' | 'minesweeper' | 'pinball' | 'snake';
+  id: 'solitaire' | 'soccer' | 'kart' | 'minesweeper' | 'pinball' | 'snake' | 'pong' | 'brickbreaker' | 'asteroid';
   title: string;
   category: string;
   categoryBadge: string;
@@ -39,54 +52,6 @@ const GAMES_LIST: GameItem[] = [
     controlsInfo: 'Mouse / Toque: Selecione e mova cartas para as colunas e fundações.',
   },
   {
-    id: 'soccer',
-    title: 'FUTEBOL 2000',
-    category: 'Esporte Retrô',
-    categoryBadge: 'ESPORTE',
-    year: '2000',
-    description: 'Disputa de pênaltis inspirada nos grandes títulos de futebol dos anos 2000. Calibre direção, altura e potência contra o goleiro.',
-    icon: '⚽',
-    accentColor: '#1d4ed8',
-    gradient: 'from-blue-800 to-indigo-950',
-    controlsInfo: 'Espaço / Toque: Trave a Mira X, Mira Y e Força do chute.',
-  },
-  {
-    id: 'kart',
-    title: 'MARIO KART',
-    category: 'Corrida Arcade',
-    categoryBadge: 'CORRIDA',
-    year: '2000',
-    description: 'Corrida Super Kart em modo pseudo-3D com curvas dinâmicas, turbos, pilotos clássicos e 3 circuitos emocionantes.',
-    icon: '🏎️',
-    accentColor: '#dc2626',
-    gradient: 'from-red-800 to-rose-950',
-    controlsInfo: 'Setas / WASD: Acelerar e pilotar | Espaço: Turbo boost.',
-  },
-  {
-    id: 'minesweeper',
-    title: 'CAMPO MINADO',
-    category: 'Lógica & Concentração',
-    categoryBadge: 'LÓGICA',
-    year: '2000',
-    description: 'Desarme todas as minas com precisão cirúrgica. Inclui dificuldades Fácil (9x9), Médio (16x16), Difícil (24x16) e Personalizado.',
-    icon: '💣',
-    accentColor: '#b45309',
-    gradient: 'from-amber-800 to-yellow-950',
-    controlsInfo: 'Clique: Revelar | Botão Direito / Modo Bandeira: Marcar mina 🚩.',
-  },
-  {
-    id: 'pinball',
-    title: '3D PINBALL',
-    category: 'Arcade Espacial',
-    categoryBadge: 'ARCADE',
-    year: '2000',
-    description: 'O lendário Space Cadet Pinball com física ágil, bumpers reluzentes, rampas orbitais e patentes espaciais.',
-    icon: '🚀',
-    accentColor: '#7c3aed',
-    gradient: 'from-purple-900 to-indigo-950',
-    controlsInfo: 'A / Z ou ◄: Paleta Esq | D / . ou ►: Paleta Dir | Espaço: Lançar.',
-  },
-  {
     id: 'snake',
     title: 'SNAKE NOKIA',
     category: 'Retro Mobile',
@@ -97,6 +62,90 @@ const GAMES_LIST: GameItem[] = [
     accentColor: '#047857',
     gradient: 'from-teal-800 to-emerald-950',
     controlsInfo: 'Setas / WASD / D-Pad virtual: Controle a direção da cobrinha.',
+  },
+  {
+    id: 'minesweeper',
+    title: 'CAMPO MINADO',
+    category: 'Lógica & Concentração',
+    categoryBadge: 'LÓGICA',
+    year: '2000',
+    description: 'Desarme todas as minas com precisão cirúrgica. Inclui dificuldades Fácil (9x9), Médio (16x16), Difícil (24x16) e modo bandeira.',
+    icon: '💣',
+    accentColor: '#b45309',
+    gradient: 'from-amber-800 to-yellow-950',
+    controlsInfo: 'Clique: Revelar | Botão Direito / Modo Bandeira: Marcar mina 🚩.',
+  },
+  {
+    id: 'pinball',
+    title: '3D PINBALL SPACE CADET',
+    category: 'Arcade Espacial',
+    categoryBadge: 'ARCADE',
+    year: '2000',
+    description: 'O lendário Space Cadet Pinball com física ágil, bumpers reluzentes, rampas orbitais, flippers e patentes espaciais.',
+    icon: '🚀',
+    accentColor: '#7c3aed',
+    gradient: 'from-purple-900 to-indigo-950',
+    controlsInfo: 'A / ◄: Paleta Esq | D / ►: Paleta Dir | Espaço: Lançador.',
+  },
+  {
+    id: 'soccer',
+    title: 'FUTEBOL INTERNACIONAL',
+    category: 'Esporte Retrô',
+    categoryBadge: 'ESPORTE',
+    year: '2000',
+    description: 'Partida real de 90 segundos com jogador, goleiros blindados que acompanham a bola, CPU rival com IA e placar.',
+    icon: '⚽',
+    accentColor: '#1d4ed8',
+    gradient: 'from-blue-800 to-indigo-950',
+    controlsInfo: 'Setas / WASD: Correr e driblar | Espaço / Botão: Chutar.',
+  },
+  {
+    id: 'kart',
+    title: 'KART RACING 2000',
+    category: 'Corrida Arcade',
+    categoryBadge: 'CORRIDA',
+    year: '2000',
+    description: 'Grande Prêmio de 3 voltas com 8 pilotos no grid, largada 3-2-1-GO, checkpoints ordenados, colisão e turbos.',
+    icon: '🏎️',
+    accentColor: '#dc2626',
+    gradient: 'from-red-800 to-rose-950',
+    controlsInfo: 'Setas / WASD: Direção e acelerador | R: Respawn na pista.',
+  },
+  {
+    id: 'pong',
+    title: 'PONG CLÁSSICO 1972',
+    category: 'Arcade Pioneiro',
+    categoryBadge: 'CLÁSSICO',
+    year: '1972',
+    description: 'O pioneiro dos videogames: partida 1x1 até 7 pontos com ângulos de rebote realistas, velocidade crescente e IA ajustável.',
+    icon: '🏓',
+    accentColor: '#10b981',
+    gradient: 'from-emerald-900 to-slate-950',
+    controlsInfo: 'W / S ou Setas: Mover raquete | Toque: Arrastar raquete.',
+  },
+  {
+    id: 'brickbreaker',
+    title: 'BRICK BREAKER 2000',
+    category: 'Destruição & Agilidade',
+    categoryBadge: 'ARCADE',
+    year: '2000',
+    description: 'Destrua todos os tijolos coloridos ao longo de 3 fases com power-ups (raquete larga, bola lenta, vidas extras).',
+    icon: '🧱',
+    accentColor: '#0ea5e9',
+    gradient: 'from-cyan-900 to-blue-950',
+    controlsInfo: 'A / D ou Mouse: Mover raquete | Espaço / Clique: Lançar bola.',
+  },
+  {
+    id: 'asteroid',
+    title: 'ASTEROID DEFENSE',
+    category: 'Sobrevivência Espacial',
+    categoryBadge: 'VETORIAL',
+    year: '1979',
+    description: 'Nave espacial com física inercial e propulsores. Desintegre asteroides que se dividem em fragmentos menores através de ondas.',
+    icon: '🌌',
+    accentColor: '#f59e0b',
+    gradient: 'from-amber-900 to-black',
+    controlsInfo: '◄ / ►: Girar nave | ▲: Propulsor | Espaço: Disparar laser.',
   },
 ];
 
@@ -140,6 +189,15 @@ export const GamesApp: React.FC<GamesAppProps> = ({ mode = 'retro' }) => {
   if (selectedGame === 'snake') {
     return <SnakeGame onBackToHub={handleBackToHub} mode={mode} />;
   }
+  if (selectedGame === 'pong') {
+    return <PongGame onBackToHub={handleBackToHub} mode={mode} />;
+  }
+  if (selectedGame === 'brickbreaker') {
+    return <BrickBreakerGame onBackToHub={handleBackToHub} mode={mode} />;
+  }
+  if (selectedGame === 'asteroid') {
+    return <AsteroidDefenseGame onBackToHub={handleBackToHub} mode={mode} />;
+  }
 
   // =========================================================================
   // GAME CENTER HUB (INITIAL SCREEN)
@@ -176,17 +234,17 @@ export const GamesApp: React.FC<GamesAppProps> = ({ mode = 'retro' }) => {
                     : 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50'
                 }`}
               >
-                6 JOGOS CLÁSSICOS
+                9 JOGOS COMPLETOS
               </span>
             </div>
             <p className="text-xs opacity-90 font-mono mt-0.5">
-              Selecione um jogo para iniciar. Todos os jogos contam com suporte a mouse, teclado e toque mobile.
+              Todos os jogos possuem regras reais, pontuação persistente, suporte a teclado, mouse e controles touch mobile.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Grid of 6 Games */}
+      {/* Grid of 9 Games */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {GAMES_LIST.map((game) => (
           <div
@@ -261,7 +319,7 @@ export const GamesApp: React.FC<GamesAppProps> = ({ mode = 'retro' }) => {
           isRetro ? 'bg-[#c0c0c0] border-gray-500' : 'bg-slate-950/60 border-slate-800'
         }`}
       >
-        <span>💡 Dica: Dentro de qualquer jogo, clique em <strong>← VOLTAR AOS JOGOS</strong> para retornar a este painel a qualquer momento.</span>
+        <span>💡 Dica: Dentro de qualquer jogo, clique em <strong>← VOLTAR AO ARCADE</strong> para retornar a este painel a qualquer momento.</span>
       </div>
     </div>
   );

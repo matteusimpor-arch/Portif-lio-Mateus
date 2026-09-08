@@ -23,6 +23,7 @@ import { NowApp } from './components/apps/NowApp';
 import { ContactApp } from './components/apps/ContactApp';
 import { TerminalApp } from './components/apps/TerminalApp';
 import { ExperimentsApp } from './components/apps/ExperimentsApp';
+import { GamesApp } from './components/apps/GamesApp';
 import { SettingsApp } from './components/apps/SettingsApp';
 import { TrashApp } from './components/apps/TrashApp';
 import { PixPaintApp } from './components/apps/PixPaintApp';
@@ -42,7 +43,7 @@ export default function App() {
   // Check if first visit for automatic Welcome.exe opening
   const isFirstVisit = typeof window !== 'undefined' ? !localStorage.getItem('mateusOSWelcomeSeen') : true;
 
-  const [activeWindowId, setActiveWindowId] = useState<string | null>(() => (isFirstVisit ? 'welcome' : null));
+  const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
   const [highestZIndex, setHighestZIndex] = useState<number>(20);
 
   // Auto-record site visit on initial page load (1 per browser session)
@@ -108,10 +109,10 @@ export default function App() {
       id: 'welcome',
       title: '✦ Bem-Vindo · Leia-Me (Welcome.exe)',
       iconName: 'welcome',
-      isOpen: isFirstVisit,
+      isOpen: false,
       isMinimized: false,
       isMaximized: false,
-      zIndex: isFirstVisit ? 20 : 1,
+      zIndex: 1,
       x: typeof window !== 'undefined' ? Math.max(16, Math.floor((window.innerWidth - 660) / 2)) : 100,
       y: typeof window !== 'undefined' ? Math.max(16, Math.floor((window.innerHeight - 540) / 2)) : 40,
       width: 660,
@@ -416,7 +417,7 @@ export default function App() {
       case 'contact': return <ContactApp mode="retro" />;
       case 'guestbook': return <GuestbookApp mode="retro" />;
       case 'terminal': return <TerminalApp />;
-      case 'games':
+      case 'games': return <GamesApp mode="retro" />;
       case 'experiments': return <ExperimentsApp />;
       case 'paint': return <PixPaintApp />;
       case 'quiz': return <PopQuizApp />;

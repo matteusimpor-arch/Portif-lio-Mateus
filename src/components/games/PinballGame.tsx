@@ -1,10 +1,40 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, RotateCcw, Rocket, Trophy, Sparkles, Volume2, Shield, Zap } from 'lucide-react';
+import { ArrowLeft, RotateCcw, Trophy, Volume2, Sparkles, Play, Pause } from 'lucide-react';
 import { soundFx } from '../../utils/soundEffects';
+import { getGameHighScore, saveGameHighScore, setGameActiveStatus } from '../../utils/gameStorage';
 
 interface PinballGameProps {
   onBackToHub?: () => void;
   mode?: 'retro' | 'space';
+}
+
+interface Ball {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  isStuck: boolean;
+}
+
+interface Bumper {
+  x: number;
+  y: number;
+  radius: number;
+  points: number;
+  color: string;
+  glow: number;
+}
+
+interface Flipper {
+  x: number;
+  y: number;
+  length: number;
+  baseAngle: number;
+  activeAngle: number;
+  currentAngle: number;
+  isLeft: boolean;
+  isPressed: boolean;
 }
 
 export const PinballGame: React.FC<PinballGameProps> = ({
@@ -12,52 +42,161 @@ export const PinballGame: React.FC<PinballGameProps> = ({
   mode = 'retro',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [score, setScore] = useState<number>(0);
-  const [lives, setLives] = useState<number>(3);
-  const [isActive, setIsActive] = useState<boolean>(false);
-  const [rank, setRank] = useState<string>('Cadete Espacial');
-  const [multiplier, setMultiplier] = useState<number>(1);
-  const [highScore, setHighScore] = useState<number>(12500);
 
-  // Flipper and control flags
-  const leftFlipperActive = useRef<boolean>(false);
-  const rightFlipperActive = useRef<boolean>(false);
-  const plungerCharging = useRef<boolean>(false);
-  const plungerPower = useRef<number>(0);
+  const [score, setScore] = useState<number>(0);
+  const [highScore, setHighScore] = useState<number>(() => getGameHighScore('pinball', 15000));
+  const [ballsLeft, setBallsLeft] = useState<number>(3);
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
+
+  // Notify M-BOT
+  useEffect(() => {
+    setGameActiveStatus(true, 'Space Cadet Pinball');
+    return () => setGameActiveStatus(false);
+  }, []);
+
+  // Internal mutable state for high performance RAF 60 FPS physics
+  const gameStateRef = useRef({
+    ball: {
+      x: 360,
+      y: 520,
+      vx: 0,
+      vy: 0,
+      radius: 8,
+      isStuck: true,
+    } as Ball,
+    bumpers: [
+      { x: 150, y: 160, radius: 24, points: 500, color: '#f59e0b', glow: 0 },
+      { x: 250, y: 160, radius: 24, points: 500, color: '#f59e0b', glow: 0 },
+      { x: 200, y: 240, radius: 28, points: 1000, color: '#ef4444', glow: 0 },
+      { x: 100, y: 320, radius: 18, points: 250, color: '#3b82f6', glow: 0 },
+      { x: 300, y: 320, radius: 18, points: 250, color: '#3b82f6', glow: 0 },
+    ] as Bumper[],
+    flippers: [
+      {
+        x: 125,
+        y: 540,
+        length: 65,
+        baseAngle: 0.45,
+        activeAngle: -0.55,
+        currentAngle: 0.45,
+        isLeft: true,
+        isPressed: false,
+      },
+      {
+        x: 275,
+        y: 540,
+        length: 65,
+        baseAngle: Math.PI - 0.45,
+        activeAngle: Math.PI + 0.55,
+        currentAngle: Math.PI - 0.45,
+        isLeft: false,
+        isPressed: false,
+      },
+    ] as Flipper[],
+    slingshots: [
+      { x1: 75, y1: 420, x2: 110, y2: 490, x3: 75, y3: 490 },
+      { x1: 325, y1: 420, x2: 290, y2: 490, x3: 325, y3: 490 },
+    ],
+    score: 0,
+    ballsLeft: 3,
+    isPlungerPressed: false,
+    plungerCharge: 0,
+    gravity: 0.22,
+    friction: 0.995,
+  });
+
+  const launchBall = () => {
+    const s = gameStateRef.current;
+    if (s.ball.isStuck) {
+      s.ball.isStuck = false;
+      s.ball.vx = (Math.random() - 0.5) * 1.5;
+      s.ball.vy = -14 - Math.random() * 4;
+      try {
+        soundFx.playBoost();
+      } catch (e) {}
+    }
+  };
+
+  const resetBall = () => {
+    const s = gameStateRef.current;
+    s.ball.x = 365;
+    s.ball.y = 520;
+    s.ball.vx = 0;
+    s.ball.vy = 0;
+    s.ball.isStuck = true;
+  };
 
   const startNewGame = () => {
     try {
-      soundFx.playWhistle();
+      soundFx.playClick();
     } catch (e) {}
+    gameStateRef.current.score = 0;
+    gameStateRef.current.ballsLeft = 3;
     setScore(0);
-    setLives(3);
-    setRank('Cadete Espacial');
-    setMultiplier(1);
-    setIsActive(true);
+    setBallsLeft(3);
+    setIsGameOver(false);
+    setIsPaused(false);
+    setGameStarted(true);
+    resetBall();
+    launchBall();
   };
 
+  // Input handlers
+  const setLeftFlipper = (pressed: boolean) => {
+    const flipper = gameStateRef.current.flippers[0];
+    if (flipper.isPressed !== pressed) {
+      flipper.isPressed = pressed;
+      if (pressed) {
+        try { soundFx.playBounce(320); } catch (e) {}
+      }
+    }
+  };
+
+  const setRightFlipper = (pressed: boolean) => {
+    const flipper = gameStateRef.current.flippers[1];
+    if (flipper.isPressed !== pressed) {
+      flipper.isPressed = pressed;
+      if (pressed) {
+        try { soundFx.playBounce(320); } catch (e) {}
+      }
+    }
+  };
+
+  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A' || e.key === 'z' || e.key === 'Z') {
-        leftFlipperActive.current = true;
+      if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'Space', 'KeyZ', 'KeyM', 'Slash'].includes(e.code)) {
+        e.preventDefault();
       }
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D' || e.key === '/' || e.key === '.') {
-        rightFlipperActive.current = true;
+
+      if (e.code === 'Escape') {
+        setIsPaused((p) => !p);
+        return;
       }
-      if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
-        plungerCharging.current = true;
+
+      if (['ArrowLeft', 'KeyZ', 'KeyA'].includes(e.code)) {
+        setLeftFlipper(true);
+      }
+      if (['ArrowRight', 'KeyM', 'Slash', 'KeyD'].includes(e.code)) {
+        setRightFlipper(true);
+      }
+      if (['Space', 'ArrowDown'].includes(e.code)) {
+        if (!gameStarted || isGameOver) {
+          startNewGame();
+        } else if (gameStateRef.current.ball.isStuck) {
+          launchBall();
+        }
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A' || e.key === 'z' || e.key === 'Z') {
-        leftFlipperActive.current = false;
+      if (['ArrowLeft', 'KeyZ', 'KeyA'].includes(e.code)) {
+        setLeftFlipper(false);
       }
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D' || e.key === '/' || e.key === '.') {
-        rightFlipperActive.current = false;
-      }
-      if (e.key === ' ' || e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
-        plungerCharging.current = false;
+      if (['ArrowRight', 'KeyM', 'Slash', 'KeyD'].includes(e.code)) {
+        setRightFlipper(false);
       }
     };
 
@@ -67,82 +206,210 @@ export const PinballGame: React.FC<PinballGameProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [gameStarted, isGameOver]);
 
-  // Main Pinball Physics & Rendering Loop
+  // Main RAF Physics loop
   useEffect(() => {
-    if (!isActive) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let ballX = 310;
-    let ballY = 320;
-    let ballVx = 0;
-    let ballVy = -8;
-    const ballRadius = 6.5;
-    const gravity = 0.14;
-
-    // Flipper dimensions & positions
-    const leftFlipper = { x: 95, y: 390, length: 55, angle: 0.35, restAngle: 0.35, activeAngle: -0.55 };
-    const rightFlipper = { x: 225, y: 390, length: 55, angle: Math.PI - 0.35, restAngle: Math.PI - 0.35, activeAngle: Math.PI + 0.55 };
-
-    // Bumpers and targets
-    const bumpers = [
-      { x: 100, y: 120, r: 22, color: '#38bdf8', glow: '#0284c7', pts: 250, flash: 0 },
-      { x: 220, y: 120, r: 22, color: '#ec4899', glow: '#be185d', pts: 250, flash: 0 },
-      { x: 160, y: 180, r: 26, color: '#facc15', glow: '#ca8a04', pts: 500, flash: 0 },
-      { x: 60, y: 220, r: 16, color: '#a855f7', glow: '#7e22ce', pts: 150, flash: 0 },
-      { x: 260, y: 220, r: 16, color: '#a855f7', glow: '#7e22ce', pts: 150, flash: 0 },
-    ];
-
-    // Rollover hyperspace targets
-    const rollovers = [
-      { x: 110, y: 55, active: false, pts: 100 },
-      { x: 160, y: 45, active: false, pts: 100 },
-      { x: 210, y: 55, active: false, pts: 100 },
-    ];
-
     let animId: number;
+    const WIDTH = 400;
+    const HEIGHT = 620;
 
     const gameLoop = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (!isPaused && !isGameOver) {
+        const state = gameStateRef.current;
+        const ball = state.ball;
 
-      // 1. Table Background
-      const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      bgGrad.addColorStop(0, '#0a0d24');
-      bgGrad.addColorStop(0.5, '#0e1538');
-      bgGrad.addColorStop(1, '#050714');
+        // Flipper rotation physics
+        state.flippers.forEach((f) => {
+          const target = f.isPressed ? f.activeAngle : f.baseAngle;
+          f.currentAngle += (target - f.currentAngle) * 0.45;
+        });
+
+        // Ball physics
+        if (!ball.isStuck) {
+          ball.vy += state.gravity;
+          ball.vx *= state.friction;
+          ball.vy *= state.friction;
+
+          ball.x += ball.vx;
+          ball.y += ball.vy;
+
+          // Wall bounds
+          // Left Wall
+          if (ball.x - ball.radius < 25) {
+            ball.x = 25 + ball.radius;
+            ball.vx = Math.abs(ball.vx) * 0.8;
+            try { soundFx.playBounce(220); } catch (e) {}
+          }
+          // Right launcher lane separator
+          if (ball.x + ball.radius > 340 && ball.y > 180) {
+            if (ball.vx > 0 && ball.x < 345) {
+              ball.x = 340 - ball.radius;
+              ball.vx = -Math.abs(ball.vx) * 0.8;
+            }
+          }
+          // Extreme Right Wall
+          if (ball.x + ball.radius > 385) {
+            ball.x = 385 - ball.radius;
+            ball.vx = -Math.abs(ball.vx) * 0.8;
+          }
+          // Top curved dome
+          if (ball.y - ball.radius < 30) {
+            ball.y = 30 + ball.radius;
+            ball.vy = Math.abs(ball.vy) * 0.8;
+          }
+
+          // Top arch curvature
+          if (ball.y < 120) {
+            const archCenterX = 200;
+            const archCenterY = 120;
+            const dist = Math.hypot(ball.x - archCenterX, ball.y - archCenterY);
+            if (dist > 180) {
+              const angle = Math.atan2(ball.y - archCenterY, ball.x - archCenterX);
+              ball.x = archCenterX + Math.cos(angle) * (180 - ball.radius);
+              ball.y = archCenterY + Math.sin(angle) * (180 - ball.radius);
+              const speed = Math.hypot(ball.vx, ball.vy) * 0.85;
+              ball.vx = -Math.cos(angle) * speed;
+              ball.vy = -Math.sin(angle) * speed;
+            }
+          }
+
+          // Bumpers collision
+          state.bumpers.forEach((b) => {
+            const dx = ball.x - b.x;
+            const dy = ball.y - b.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < ball.radius + b.radius) {
+              // Hit bumper!
+              const angle = Math.atan2(dy, dx);
+              const bouncePower = 9;
+              ball.vx = Math.cos(angle) * bouncePower;
+              ball.vy = Math.sin(angle) * bouncePower;
+              b.glow = 1.0;
+
+              state.score += b.points;
+              setScore(state.score);
+              saveGameHighScore('pinball', state.score);
+              setHighScore((h) => Math.max(h, state.score));
+
+              try {
+                soundFx.playBounce(b.points > 500 ? 587 : 440);
+              } catch (e) {}
+            }
+
+            if (b.glow > 0) {
+              b.glow = Math.max(0, b.glow - 0.08);
+            }
+          });
+
+          // Flippers collision
+          state.flippers.forEach((f) => {
+            const endX = f.x + Math.cos(f.currentAngle) * f.length;
+            const endY = f.y + Math.sin(f.currentAngle) * f.length;
+
+            // Line segment to ball distance
+            const l2 = (endX - f.x) ** 2 + (endY - f.y) ** 2;
+            let t = ((ball.x - f.x) * (endX - f.x) + (ball.y - f.y) * (endY - f.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+
+            const projX = f.x + t * (endX - f.x);
+            const projY = f.y + t * (endY - f.y);
+            const dist = Math.hypot(ball.x - projX, ball.y - projY);
+
+            if (dist < ball.radius + 8) {
+              // Ball hits flipper
+              const angleNormal = f.currentAngle - Math.PI / 2;
+              const flipPower = f.isPressed ? 14 : 5;
+
+              ball.vx = Math.cos(angleNormal) * flipPower + (Math.random() - 0.5) * 2;
+              ball.vy = Math.sin(angleNormal) * flipPower;
+              ball.y = projY - ball.radius - 2;
+
+              try {
+                soundFx.playBounce(520);
+              } catch (e) {}
+            }
+          });
+
+          // Bottom drain
+          if (ball.y > HEIGHT + 20) {
+            state.ballsLeft -= 1;
+            setBallsLeft(state.ballsLeft);
+            try { soundFx.playError(); } catch (e) {}
+
+            if (state.ballsLeft <= 0) {
+              setIsGameOver(true);
+            } else {
+              resetBall();
+              setTimeout(() => {
+                launchBall();
+              }, 700);
+            }
+          }
+        }
+      }
+
+      // -------------------------------------------------------------
+      // RENDERING CANVAS
+      // -------------------------------------------------------------
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+      const isRetro = mode === 'retro';
+
+      // Table Background
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+      if (isRetro) {
+        bgGrad.addColorStop(0, '#0f172a');
+        bgGrad.addColorStop(0.5, '#1e293b');
+        bgGrad.addColorStop(1, '#020617');
+      } else {
+        bgGrad.addColorStop(0, '#050b1a');
+        bgGrad.addColorStop(0.5, '#02182b');
+        bgGrad.addColorStop(1, '#000814');
+      }
       ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-      // Space Cadet Mission Graphics & Orbit Tracks
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
-      ctx.lineWidth = 2;
+      // Neon table markings / space vector grid
+      ctx.strokeStyle = isRetro ? 'rgba(59, 130, 246, 0.15)' : 'rgba(6, 182, 212, 0.2)';
+      ctx.lineWidth = 1;
+      for (let i = 40; i < WIDTH; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(i, 40);
+        ctx.lineTo(i, HEIGHT - 80);
+        ctx.stroke();
+      }
+
+      // Outer Boundary Walls
+      ctx.strokeStyle = isRetro ? '#3b82f6' : '#22d3ee';
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(160, 150, 95, Math.PI * 0.8, Math.PI * 2.2);
+      ctx.moveTo(25, HEIGHT);
+      ctx.lineTo(25, 140);
+      ctx.arc(200, 140, 175, Math.PI, 0);
+      ctx.lineTo(375, HEIGHT);
       ctx.stroke();
 
+      // Launcher lane separator
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(160, 150, 65, 0, Math.PI * 2);
+      ctx.moveTo(340, 180);
+      ctx.lineTo(340, HEIGHT);
       ctx.stroke();
 
-      // Mission Center Star
-      ctx.fillStyle = 'rgba(250, 204, 21, 0.15)';
-      ctx.beginPath();
-      ctx.arc(160, 150, 30, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Slingshots above flippers
-      const slings = [
-        { x1: 55, y1: 310, x2: 85, y2: 370, x3: 55, y3: 370 },
-        { x1: 265, y1: 310, x2: 235, y2: 370, x3: 265, y3: 370 },
-      ];
-      ctx.fillStyle = 'rgba(236, 72, 153, 0.35)';
-      ctx.strokeStyle = '#ec4899';
+      // Bottom Slingshots
+      const state = gameStateRef.current;
+      ctx.fillStyle = isRetro ? '#1e3a8a' : '#083344';
+      ctx.strokeStyle = isRetro ? '#60a5fa' : '#38bdf8';
       ctx.lineWidth = 2;
-      slings.forEach((s) => {
+      state.slingshots.forEach((s) => {
         ctx.beginPath();
         ctx.moveTo(s.x1, s.y1);
         ctx.lineTo(s.x2, s.y2);
@@ -152,223 +419,81 @@ export const PinballGame: React.FC<PinballGameProps> = ({
         ctx.stroke();
       });
 
-      // 2. Update Flippers
-      if (leftFlipperActive.current) {
-        leftFlipper.angle += (leftFlipper.activeAngle - leftFlipper.angle) * 0.45;
-      } else {
-        leftFlipper.angle += (leftFlipper.restAngle - leftFlipper.angle) * 0.25;
-      }
-
-      if (rightFlipperActive.current) {
-        rightFlipper.angle += (rightFlipper.activeAngle - rightFlipper.angle) * 0.45;
-      } else {
-        rightFlipper.angle += (rightFlipper.restAngle - rightFlipper.angle) * 0.25;
-      }
-
-      // Draw Left Flipper
-      const lx2 = leftFlipper.x + Math.cos(leftFlipper.angle) * leftFlipper.length;
-      const ly2 = leftFlipper.y + Math.sin(leftFlipper.angle) * leftFlipper.length;
-      ctx.save();
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 8;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(leftFlipper.x, leftFlipper.y);
-      ctx.lineTo(lx2, ly2);
-      ctx.stroke();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      ctx.restore();
-
-      // Draw Right Flipper
-      const rx2 = rightFlipper.x + Math.cos(rightFlipper.angle) * rightFlipper.length;
-      const ry2 = rightFlipper.y + Math.sin(rightFlipper.angle) * rightFlipper.length;
-      ctx.save();
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 8;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(rightFlipper.x, rightFlipper.y);
-      ctx.lineTo(rx2, ry2);
-      ctx.stroke();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-      ctx.restore();
-
-      // 3. Draw & Collide Bumpers
-      bumpers.forEach((b) => {
-        if (b.flash > 0) b.flash--;
+      // Bumpers
+      state.bumpers.forEach((b) => {
         ctx.save();
+        if (b.glow > 0) {
+          ctx.shadowColor = b.color;
+          ctx.shadowBlur = 20 * b.glow;
+        }
+
+        const bGrad = ctx.createRadialGradient(b.x - 6, b.y - 6, 2, b.x, b.y, b.radius);
+        bGrad.addColorStop(0, '#ffffff');
+        bGrad.addColorStop(0.4, b.color);
+        bGrad.addColorStop(1, '#1e293b');
+
+        ctx.fillStyle = bGrad;
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-        ctx.fillStyle = b.flash > 0 ? '#ffffff' : b.color;
-        ctx.shadowColor = b.glow;
-        ctx.shadowBlur = b.flash > 0 ? 20 : 12;
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Inner light core
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.r * 0.45, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
         ctx.restore();
 
-        // Bumper collision
-        const dx = ballX - b.x;
-        const dy = ballY - b.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < b.r + ballRadius) {
-          b.flash = 12;
-          const normalX = dx / dist;
-          const normalY = dy / dist;
-          ballVx = normalX * 7.5;
-          ballVy = normalY * 7.5;
-          setScore((s) => {
-            const next = s + b.pts;
-            if (next > 10000) setRank('Comandante de Frota');
-            else if (next > 5000) setRank('Tenente Espacial');
-            else if (next > 2000) setRank('Alferes');
-            return next;
-          });
-          try {
-            soundFx.playPowerup();
-          } catch (e) {}
-        }
+        // Bumper Point Label
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(b.points), b.x, b.y);
       });
 
-      // 4. Rollover Targets
-      rollovers.forEach((ro) => {
-        ctx.fillStyle = ro.active ? '#facc15' : 'rgba(250, 204, 21, 0.4)';
+      // Flippers
+      state.flippers.forEach((f) => {
+        const endX = f.x + Math.cos(f.currentAngle) * f.length;
+        const endY = f.y + Math.sin(f.currentAngle) * f.length;
+
+        ctx.save();
+        ctx.strokeStyle = isRetro ? '#ef4444' : '#f43f5e';
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
         ctx.beginPath();
-        ctx.arc(ro.x, ro.y, 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
+        ctx.moveTo(f.x, f.y);
+        ctx.lineTo(endX, endY);
         ctx.stroke();
 
-        const d = Math.sqrt((ballX - ro.x) ** 2 + (ballY - ro.y) ** 2);
-        if (d < 12 && !ro.active) {
-          ro.active = true;
-          setScore((s) => s + ro.pts);
-          try {
-            soundFx.playNotification();
-          } catch (e) {}
-        }
+        // Pivot joint
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
       });
 
-      // 5. Plunger Lane (Right edge)
-      ctx.fillStyle = 'rgba(250, 204, 21, 0.15)';
-      ctx.fillRect(295, 40, 25, canvas.height - 40);
-      ctx.strokeStyle = '#facc15';
-      ctx.strokeRect(295, 40, 25, canvas.height - 40);
-
-      // Plunger Spring
-      if (plungerCharging.current) {
-        plungerPower.current = Math.min(15, plungerPower.current + 0.5);
-      } else if (plungerPower.current > 0) {
-        if (ballX > 295 && ballY > 300) {
-          ballVy = -plungerPower.current * 1.2;
-          ballVx = -1.2;
-          try {
-            soundFx.playBoost();
-          } catch (e) {}
-        }
-        plungerPower.current = 0;
-      }
-
-      ctx.fillStyle = '#ef4444';
-      ctx.fillRect(300, canvas.height - 30 + plungerPower.current, 15, 20);
-
-      // 6. Ball Physics & Movement
-      ballVy += gravity;
-      ballVx *= 0.995; // air drag
-      ballVy *= 0.995;
-
-      ballX += ballVx;
-      ballY += ballVy;
-
-      // Table Boundary Walls
-      if (ballX <= 16) {
-        ballX = 16;
-        ballVx = Math.abs(ballVx) * 0.85;
-      }
-      if (ballX >= 295 && ballY <= 60) {
-        // Curved top right entry into plunger lane
-        ballX = 295;
-        ballVx = -Math.abs(ballVx);
-      } else if (ballX >= canvas.width - 12) {
-        ballX = canvas.width - 12;
-        ballVx = -Math.abs(ballVx) * 0.85;
-      }
-      if (ballY <= 16) {
-        ballY = 16;
-        ballVy = Math.abs(ballVy) * 0.85;
-      }
-
-      // Flipper Collisions (Segment distance check)
-      const checkFlipperHit = (fx: number, fy: number, fx2: number, fy2: number, isLeft: boolean) => {
-        const segDx = fx2 - fx;
-        const segDy = fy2 - fy;
-        const segLen = Math.sqrt(segDx * segDx + segDy * segDy);
-        const u = Math.max(0, Math.min(1, ((ballX - fx) * segDx + (ballY - fy) * segDy) / (segLen * segLen)));
-        const closeX = fx + u * segDx;
-        const closeY = fy + u * segDy;
-        const dist = Math.sqrt((ballX - closeX) ** 2 + (ballY - closeY) ** 2);
-
-        if (dist < ballRadius + 6) {
-          const flipperSpeed = (isLeft ? leftFlipperActive.current : rightFlipperActive.current) ? 9 : 3.5;
-          ballVy = -Math.abs(ballVy) * 0.6 - flipperSpeed;
-          ballVx += (isLeft ? 2.5 : -2.5) + (ballX - closeX) * 0.2;
-          try {
-            soundFx.playClick();
-          } catch (e) {}
-        }
-      };
-
-      checkFlipperHit(leftFlipper.x, leftFlipper.y, lx2, ly2, true);
-      checkFlipperHit(rightFlipper.x, rightFlipper.y, rx2, ry2, false);
-
-      // Ball Drain at Bottom
-      if (ballY > canvas.height + 25) {
-        setLives((l) => {
-          if (l <= 1) {
-            setIsActive(false);
-            try {
-              soundFx.playError();
-            } catch (e) {}
-            return 0;
-          }
-          // Respawn in plunger lane
-          ballX = 308;
-          ballY = 330;
-          ballVx = 0;
-          ballVy = -9;
-          return l - 1;
-        });
-      }
-
-      // 7. Draw Ball with Metallic Specular Highlight
+      // Ball
+      const ball = state.ball;
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
-      ctx.fillStyle = '#f8fafc';
-      ctx.shadowColor = '#38bdf8';
+      ctx.shadowColor = isRetro ? 'rgba(255, 255, 255, 0.6)' : 'rgba(34, 211, 238, 0.8)';
       ctx.shadowBlur = 10;
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
 
-      // Specular glare
+      const ballGrad = ctx.createRadialGradient(
+        ball.x - 2,
+        ball.y - 2,
+        1,
+        ball.x,
+        ball.y,
+        ball.radius
+      );
+      ballGrad.addColorStop(0, '#ffffff');
+      ballGrad.addColorStop(0.5, '#cbd5e1');
+      ballGrad.addColorStop(1, '#475569');
+
+      ctx.fillStyle = ballGrad;
       ctx.beginPath();
-      ctx.arc(ballX - 2, ballY - 2, 2, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
@@ -377,139 +502,175 @@ export const PinballGame: React.FC<PinballGameProps> = ({
 
     animId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animId);
-  }, [isActive]);
+  }, [isGameOver, isPaused, mode]);
+
+  const isRetro = mode === 'retro';
 
   return (
-    <div className="space-y-4 font-sans select-none text-slate-100 max-w-2xl mx-auto">
-      {/* Top Game Navigation Bar */}
-      <div className="bg-[#c0c0c0] p-2.5 border-2 border-white border-r-gray-800 border-b-gray-800 text-gray-900 flex flex-wrap items-center justify-between gap-3 shadow">
+    <div className="space-y-4 font-sans select-none text-slate-100 max-w-xl mx-auto">
+      {/* Header Bar */}
+      <div
+        className={`p-2.5 border-2 flex flex-wrap items-center justify-between gap-2 shadow ${
+          isRetro
+            ? 'bg-[#c0c0c0] border-white border-r-gray-800 border-b-gray-800 text-gray-900'
+            : 'bg-slate-900/90 border-cyan-500/40 text-cyan-200 rounded-lg backdrop-blur-md'
+        }`}
+      >
         <div className="flex items-center gap-2">
           {onBackToHub && (
             <button
               onClick={onBackToHub}
-              className="px-3 py-1.5 bg-[#d4d0c8] hover:bg-white text-gray-900 font-mono font-bold text-xs border-2 border-white border-r-gray-800 border-b-gray-800 cursor-pointer flex items-center gap-1.5 active:border-gray-800 active:border-r-white active:border-b-white transition"
+              className={`px-3 py-1.5 font-mono font-bold text-xs border-2 cursor-pointer flex items-center gap-1.5 transition ${
+                isRetro
+                  ? 'bg-[#d4d0c8] hover:bg-white text-gray-900 border-white border-r-gray-800 border-b-gray-800'
+                  : 'bg-cyan-950/80 hover:bg-cyan-900 text-cyan-200 border-cyan-600 rounded'
+              }`}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>VOLTAR AOS JOGOS</span>
+              <span>VOLTAR AO ARCADE</span>
             </button>
           )}
-          <div className="font-mono font-black text-xs text-[#000080] flex items-center gap-1">
-            <Rocket className="w-4 h-4 text-cyan-700" />
-            <span>3D PINBALL SPACE CADET 2000</span>
-          </div>
+          <span className="font-mono font-black text-xs text-blue-900 dark:text-cyan-300">
+            🎯 {isRetro ? 'SPACE CADET PINBALL 3D' : 'NEON PINBALL 2026'}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
+          {gameStarted && !isGameOver && (
+            <button
+              onClick={() => setIsPaused((p) => !p)}
+              className="px-2.5 py-1 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-mono font-bold text-xs border border-yellow-600 rounded flex items-center gap-1 cursor-pointer shadow"
+            >
+              {isPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+              <span>{isPaused ? 'CONTINUAR' : 'PAUSAR'}</span>
+            </button>
+          )}
+
           <button
             onClick={startNewGame}
-            className="px-3 py-1.5 bg-[#d4d0c8] hover:bg-white text-black font-mono font-bold text-xs border-2 border-white border-r-gray-800 border-b-gray-800 cursor-pointer flex items-center gap-1 shadow"
+            className={`px-3 py-1 font-mono font-bold text-xs border-2 cursor-pointer flex items-center gap-1 shadow ${
+              isRetro
+                ? 'bg-[#d4d0c8] hover:bg-white text-black border-white border-r-gray-800 border-b-gray-800'
+                : 'bg-rose-600 hover:bg-rose-500 text-white border-rose-400 rounded'
+            }`}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>REINICIAR</span>
+            <span>NOVO JOGO</span>
           </button>
         </div>
       </div>
 
-      {/* Control Instructions Banner */}
-      <div className="bg-[#0b0f2a] p-2.5 rounded border border-cyan-500/40 text-xs font-mono flex flex-wrap items-center justify-between gap-2 shadow-inner text-cyan-200">
+      {/* Info Status Bar */}
+      <div
+        className={`px-3 py-1.5 border text-xs font-mono flex flex-wrap items-center justify-between gap-2 shadow-inner ${
+          isRetro
+            ? 'bg-[#000080] border-white text-yellow-300'
+            : 'bg-slate-900 border-cyan-800/80 text-cyan-200 rounded'
+        }`}
+      >
         <span>
-          <strong>CONTROLES:</strong> <code className="bg-black/60 px-1 py-0.5 rounded text-yellow-300">◄ A / Z</code> Paleta Esq | <code className="bg-black/60 px-1 py-0.5 rounded text-yellow-300">► D / .</code> Paleta Dir | <code className="bg-black/60 px-1 py-0.5 rounded text-yellow-300">ESPAÇO</code> Lançar
+          <strong>CONTROLES:</strong> Z / Seta Esq (Flipper E) | M / Seta Dir (Flipper D) | Espaço (Lançador)
         </span>
-        <span className="text-yellow-300 font-bold">
-          Patente: {rank}
-        </span>
+        <div className="flex items-center gap-4 text-white">
+          <span>Pontos: <strong className="text-yellow-300">{score}</strong></span>
+          <span>Bolas: <strong className="text-yellow-300">{'●'.repeat(Math.max(0, ballsLeft))}</strong></span>
+          <span>Recorde: <strong className="text-yellow-300">{highScore}</strong></span>
+        </div>
       </div>
 
-      {/* Main Pinball Machine Frame */}
-      <div className="bg-[#0e1538] p-4 border-2 border-cyan-500/50 rounded-xl shadow-2xl space-y-3">
-        {/* Top Digital Score HUD */}
-        <div className="bg-black/80 p-3 rounded-lg border border-cyan-600/60 flex items-center justify-between font-mono text-xs shadow-inner">
-          <div>
-            <div className="text-[10px] text-slate-400">PONTUAÇÃO</div>
-            <div className="text-xl font-black text-cyan-400 tracking-wider leading-none">{score}</div>
-          </div>
-          <div>
-            <div className="text-[10px] text-slate-400">RECORD</div>
-            <div className="text-sm font-bold text-yellow-400">{Math.max(score, highScore)}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-[10px] text-slate-400">ESFERAS RESTANTES</div>
-            <div className="text-sm font-bold text-red-400">{'⚪ '.repeat(lives)}</div>
-          </div>
-        </div>
-
-        {/* Pinball Canvas */}
-        <div className="flex justify-center bg-black p-2 rounded-lg border-2 border-blue-950 shadow-2xl">
+      {/* Canvas Arcade Cabinet */}
+      <div className="flex flex-col items-center justify-center p-2">
+        <div
+          className={`relative p-2.5 rounded-2xl border-4 shadow-2xl ${
+            isRetro
+              ? 'bg-[#1e293b] border-gray-400 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)]'
+              : 'bg-slate-950 border-cyan-500/50 shadow-[0_0_35px_rgba(6,182,212,0.25)]'
+          }`}
+        >
           <canvas
             ref={canvasRef}
-            width={330}
-            height={430}
-            className="border border-cyan-500/30 bg-black rounded"
+            width={400}
+            height={620}
+            className="w-full max-w-[380px] h-auto rounded-lg border-2 border-slate-700 bg-black block"
           />
-        </div>
 
-        {/* Action Button & Launch System */}
-        {!isActive ? (
-          <button
-            onClick={startNewGame}
-            className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold font-mono text-sm rounded-lg border border-cyan-300 shadow-xl cursor-pointer active:scale-98 transition flex items-center justify-center gap-2"
-          >
-            <Rocket className="w-5 h-5 fill-current" />
-            <span>LANÇAR ESFERA / INICIAR MISSÃO ESPACIAL</span>
-          </button>
-        ) : (
-          /* Mobile / Touch On-Screen Controls */
-          <div className="grid grid-cols-3 gap-2 pt-1">
+          {/* Touch Controls Bar for Mobile */}
+          <div className="pt-3 grid grid-cols-3 gap-2 select-none">
             <button
-              onMouseDown={() => (leftFlipperActive.current = true)}
-              onMouseUp={() => (leftFlipperActive.current = false)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                leftFlipperActive.current = true;
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                leftFlipperActive.current = false;
-              }}
-              className="py-4 bg-blue-700 hover:bg-blue-600 active:bg-blue-500 text-white font-mono font-black text-xs rounded-lg border border-cyan-300 shadow-lg cursor-pointer flex items-center justify-center gap-1 select-none active:scale-95 transition"
+              onTouchStart={() => setLeftFlipper(true)}
+              onTouchEnd={() => setLeftFlipper(false)}
+              onMouseDown={() => setLeftFlipper(true)}
+              onMouseUp={() => setLeftFlipper(false)}
+              className="py-3 px-2 bg-rose-700 active:bg-rose-500 text-white font-mono font-bold text-xs rounded-xl border border-rose-400 active:scale-95 shadow cursor-pointer text-center"
             >
-              <span>◀ ESQUERDA</span>
+              FLIPPER ESQ
             </button>
-
             <button
-              onMouseDown={() => (plungerCharging.current = true)}
-              onMouseUp={() => (plungerCharging.current = false)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                plungerCharging.current = true;
+              onClick={() => {
+                if (!gameStarted || isGameOver) startNewGame();
+                else launchBall();
               }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                plungerCharging.current = false;
-              }}
-              className="py-4 bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-slate-950 font-mono font-black text-xs rounded-lg border border-yellow-200 shadow-lg cursor-pointer flex items-center justify-center gap-1 select-none active:scale-95 transition"
+              className="py-3 px-2 bg-yellow-500 active:bg-yellow-400 text-slate-950 font-mono font-bold text-xs rounded-xl border border-yellow-300 active:scale-95 shadow cursor-pointer text-center"
             >
-              <span>🚀 LANÇAR</span>
+              LANÇAR 🚀
             </button>
-
             <button
-              onMouseDown={() => (rightFlipperActive.current = true)}
-              onMouseUp={() => (rightFlipperActive.current = false)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                rightFlipperActive.current = true;
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                rightFlipperActive.current = false;
-              }}
-              className="py-4 bg-blue-700 hover:bg-blue-600 active:bg-blue-500 text-white font-mono font-black text-xs rounded-lg border border-cyan-300 shadow-lg cursor-pointer flex items-center justify-center gap-1 select-none active:scale-95 transition"
+              onTouchStart={() => setRightFlipper(true)}
+              onTouchEnd={() => setRightFlipper(false)}
+              onMouseDown={() => setRightFlipper(true)}
+              onMouseUp={() => setRightFlipper(false)}
+              className="py-3 px-2 bg-rose-700 active:bg-rose-500 text-white font-mono font-bold text-xs rounded-xl border border-rose-400 active:scale-95 shadow cursor-pointer text-center"
             >
-              <span>DIREITA ▶</span>
+              FLIPPER DIR
             </button>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Game Over Modal */}
+      {isGameOver && (
+        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4 animate-fadeIn">
+          <div
+            className={`max-w-md w-full p-6 rounded-xl border-4 text-center space-y-4 shadow-2xl ${
+              isRetro
+                ? 'bg-[#c0c0c0] border-white text-slate-900 shadow-[8px_8px_0px_rgba(0,0,0,0.5)]'
+                : 'bg-slate-950 border-cyan-400 text-cyan-100'
+            }`}
+          >
+            <div className="w-14 h-14 mx-auto rounded-full bg-yellow-400 flex items-center justify-center text-3xl shadow-lg">
+              🎯
+            </div>
+            <h2 className="text-2xl font-mono font-black tracking-wider text-rose-600 dark:text-rose-400">
+              FIM DE JOGO
+            </h2>
+            <p className="text-sm font-mono leading-relaxed">
+              Todas as 3 bolas foram drenadas pelo fliperama!
+            </p>
+
+            <div className="p-3 bg-white/60 dark:bg-slate-900 rounded font-mono text-sm space-y-1">
+              <div>Pontuação Final: <strong className="text-rose-700 dark:text-rose-400">{score}</strong></div>
+              <div>Recorde Salvo: <strong>{highScore}</strong></div>
+            </div>
+
+            <div className="flex gap-3 justify-center pt-2">
+              <button
+                onClick={startNewGame}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-mono font-bold text-xs rounded cursor-pointer shadow transition"
+              >
+                NOVA FICHA
+              </button>
+              {onBackToHub && (
+                <button
+                  onClick={onBackToHub}
+                  className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white font-mono font-bold text-xs rounded cursor-pointer shadow transition"
+                >
+                  VOLTAR AO ARCADE
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

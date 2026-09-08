@@ -8,11 +8,24 @@ import { KartGame } from '../../games/KartGame';
 import { MinesweeperGame } from '../../games/MinesweeperGame';
 import { PinballGame } from '../../games/PinballGame';
 import { SnakeGame } from '../../games/SnakeGame';
+import { PongGame } from '../../games/PongGame';
+import { BrickBreakerGame } from '../../games/BrickBreakerGame';
+import { AsteroidDefenseGame } from '../../games/AsteroidDefenseGame';
 
-export type GameId = 'solitaire' | 'snake' | 'minesweeper' | 'pinball' | 'soccer' | 'kart' | null;
+export type GameId =
+  | 'solitaire'
+  | 'snake'
+  | 'minesweeper'
+  | 'pinball'
+  | 'soccer'
+  | 'kart'
+  | 'pong'
+  | 'brickbreaker'
+  | 'asteroid'
+  | null;
 
 interface GameItem {
-  id: 'solitaire' | 'snake' | 'minesweeper' | 'pinball' | 'soccer' | 'kart';
+  id: 'solitaire' | 'snake' | 'minesweeper' | 'pinball' | 'soccer' | 'kart' | 'pong' | 'brickbreaker' | 'asteroid';
   title: string;
   category: string;
   categoryBadge: string;
@@ -29,7 +42,7 @@ const SPACE_GAMES: GameItem[] = [
     categoryBadge: 'ESTRATÉGIA',
     description: 'Paciência Klondike em ambiente cósmico com baralho holográfico, drag-and-drop e HUD futurista.',
     icon: '♠️',
-    gradient: 'from-blue-600 to-cyan-600'
+    gradient: 'from-blue-600 to-cyan-600',
   },
   {
     id: 'snake',
@@ -38,7 +51,7 @@ const SPACE_GAMES: GameItem[] = [
     categoryBadge: 'ARCADE',
     description: 'Serpente luminosa com grade digital, núcleos de energia quântica e rastro de luz suave.',
     icon: '🐍',
-    gradient: 'from-emerald-500 to-cyan-600'
+    gradient: 'from-emerald-500 to-cyan-600',
   },
   {
     id: 'minesweeper',
@@ -47,35 +60,62 @@ const SPACE_GAMES: GameItem[] = [
     categoryBadge: 'DEDUÇÃO',
     description: 'Desarme campos de minas com estética quântica, seleções Fácil/Médio/Difícil e contadores digitais.',
     icon: '💣',
-    gradient: 'from-purple-600 to-blue-700'
+    gradient: 'from-purple-600 to-blue-700',
   },
   {
     id: 'pinball',
     title: 'NEON PINBALL',
-    category: 'Física & Metal',
+    category: 'Física & Gravidade',
     categoryBadge: 'FLIPERAMA',
     description: 'Mesa espacial de alta velocidade com bumpers holográficos, física precisa e efeitos de impacto.',
     icon: '🚀',
-    gradient: 'from-pink-600 to-purple-800'
+    gradient: 'from-pink-600 to-purple-800',
   },
   {
     id: 'soccer',
-    title: 'FUTEBOL 2026',
+    title: 'CYBER SOCCER 2026',
     category: 'Esporte Cibernético',
     categoryBadge: 'ESPORTE',
-    description: 'Gramado digital holográfico, goleiro inteligente e cálculo de curva de trajetória.',
+    description: 'Partida real com gramado digital holográfico, goleiro inteligente que acompanha a bola e IA adversária.',
     icon: '⚽',
-    gradient: 'from-cyan-500 to-blue-800'
+    gradient: 'from-cyan-500 to-blue-800',
   },
   {
     id: 'kart',
-    title: 'MARIO KART',
+    title: 'SPACE KART GRAND PRIX',
     category: 'Velocidade & Reflexo',
     categoryBadge: 'CORRIDA',
-    description: 'Circuito espacial pseudo-3D com pilotos lendários, turbos de fótons e velocímetro digital.',
+    description: 'Grande Prêmio de 3 voltas com 8 pilotos no grid, largada 3-2-1-GO, telemetria e sistema de respawn.',
     icon: '🏎️',
-    gradient: 'from-amber-500 to-red-600'
-  }
+    gradient: 'from-amber-500 to-red-600',
+  },
+  {
+    id: 'pong',
+    title: 'LASER PONG 2026',
+    category: 'Arcade Cibernético',
+    categoryBadge: 'DUELO',
+    description: 'Duelo 1x1 em alta velocidade até 7 pontos com laser trails, física de impacto e CPU reativa.',
+    icon: '🏓',
+    gradient: 'from-teal-500 to-emerald-700',
+  },
+  {
+    id: 'brickbreaker',
+    title: 'QUANTUM BREAKOUT',
+    category: 'Destruição de Partículas',
+    categoryBadge: 'ARCADE',
+    description: 'Desintegre matrizes quânticas ao longo de 3 fases com power-ups de expansão de campo e desaceleração.',
+    icon: '🧱',
+    gradient: 'from-sky-500 to-indigo-700',
+  },
+  {
+    id: 'asteroid',
+    title: 'COSMIC DEFENDER',
+    category: 'Sobrevivência Orbital',
+    categoryBadge: 'COMBATE',
+    description: 'Pilote um interceptador estelar com impulso inercial e canhões de fótons contra chuvas de meteoros.',
+    icon: '🌌',
+    gradient: 'from-violet-600 to-rose-700',
+  },
 ];
 
 export const SpaceGamesApp: React.FC = () => {
@@ -122,10 +162,13 @@ export const SpaceGamesApp: React.FC = () => {
             {selectedGameId === 'pinball' && <PinballGame onBackToHub={handleBackToArcade} mode="space" />}
             {selectedGameId === 'soccer' && <SoccerGame onBackToHub={handleBackToArcade} mode="space" />}
             {selectedGameId === 'kart' && <KartGame onBackToHub={handleBackToArcade} mode="space" />}
+            {selectedGameId === 'pong' && <PongGame onBackToHub={handleBackToArcade} mode="space" />}
+            {selectedGameId === 'brickbreaker' && <BrickBreakerGame onBackToHub={handleBackToArcade} mode="space" />}
+            {selectedGameId === 'asteroid' && <AsteroidDefenseGame onBackToHub={handleBackToArcade} mode="space" />}
           </div>
         </div>
       ) : (
-        /* Arcade Game Hub (Grid of 6 Games) */
+        /* Arcade Game Hub (Grid of 9 Games) */
         <div className="space-y-6">
           {/* Top Banner */}
           <div className="p-6 rounded-2xl bg-black/60 border border-white/10 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
@@ -138,14 +181,14 @@ export const SpaceGamesApp: React.FC = () => {
                   SPACE ARCADE // 2026
                 </h1>
                 <p className="text-xs text-slate-400 font-mono">
-                  Game Center com versões visuais futuristas dos clássicos interativos
+                  Game Center com 9 títulos completos, simulações em tempo real e controles responsivos
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-cyan-300">
               <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span>6 TÍTULOS DISPONÍVEIS</span>
+              <span>9 JOGOS DISPONÍVEIS</span>
             </div>
           </div>
 
@@ -157,39 +200,41 @@ export const SpaceGamesApp: React.FC = () => {
                 onClick={() => handleLaunchGame(game.id)}
                 className="group relative p-5 rounded-2xl bg-black/40 hover:bg-slate-900/60 border border-white/10 hover:border-cyan-400/60 backdrop-blur-xl transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden shadow-lg hover:shadow-[0_0_30px_rgba(6,182,212,0.25)] hover:-translate-y-1"
               >
-                {/* Background ambient glow on hover */}
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${game.gradient} opacity-10 group-hover:opacity-20 blur-2xl transition-opacity rounded-full`} />
-
+                {/* Header with Icon & Category */}
                 <div>
-                  {/* Top line badge */}
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-2xl p-2.5 rounded-xl bg-slate-900/80 border border-white/10 group-hover:scale-110 transition-transform">
-                      {game.icon}
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-bold">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl p-2 rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform">
+                        {game.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-mono font-bold text-sm text-white group-hover:text-cyan-300 transition-colors">
+                          {game.title}
+                        </h3>
+                        <span className="text-[10px] font-mono text-slate-400">{game.category}</span>
+                      </div>
+                    </div>
+
+                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300">
                       {game.categoryBadge}
                     </span>
                   </div>
 
-                  {/* Title & category */}
-                  <h3 className="text-base font-bold font-mono text-white group-hover:text-cyan-300 transition-colors">
-                    {game.title}
-                  </h3>
-                  <div className="text-xs text-slate-400 font-mono mt-0.5">{game.category}</div>
-
                   {/* Description */}
-                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-300/90 leading-relaxed mb-4">
                     {game.description}
                   </p>
                 </div>
 
-                {/* Launch Button */}
-                <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-mono text-cyan-400 group-hover:text-white transition-colors">
-                  <span className="font-bold flex items-center gap-1.5">
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>JOGAR AGORA</span>
+                {/* Footer Action */}
+                <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-cyan-400/80">
+                    SESSÃO ATIVA
                   </span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <div className="px-3 py-1.5 rounded-xl bg-cyan-500 text-slate-950 hover:bg-cyan-400 font-mono font-bold text-xs flex items-center gap-1 shadow-md transition">
+                    <span>JOGAR</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </div>
                 </div>
               </div>
             ))}

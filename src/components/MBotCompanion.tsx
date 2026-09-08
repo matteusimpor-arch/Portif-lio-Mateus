@@ -70,12 +70,24 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   const [antennaGlowing, setAntennaGlowing] = useState<boolean>(false);
   const [isBlinking, setIsBlinking] = useState<boolean>(false);
   const [speechBubbleText, setSpeechBubbleText] = useState<string | null>(null);
+  const [initialHookMessage, setInitialHookMessage] = useState<string | null>(null);
   const [reconstructionScale, setReconstructionScale] = useState<number>(0.2);
   const [reconstructionOpacity, setReconstructionOpacity] = useState<number>(0.2);
   const [isHovered, setIsHovered] = useState<boolean>(false);
 
   // Time Travel Dynamic Flight Coordinates (used ONLY during travel animation)
   const [flightPos, setFlightPos] = useState<{ x: number; y: number } | null>(null);
+  const [isGameActive, setIsGameActive] = useState<boolean>(false);
+
+  // Listen for active game sessions to hide M-BOT completely
+  useEffect(() => {
+    const handleGameActive = (e: Event) => {
+      const customEv = e as CustomEvent<{ isActive?: boolean }>;
+      setIsGameActive(!!customEv.detail?.isActive);
+    };
+    window.addEventListener('mbot-game-active', handleGameActive);
+    return () => window.removeEventListener('mbot-game-active', handleGameActive);
+  }, []);
 
   // "Você Sabia?" Curiosidades Index & History according to Era
   const factsList = mode === 'retro' ? DID_YOU_KNOW_RETRO : DID_YOU_KNOW_SPACE;
@@ -191,6 +203,63 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   }, [mode, playChirp]);
 
   // =========================================================================
+  // 1b. INITIAL SESSION MYSTERY HOOK (4–6s after load, only ONCE per session)
+  // =========================================================================
+  useEffect(() => {
+    if (!config.enabled || mode !== 'retro') return;
+
+    let alreadyShown = false;
+    try {
+      alreadyShown = sessionStorage.getItem('mbot_first_hook_shown') === 'true';
+    } catch (e) {}
+
+    if (alreadyShown) return;
+
+    const RETRO_HOOK_MESSAGES = [
+      'Você sabia? Este desktop esconde algumas coisas.',
+      'Dica: nem tudo aqui é apenas um ícone.',
+      'Explore. Algumas coisas só aparecem para quem procura.',
+      'Quer descobrir o que existe por aqui?',
+    ];
+
+    const chosenMsg = RETRO_HOOK_MESSAGES[Math.floor(Math.random() * RETRO_HOOK_MESSAGES.length)];
+
+    const hookTimer = setTimeout(() => {
+      try {
+        sessionStorage.setItem('mbot_first_hook_shown', 'true');
+      } catch (e) {}
+
+      // 1. Pisca
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 160);
+
+      // 2. Olha brevemente para o centro da tela
+      setEyeOffset({ x: -4.5, y: 2.2 });
+      setHeadAngle(-6);
+      setAntennaGlowing(true);
+      playChirp();
+
+      // 3. Mostra um pequeno balão retrô com a mensagem misteriosa
+      setInitialHookMessage(chosenMsg);
+
+      // 4. Balão permanece aproximadamente 4–6 segundos (5s)
+      const dismissTimer = setTimeout(() => {
+        setInitialHookMessage(null);
+        setEyeOffset({ x: 0, y: 0 });
+        setHeadAngle(0);
+        setAntennaGlowing(false);
+
+        // Dispara evento para indicar que o hook inicial concluiu
+        window.dispatchEvent(new CustomEvent('mbot-hook-completed'));
+      }, 5000);
+
+      return () => clearTimeout(dismissTimer);
+    }, 4500);
+
+    return () => clearTimeout(hookTimer);
+  }, [config.enabled, mode, playChirp]);
+
+  // =========================================================================
   // 2. NATURAL EYE BLINKING
   // =========================================================================
   useEffect(() => {
@@ -214,9 +283,12 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
 
   // =========================================================================
   // 3. CURSOR GAZE TRACKING (PUPILS & SUBTLE HEAD TILT)
+  // Requisito 08: Quando cursor aproximar do M-BOT: M-BOT olha para ele.
+  // Ao sair: olhos voltam ao centro. Não perseguir cursor.
   // =========================================================================
   const updateGaze = useCallback((mouseX: number, mouseY: number) => {
     if (botState === 'moving_to_travel' || botState === 'entering_vortex') return;
+    if (initialHookMessage) return; // Não interrompe o olhar para o centro durante a frase inicial
 
     if (!botElementRef.current) return;
     const rect = botElementRef.current.getBoundingClientRect();
@@ -227,39 +299,39 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
     const dy = mouseY - botCenterY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    if (dist < 2) {
+    // Raio de aproximação: 260px
+    if (dist > 260) {
       setEyeOffset({ x: 0, y: 0 });
+      setHeadAngle(0);
+      setAntennaGlowing(false);
       return;
     }
 
-    // Maximum pupil displacement in SVG coordinate units
+    // Cursor aproximou: M-BOT olha para ele
     const maxOffsetX = 5.0;
     const maxOffsetY = 4.0;
 
     const normX = dx / dist;
     const normY = dy / dist;
 
-    // Smooth response curve up to ~450px distance
-    const strength = Math.min(1, Math.max(0.15, dist / 90));
-
-    // When positioned in top-right, looking left means negative dx
+    const strength = Math.min(1, Math.max(0.2, dist / 110));
     const ex = normX * maxOffsetX * strength;
     const ey = normY * maxOffsetY * strength;
 
     setEyeOffset({ x: ex, y: ey });
 
-    // Subtle head tilt following the cursor
-    const rawAngle = (dx / (typeof window !== 'undefined' ? window.innerWidth : 1200)) * 14;
+    // Leve inclinação de cabeça apenas enquanto próximo
+    const rawAngle = (dx / 260) * 8;
     const clampedAngle = Math.max(-8, Math.min(8, rawAngle));
     setHeadAngle(clampedAngle);
 
-    // Antenna lights up when cursor is very close (<120px)
-    if (dist < 120) {
+    // Antena brilha quando muito perto (<100px)
+    if (dist < 100) {
       setAntennaGlowing(true);
     } else if (botState !== 'pointing_travel') {
       setAntennaGlowing(false);
     }
-  }, [botState]);
+  }, [botState, initialHookMessage]);
 
   useEffect(() => {
     if (!config.enabled || !config.cursorInteraction) return;
@@ -274,7 +346,9 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   }, [config.enabled, config.cursorInteraction, updateGaze]);
 
   // =========================================================================
-  // 4. "VOCÊ SABIA?" AUTOMATIC FACT ROTATION SCHEDULE (NON-INTRUSIVE)
+  // 4. "VOCÊ SABIA?" (DICAS & CURIOSIDADES ACESSÍVEIS NO CLIQUE)
+  // Requisito 02: Mensagem inicial somente uma vez. Curiosidades continuam
+  // disponíveis clicando no M-BOT.
   // =========================================================================
   const showNextFact = useCallback((manual = false) => {
     setCurrentFactIndex((prevIndex) => {
@@ -311,35 +385,6 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
       window.removeEventListener('mbot-toggle', handleToggle);
     };
   }, [config.enabled, showNextFact]);
-
-  useEffect(() => {
-    if (!config.enabled) return;
-
-    // Check how many automatic displays occurred this session (limit to 3 to prevent fatigue)
-    let autoCount = 0;
-    try {
-      autoCount = parseInt(sessionStorage.getItem('mbot_auto_fact_count') || '0', 10);
-    } catch (e) {}
-
-    if (autoCount >= 3) return;
-
-    // First appearance after 12 seconds
-    const initialDelay = autoCount === 0 ? 12000 : 26000;
-
-    autoFactTimerRef.current = setTimeout(() => {
-      if (botState === 'idle') {
-        try {
-          sessionStorage.setItem('mbot_auto_fact_count', String(autoCount + 1));
-        } catch (e) {}
-        showNextFact(false);
-      }
-    }, initialDelay);
-
-    return () => {
-      if (autoFactTimerRef.current) clearTimeout(autoFactTimerRef.current);
-      if (hideFactTimerRef.current) clearTimeout(hideFactTimerRef.current);
-    };
-  }, [config.enabled, botState, showNextFact]);
 
   // =========================================================================
   // 5. INTERACTIVE CLICK ON M-BOT -> OPEN INTERACTION MENU
@@ -437,7 +482,7 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
     setBotState('idle');
   };
 
-  if (!config.enabled || isTraveling) {
+  if (!config.enabled || isTraveling || isGameActive) {
     return null;
   }
 
@@ -485,6 +530,32 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
         }
         className="pointer-events-none select-none flex flex-col items-end"
       >
+        {/* =========================================================
+            INITIAL RETRO MYSTERY HOOK BALLOON (Requisitos 01 e 02)
+           ========================================================= */}
+        {initialHookMessage && !isFlying && (
+          <div
+            className={`pointer-events-auto absolute top-1 right-[calc(100%+14px)] w-[250px] sm:w-[280px] max-w-[75vw] p-3 shadow-2xl transition-all duration-300 animate-fadeIn ${
+              mode === 'retro'
+                ? 'bg-[#ffffd8] text-slate-900 border-2 border-black font-sans shadow-[4px_4px_0px_rgba(0,0,0,0.5)]'
+                : 'bg-slate-950/95 text-slate-100 border border-cyan-400/50 rounded-2xl font-mono backdrop-blur-xl shadow-[0_0_25px_rgba(6,182,212,0.3)]'
+            }`}
+          >
+            <div className="flex items-start gap-2.5">
+              <span className="text-base select-none shrink-0 mt-0.5">🤖</span>
+              <p className="text-xs font-bold leading-relaxed">
+                {initialHookMessage}
+              </p>
+            </div>
+            {/* Retro pointer tail pointing right to M-BOT */}
+            <div
+              className={`absolute top-5 -right-2 w-0 h-0 border-y-6 border-y-transparent border-l-8 ${
+                mode === 'retro' ? 'border-l-black' : 'border-l-cyan-400'
+              }`}
+            />
+          </div>
+        )}
+
         {/* =========================================================
             SPEECH BALLOON: "VOCÊ SABIA?" (DICAS & CURIOSIDADES)
            ========================================================= */}
