@@ -24,7 +24,10 @@ export type WindowAppId =
   | 'experience'
   | 'education'
   | 'terminal'
-  | 'experiments';
+  | 'experiments'
+  | 'mycomputer'
+  | 'datacore'
+  | 'timeline';
 
 export interface WindowState {
   id: WindowAppId;

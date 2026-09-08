@@ -342,41 +342,270 @@ export const CURRENTLY_NOW_DATA: CurrentlyNow = {
   ]
 };
 
+// Centralized Current Mission for Space 2026
+export const CURRENT_MISSION_DATA = {
+  updatedAt: '2026',
+  location: 'Brasília, DF • Brasil',
+  professionalFocus: 'Logística, Gestão de Processos e Inteligência Artificial Aplicada',
+  activities: [
+    'Padronização de expedientes e rotinas administrativas com foco em rastreabilidade',
+    'Otimização de fluxos e tempos de resposta no controle documental',
+    'Arquitetura e desenvolvimento da experiência digital interativa MATEUS OS 2000 / SPACE 2026'
+  ],
+  studies: CURRENTLY_NOW_DATA.studying,
+  projects: CURRENTLY_NOW_DATA.building,
+  goals: CURRENTLY_NOW_DATA.goals2026
+};
+
 // =========================================================================
-// 7. CURIOSIDADES "✦ VOCÊ SABIA?" (Rotativas e Factualmente Corretas)
+// 7. HISTÓRICO DO SISTEMA (SYSTEM.LOG) & MARCOS REAIS DA TRAJETÓRIA
 // =========================================================================
-export const DID_YOU_KNOW_FACTS = [
+export interface SystemHistoryEvent {
+  year: string;
+  tag: string;
+  title: string;
+  category: 'EXPERIÊNCIA' | 'FORMAÇÃO' | 'PROJETOS' | 'CERTIFICAÇÕES' | 'MARCO';
+  description: string;
+  details?: string[];
+}
+
+export const SYSTEM_HISTORY_EVENTS: SystemHistoryEvent[] = [
+  {
+    year: '2019',
+    tag: 'BOOT_01',
+    title: 'Início da Atuação no Exército Brasileiro',
+    category: 'EXPERIÊNCIA',
+    description: 'Ingresso nas rotinas administrativas e operacionais da 11ª Região Militar (Seção do Serviço de Veteranos e Pensionistas).',
+    details: [
+      'Confecção diária do aditamento oficial da SVP',
+      'Conferência rigorosa de processos e cumprimento de prazos'
+    ]
+  },
+  {
+    year: 'GRADUAÇÃO',
+    tag: 'CORE_EDU',
+    title: 'Superior em Logística Concluído',
+    category: 'FORMAÇÃO',
+    description: 'Conclusão da graduação com ênfase em Supply Chain, armazenagem e gestão de estoques (Centro Universitário IESB).',
+    details: [
+      'Cadeia de suprimentos e transporte logístico',
+      'Otimização de fluxos operacionais e movimentação de materiais'
+    ]
+  },
+  {
+    year: 'ESPECIALIZAÇÕES',
+    tag: 'POST_GRAD',
+    title: 'MBAs Executivos em Finanças, Supply Chain & Gestão Pública',
+    category: 'FORMAÇÃO',
+    description: 'Múltiplas especializações concluídas voltadas a finanças corporativas, cadeia de suprimentos e conformidade governamental.',
+    details: [
+      'MBA em Finanças e Controladoria',
+      'MBA em Logística e Supply Chain Management',
+      'MBA em Gestão Pública'
+    ]
+  },
+  {
+    year: 'LEGISLAÇÃO',
+    tag: 'COMPLIANCE',
+    title: 'Pós-Graduação em Licitações e Contratos',
+    category: 'FORMAÇÃO',
+    description: 'Aprofundamento na legislação de contratações públicas, fiscalização e elaboração de contratos administrativos.',
+    details: [
+      'Domínio das normativas de licitações públicas',
+      'Gestão de conformidade documental'
+    ]
+  },
+  {
+    year: 'CAPACITAÇÃO',
+    tag: 'AI_SKILL',
+    title: 'Operador de Computador com IA (SENAI 160h)',
+    category: 'CERTIFICAÇÕES',
+    description: 'Formação profissional em aplicação prática de Inteligência Artificial, Engenharia de Prompt e automação digital.',
+    details: [
+      'Engenharia de Prompt estruturada',
+      'Integração de ferramentas de produtividade e IA'
+    ]
+  },
+  {
+    year: '2026',
+    tag: 'PORTFOLIO_CORE',
+    title: 'MATEUS OS 2000 ➔ MATEUS SPACE 2026',
+    category: 'PROJETOS',
+    description: 'Lançamento do ecossistema digital conectando a era clássica dos computadores de 2000 ao universo tech-noir de 2026.',
+    details: [
+      'Integração de duas épocas com continuidade de dados',
+      'M-BOT Companion e Travel temporal com partículas'
+    ]
+  }
+];
+
+// =========================================================================
+// 8. PROPRIEDADES DO SISTEMA (OS 00 / RETRO PROPERTIES)
+// =========================================================================
+export const SYSTEM_PROPERTIES_DATA = {
+  systemName: 'MATEUS OS 00',
+  edition: 'Personal Portfolio Edition',
+  userName: 'Mateus Araujo',
+  userStatus: 'ONLINE',
+  version: '00.2026-STABLE',
+  mode: 'RETRO (ERA 2000)',
+  mBotStatus: 'ONLINE & ATIVO',
+  framework: 'React + TypeScript + Tailwind',
+  storageEngine: 'Local Memory & Firestore Realtime',
+  location: 'Brasil',
+  focusAreas: 'Logística • Gestão • Finanças • Inteligência Artificial'
+};
+
+// =========================================================================
+// 9. EASTER EGGS DISCRETOS (Textos Curtos e Autênticos)
+// =========================================================================
+export const EASTER_EGG_FILES = [
+  {
+    name: 'README.TXT',
+    title: 'README.TXT — Boas-Vindas ao Mateus OS',
+    content: `=====================================================
+MATEUS OS 00 — PERSONAL PORTFOLIO EDITION
+=====================================================
+
+Bem-vindo ao meu ambiente digital interativo!
+
+Este sistema foi construído para apresentar minha trajetória 
+em Logística, Gestão Pública, Finanças e Tecnologia através 
+de duas perspectivas temporais:
+
+[2000] MATEUS OS 00  -> A era clássica do desktop, nostálgica e exploratória.
+[2026] MATEUS SPACE  -> A evolução tecnológica, limpa e orbital.
+
+Você pode explorar livremente as pastas, Meu Computador, 
+a Lixeira e interagir com o M-BOT.
+
+Dica: Quando estiver pronto para conhecer o futuro, 
+abra o TRAVEL.EXE ou converse com o M-BOT.
+
+-- Mateus Araujo`
+  },
+  {
+    name: 'SYSTEM.LOG',
+    title: 'SYSTEM.LOG — Registro de Eventos do Sistema',
+    content: `[2019-03-01] INICIALIZANDO ATIVIDADES ADMINISTRATIVAS (EB / 11ª RM)
+[2019-2025] CONFERENCIA DOCUMENTAL E ADITAMENTOS REGIMENTAIS DIARIOS
+[2024-11-20] CONCLUSAO GRADUACAO SUPERIOR EM LOGISTICA (IESB)
+[2025-05-15] ESPECIALIZACOES: MBAS FINANCAS, SUPPLY CHAIN & GESTAO PUBLICA
+[2025-09-10] POS-GRADUACAO EM LICITACOES E CONTRATOS ADMINISTRATIVOS
+[2025-12-01] CAPACITACAO: OPERADOR DE COMPUTADOR COM IA (SENAI 160H)
+[2026-01-01] BOOT DO SISTEMA: MATEUS OS 00 CONECTADO AO SPACE 2026
+[STATUS] TODOS OS SUBSISTEMAS OPERANDO EM CONFORMIDADE.`
+  },
+  {
+    name: 'ABOUT_OS.TXT',
+    title: 'ABOUT_OS.TXT — Filosofia do Sistema',
+    content: `MATEUS OS 00 // NOTAS DE CONCEPÇÃO
+-----------------------------------------------------
+Dois mundos, o mesmo profissional.
+
+O OS 00 homenageia a era de ouro da computação pessoal, 
+onde cada janela, ícone e arquivo transmitia a sensação 
+de exploração autêntica.
+
+No Space 2026, os mesmos conceitos amadurecem:
+- Meu Computador torna-se Data Core
+- O Histórico torna-se Timeline Orbital
+- Os Projetos tornam-se Project Explorer
+- A data atual torna-se Missão Atual
+
+Simplicidade na forma, rigor no conteúdo.`
+  },
+  {
+    name: 'OLD_PROJECTS.TXT',
+    title: 'OLD_PROJECTS.TXT — Notas de Rascunho',
+    content: `ARQUIVO DE PROJETOS & ESTUDOS PRELIMINARES
+-----------------------------------------------------
+- Estruturação de planilhas de controle e conferência de expedientes
+- Modelos de padronização para aditamentos oficiais
+- Estudos de Engenharia de Prompt para classificação de dados
+- Protótipo do M-BOT em matriz de pontos 16x16`
+  },
+  {
+    name: 'HELLO.TXT',
+    title: 'HELLO.TXT — Saudação do M-BOT',
+    content: `(o_o) // Olá, visitante!
+
+Eu sou o M-BOT. Estou aqui para te acompanhar na exploração
+deste portfólio. Se quiser ver algum projeto, conhecer o Mateus
+ou viajar para o ano de 2026, é só clicar em mim no canto superior!`
+  }
+];
+
+// Initial Trash File
+export const INITIAL_TRASH_FILE = {
+  id: 'trash-readme-old',
+  name: 'README_OLD.TXT',
+  desc: 'Rascunho descartado do sistema original (2 KB)',
+  origin: 'retro' as const,
+  deletedAt: Date.now() - 86400000,
+  type: 'file' as const
+};
+
+// =========================================================================
+// 10. CURIOSIDADES "✦ VOCÊ SABIA?" (Por Época e Factualmente Corretas)
+// =========================================================================
+export const DID_YOU_KNOW_RETRO = [
   {
     id: 1,
     title: 'Armazenamento no ano 2000 vs. Hoje',
-    fact: 'Em 2000, um disco rígido de 20 GB custava mais de $200 dólares. Hoje, sistemas em nuvem processam terabytes em tempo real com alta disponibilidade e inteligência artificial.'
+    fact: 'Em 2000, um disco rígido de 20 GB era considerado de ponta e custava alto. Hoje, sistemas modernos processam fluxos de dados massivos em tempo real.'
   },
   {
     id: 2,
     title: 'A Era do Windows 2000',
-    fact: 'Lançado em fevereiro de 2000, o Windows 2000 Professional foi o primeiro sistema operacional da linha NT a trazer suporte nativo avançado a USB e gerenciamento robusto de multitarefas.'
+    fact: 'Lançado no início de 2000, o Windows 2000 estabeleceu a base de estabilidade e segurança da arquitetura NT para ambientes corporativos.'
   },
   {
     id: 3,
     title: 'Nascimento do MP3 e Napster',
-    fact: 'O Napster revolucionou a distribuição de música digital em 1999 e 2000, abrindo caminho para o streaming moderno ao demonstrar o poder das redes descentralizadas.'
+    fact: 'No início dos anos 2000, o compartilhamento de arquivos MP3 revolucionou para sempre o consumo de áudio digital no mundo.'
   },
   {
     id: 4,
     title: 'Logística e Código de Barras',
-    fact: 'A padronização dos códigos de barras EAN/UPC e o surgimento dos primeiros sistemas WMS no início dos anos 2000 transformaram radicalmente a acuracidade dos estoques mundiais.'
+    fact: 'A padronização dos códigos de barras e os primeiros softwares WMS nos anos 2000 revolucionaram a acuracidade dos inventários logísticos.'
   },
   {
     id: 5,
-    title: 'Clippy: O Assistente Pioneiro',
-    fact: 'Clippy (Clippit) foi introduzido no Office 97 e utilizava árvores de decisão bayesianas para tentar prever o que o usuário estava escrevendo e sugerir modelos de documentos.'
-  },
-  {
-    id: 6,
-    title: 'MATEUS OS 2000 → SPACE 2026',
-    fact: 'A transição cósmica deste portfólio simula a evolução de 26 anos da computação: saindo da interface beveled cinza de 2000 até um palco de partículas em gravidade zero em 2026.'
+    title: 'M-BOT 00: Origem',
+    fact: 'O M-BOT nasceu com visual pixelado e circuitos vintage para guiar você pelas pastas e arquivos deste portfólio.'
   }
 ];
+
+export const DID_YOU_KNOW_SPACE = [
+  {
+    id: 101,
+    title: 'Supply Chain 4.0 & Automação',
+    fact: 'Na era 2026, a rastreabilidade em tempo real e algoritmos preditivos transformam a eficiência da cadeia de suprimentos e reduzem prazos operacionais.'
+  },
+  {
+    id: 102,
+    title: 'Engenharia de Prompt Estruturada',
+    fact: 'A formulação precisa de contexto e restrições permite que modelos de linguagem executem tarefas analíticas complexas com alta fidelidade.'
+  },
+  {
+    id: 103,
+    title: 'Conformidade e Governança Pública',
+    fact: 'A digitalização dos processos licitatórios e contratos públicos assegura transparência, economicidade e auditabilidade contínua.'
+  },
+  {
+    id: 104,
+    title: 'Data Core: Continuidade 2000 → 2026',
+    fact: 'O Data Core no Space 2026 consome exatamente os mesmos dados de Meu Computador do OS 00, demonstrando a evolução de apresentação da informação.'
+  },
+  {
+    id: 105,
+    title: 'M-BOT 26: Evolução Tecnológica',
+    fact: 'No Space 2026, o M-BOT evoluiu para um modelo de metal refinado com antena luminosa e iluminação tech-noir, mantendo a mesma essência de guia.'
+  }
+];
+
+export const DID_YOU_KNOW_FACTS = [...DID_YOU_KNOW_RETRO, ...DID_YOU_KNOW_SPACE];
 
 export const TERMINAL_HELP_TEXT = `
 MATEUS ARAUJO PORTFOLIO OS v2026
@@ -391,5 +620,6 @@ Comandos disponíveis:
   projects     - Trabalho Selecionado (MATEUS OS 2000 / SPACE 2026)
   contact      - Canais de contato direto (LinkedIn, GitHub, Email, WhatsApp)
   now          - Focos atuais e objetivos para 2026
+  history      - Exibe o histórico do sistema (SYSTEM.LOG)
   clear        - Limpa a tela do terminal
 `;

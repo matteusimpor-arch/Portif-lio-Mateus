@@ -8,11 +8,15 @@ import {
   Lightbulb,
   ChevronRight,
   RotateCcw,
-  Bot
+  Bot,
+  User,
+  Layers,
+  Compass,
+  Target
 } from 'lucide-react';
 import { soundFx } from '../utils/soundEffects';
 import { SpaceThemeId } from '../types';
-import { DID_YOU_KNOW_FACTS } from '../data/portfolioData';
+import { DID_YOU_KNOW_FACTS, DID_YOU_KNOW_RETRO, DID_YOU_KNOW_SPACE } from '../data/portfolioData';
 
 export interface MBotConfig {
   enabled: boolean;
@@ -73,11 +77,13 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   // Time Travel Dynamic Flight Coordinates (used ONLY during travel animation)
   const [flightPos, setFlightPos] = useState<{ x: number; y: number } | null>(null);
 
-  // "Você Sabia?" Curiosidades Index & History
+  // "Você Sabia?" Curiosidades Index & History according to Era
+  const factsList = mode === 'retro' ? DID_YOU_KNOW_RETRO : DID_YOU_KNOW_SPACE;
+
   const [currentFactIndex, setCurrentFactIndex] = useState<number>(() => {
     try {
-      const saved = sessionStorage.getItem('mbot_last_fact_index');
-      return saved ? parseInt(saved, 10) % DID_YOU_KNOW_FACTS.length : 0;
+      const saved = sessionStorage.getItem(`mbot_last_fact_index_${mode}`);
+      return saved ? parseInt(saved, 10) % factsList.length : 0;
     } catch (e) {
       return 0;
     }
@@ -101,6 +107,28 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
       } catch (e) {}
     }
   }, [config.sound]);
+
+  // Guide Action Helper (Visual Guide - Non chatbot)
+  const handleGuideAction = (target: 'about' | 'projects' | 'now') => {
+    setBotState('idle');
+    setHeadAngle(-15);
+    setEyeOffset({ x: -4, y: 3 });
+
+    let message = 'Comece por aqui.';
+    if (target === 'projects') message = 'É por aqui.';
+    if (target === 'now') message = 'Veja o que está acontecendo agora.';
+
+    setSpeechBubbleText(message);
+    try { soundFx.playMBotCurious(); } catch (e) {}
+
+    window.dispatchEvent(new CustomEvent('mbot-guide-action', { detail: { target } }));
+
+    setTimeout(() => {
+      setSpeechBubbleText(null);
+      setHeadAngle(0);
+      setEyeOffset({ x: 0, y: 0 });
+    }, 2800);
+  };
 
   // Update configuration helper
   const updateConfig = (newConfig: Partial<MBotConfig>) => {
@@ -250,9 +278,9 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   // =========================================================================
   const showNextFact = useCallback((manual = false) => {
     setCurrentFactIndex((prevIndex) => {
-      const nextIndex = (prevIndex + 1) % DID_YOU_KNOW_FACTS.length;
+      const nextIndex = (prevIndex + 1) % factsList.length;
       try {
-        sessionStorage.setItem('mbot_last_fact_index', String(nextIndex));
+        sessionStorage.setItem(`mbot_last_fact_index_${mode}`, String(nextIndex));
       } catch (e) {}
       return nextIndex;
     });
@@ -265,7 +293,7 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
     hideFactTimerRef.current = setTimeout(() => {
       setBotState((current) => (current === 'showing_fact' ? 'idle' : current));
     }, 8500);
-  }, [playChirp]);
+  }, [factsList.length, mode, playChirp]);
 
   // Listen to external commands to show a fact or toggle bot
   useEffect(() => {
@@ -422,7 +450,7 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   };
   const spaceStyles = spaceThemeConfig[spaceTheme] || spaceThemeConfig['space-blue'];
 
-  const currentFact = DID_YOU_KNOW_FACTS[currentFactIndex] || DID_YOU_KNOW_FACTS[0];
+  const currentFact = factsList[currentFactIndex] || factsList[0];
 
   const isFlying = botState === 'moving_to_travel' || botState === 'entering_vortex';
 
@@ -502,7 +530,7 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
             {/* Footer Navigation */}
             <div className="flex items-center justify-between pt-1 border-t border-slate-300/40 text-[10px]">
               <span className="opacity-60 font-mono">
-                {currentFactIndex + 1} / {DID_YOU_KNOW_FACTS.length}
+                {currentFactIndex + 1} / {factsList.length}
               </span>
               <button
                 onClick={() => showNextFact(true)}
@@ -559,14 +587,67 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
             </div>
 
             {/* Question Greeting */}
-            <p className="text-xs mb-3 font-medium">
+            <p className="text-xs mb-2.5 font-medium">
               {mode === 'retro'
-                ? 'Quer conhecer o futuro?'
-                : 'Quer voltar aos anos 2000?'}
+                ? 'O que deseja fazer?'
+                : 'O que deseja explorar?'}
             </p>
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-1.5">
+              {/* Option: CONHECER MATEUS */}
+              <button
+                onClick={() => handleGuideAction('about')}
+                className={`w-full py-1.5 px-3 rounded text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  mode === 'retro'
+                    ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-400 shadow-xs'
+                    : 'bg-blue-950/80 hover:bg-blue-900 text-cyan-300 border border-cyan-600/40'
+                }`}
+              >
+                <User className="w-3.5 h-3.5 text-cyan-500" />
+                <span>CONHECER MATEUS</span>
+              </button>
+
+              {/* Option: VER PROJETOS */}
+              <button
+                onClick={() => handleGuideAction('projects')}
+                className={`w-full py-1.5 px-3 rounded text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  mode === 'retro'
+                    ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-400 shadow-xs'
+                    : 'bg-blue-950/80 hover:bg-blue-900 text-cyan-300 border border-cyan-600/40'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5 text-emerald-500" />
+                <span>VER PROJETOS</span>
+              </button>
+
+              {/* Option (Space Only): MISSÃO ATUAL */}
+              {mode === 'space' && (
+                <button
+                  onClick={() => handleGuideAction('now')}
+                  className="w-full py-1.5 px-3 rounded text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer bg-blue-950/80 hover:bg-blue-900 text-cyan-300 border border-cyan-600/40"
+                >
+                  <Target className="w-3.5 h-3.5 text-amber-400" />
+                  <span>MISSÃO ATUAL</span>
+                </button>
+              )}
+
+              {/* Option: VOCÊ SABIA? */}
+              <button
+                onClick={() => {
+                  showNextFact(true);
+                }}
+                className={`w-full py-1.5 px-3 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                  mode === 'retro'
+                    ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-400 shadow-xs'
+                    : 'bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-white/10'
+                }`}
+              >
+                <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                <span>VOCÊ SABIA?</span>
+              </button>
+
+              {/* Option: TRAVEL (IR PARA O SPACE / VOLTAR PARA 2000) */}
               <button
                 onClick={handleInitiateTravel}
                 className={`w-full py-2 px-3 rounded text-xs font-bold flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer shadow-md ${
@@ -588,20 +669,7 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
                 )}
               </button>
 
-              <button
-                onClick={() => {
-                  showNextFact(true);
-                }}
-                className={`w-full py-1.5 px-3 rounded text-xs font-medium flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                  mode === 'retro'
-                    ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-400 shadow-xs'
-                    : 'bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-white/10'
-                }`}
-              >
-                <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                <span>VOCÊ SABIA?</span>
-              </button>
-
+              {/* Option: FECHAR */}
               <button
                 onClick={handleCloseOverlay}
                 className={`w-full py-1 px-3 rounded text-[11px] transition text-center opacity-70 hover:opacity-100 cursor-pointer ${

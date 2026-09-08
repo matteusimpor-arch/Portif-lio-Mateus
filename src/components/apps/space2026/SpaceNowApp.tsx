@@ -1,6 +1,18 @@
 import React from 'react';
-import { Clock, BookOpen, Hammer, Sparkles, Target, Compass, CheckCircle2, Zap, Activity, Flame, Layers, Palette } from 'lucide-react';
-import { CURRENTLY_NOW_DATA } from '../../../data/portfolioData';
+import {
+  Clock,
+  BookOpen,
+  Hammer,
+  Sparkles,
+  Target,
+  CheckCircle2,
+  Zap,
+  Activity,
+  Briefcase,
+  Compass,
+  ArrowRight
+} from 'lucide-react';
+import { CURRENT_MISSION_DATA, CURRENTLY_NOW_DATA } from '../../../data/portfolioData';
 
 export const SpaceNowApp: React.FC = () => {
   return (
@@ -14,42 +26,60 @@ export const SpaceNowApp: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold font-mono text-white">LIVE STATUS • AGORA 2026</h1>
+                <h1 className="text-xl font-bold font-mono text-white">MISSÃO ATUAL // CURRENT MISSION 2026</h1>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  REAL-TIME TELEMETRY
+                  TELEMETRIA EM TEMPO REAL
                 </span>
               </div>
               <p className="text-xs text-slate-400 font-mono">
-                Projetos Ativos • Foco de Pesquisa • Metas Estratégicas
+                Atividades Operacionais • Foco de Pesquisa • Metas Estratégicas
               </p>
             </div>
           </div>
 
           <div className="px-3.5 py-1.5 rounded-xl bg-blue-950/80 border border-cyan-500/40 text-cyan-300 text-xs font-mono flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Ano Atual: 2026 • Brasília, DF</span>
+            <span>Ano Base: {CURRENT_MISSION_DATA.updatedAt} • {CURRENT_MISSION_DATA.location}</span>
           </div>
         </div>
       </div>
 
-      {/* Grid of Live Activity HUD Cards */}
+      {/* Professional Focus Banner */}
+      <div className="p-4 rounded-2xl bg-blue-950/40 border border-cyan-500/30 backdrop-blur-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <Compass className="w-5 h-5 text-cyan-400 shrink-0" />
+          <div>
+            <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">
+              FOCO PROFISSIONAL ATUAL
+            </div>
+            <div className="text-xs font-mono font-bold text-white mt-0.5">
+              {CURRENT_MISSION_DATA.professionalFocus}
+            </div>
+          </div>
+        </div>
+        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-700/60 shrink-0">
+          STATUS: ATIVO
+        </span>
+      </div>
+
+      {/* 4 Primary Mission Pillars Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {/* 1. Estudos e Pesquisa */}
+        {/* 1. O que estou fazendo (Atividades) */}
         <div className="p-5 rounded-2xl bg-black/75 border border-cyan-950 hover:border-cyan-600/60 transition backdrop-blur-xl shadow-[0_0_25px_rgba(0,10,30,0.5)] space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-cyan-900/40">
             <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-cyan-400" />
+              <Briefcase className="w-4 h-4 text-cyan-400" />
               <h3 className="font-mono text-xs font-bold text-white uppercase tracking-wider">
-                01. Linhas de Pesquisa & Estudos
+                01. O que estou fazendo
               </h3>
             </div>
             <span className="text-[10px] font-mono text-cyan-400 px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800">
-              EM ANDAMENTO
+              ROTINAS
             </span>
           </div>
           <div className="space-y-2.5">
-            {CURRENTLY_NOW_DATA.studying.map((item, idx) => (
+            {CURRENT_MISSION_DATA.activities.map((item, idx) => (
               <div
                 key={idx}
                 className="p-3 rounded-xl bg-blue-950/40 border border-cyan-900/40 flex items-start gap-2.5 text-xs text-slate-300"
@@ -61,21 +91,47 @@ export const SpaceNowApp: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Construção e Projetos Ativos */}
+        {/* 2. O que estou estudando (Estudos & Pesquisa) */}
+        <div className="p-5 rounded-2xl bg-black/75 border border-cyan-950 hover:border-cyan-600/60 transition backdrop-blur-xl shadow-[0_0_25px_rgba(0,10,30,0.5)] space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-cyan-900/40">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-purple-400" />
+              <h3 className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+                02. O que estou estudando
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono text-purple-400 px-2 py-0.5 rounded bg-purple-950/80 border border-purple-800">
+              PESQUISA
+            </span>
+          </div>
+          <div className="space-y-2.5">
+            {CURRENT_MISSION_DATA.studies.map((item, idx) => (
+              <div
+                key={idx}
+                className="p-3 rounded-xl bg-purple-950/20 border border-purple-900/40 flex items-start gap-2.5 text-xs text-slate-300"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. Projetos atuais (Construindo) */}
         <div className="p-5 rounded-2xl bg-black/75 border border-cyan-950 hover:border-cyan-600/60 transition backdrop-blur-xl shadow-[0_0_25px_rgba(0,10,30,0.5)] space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-cyan-900/40">
             <div className="flex items-center gap-2">
               <Hammer className="w-4 h-4 text-emerald-400" />
               <h3 className="font-mono text-xs font-bold text-white uppercase tracking-wider">
-                02. Construindo & Desenvolvendo
+                03. Projetos Atuais em Construção
               </h3>
             </div>
             <span className="text-[10px] font-mono text-emerald-400 px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800">
-              ATIVO
+              DESENVOLVIMENTO
             </span>
           </div>
           <div className="space-y-2.5">
-            {CURRENTLY_NOW_DATA.building.map((item, idx) => (
+            {CURRENT_MISSION_DATA.projects.map((item, idx) => (
               <div
                 key={idx}
                 className="p-3 rounded-xl bg-emerald-950/20 border border-emerald-900/40 flex items-start gap-2.5 text-xs text-slate-300"
@@ -87,52 +143,26 @@ export const SpaceNowApp: React.FC = () => {
           </div>
         </div>
 
-        {/* 3. Metas & Objetivos 2026 */}
+        {/* 4. Metas Estratégicas 2026 */}
         <div className="p-5 rounded-2xl bg-black/75 border border-cyan-950 hover:border-cyan-600/60 transition backdrop-blur-xl shadow-[0_0_25px_rgba(0,10,30,0.5)] space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-cyan-900/40">
             <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-purple-400" />
+              <Target className="w-4 h-4 text-cyan-400" />
               <h3 className="font-mono text-xs font-bold text-white uppercase tracking-wider">
-                03. Metas Estratégicas 2026
+                04. Metas Estratégicas 2026
               </h3>
             </div>
-            <span className="text-[10px] font-mono text-purple-400 px-2 py-0.5 rounded bg-purple-950/80 border border-purple-800">
+            <span className="text-[10px] font-mono text-cyan-400 px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800">
               TARGET
             </span>
           </div>
           <div className="space-y-2.5">
-            {CURRENTLY_NOW_DATA.goals2026.map((item, idx) => (
+            {CURRENT_MISSION_DATA.goals.map((item, idx) => (
               <div
                 key={idx}
-                className="p-3 rounded-xl bg-purple-950/20 border border-purple-900/40 flex items-start gap-2.5 text-xs text-slate-300"
+                className="p-3 rounded-xl bg-blue-950/30 border border-cyan-950 flex items-start gap-2.5 text-xs text-slate-300"
               >
-                <Flame className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 4. Aprendizado e Design */}
-        <div className="p-5 rounded-2xl bg-black/75 border border-cyan-950 hover:border-cyan-600/60 transition backdrop-blur-xl shadow-[0_0_25px_rgba(0,10,30,0.5)] space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-cyan-900/40">
-            <div className="flex items-center gap-2">
-              <Palette className="w-4 h-4 text-amber-400" />
-              <h3 className="font-mono text-xs font-bold text-white uppercase tracking-wider">
-                04. Aprendizado & Modelagem
-              </h3>
-            </div>
-            <span className="text-[10px] font-mono text-amber-400 px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800">
-              EXPLORANDO
-            </span>
-          </div>
-          <div className="space-y-2.5">
-            {CURRENTLY_NOW_DATA.learning.map((item, idx) => (
-              <div
-                key={idx}
-                className="p-3 rounded-xl bg-amber-950/20 border border-amber-900/40 flex items-start gap-2.5 text-xs text-slate-300"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <ArrowRight className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
                 <span>{item}</span>
               </div>
             ))}
@@ -142,3 +172,4 @@ export const SpaceNowApp: React.FC = () => {
     </div>
   );
 };
+

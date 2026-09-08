@@ -507,7 +507,7 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
             'PROCESSADOR: SUPPLY CHAIN & AI PROMPT CORE ONLINE',
             'PORTFÓLIO: MATEUS ARAÚJO • 2000 ➔ 2026',
             'DISCOS DE ARMAZENAMENTO: FIRESTORE & LOCALSTORAGE OK',
-            'MOVA O MOUSE OU TOQUE NA TELA PARA ACESSAR A ÁREA DE TRABALHO...'
+            'SISTEMA OPERACIONAL MATEUS OS 2000: ONLINE'
           ];
 
           ctx.font = "17px 'VT323', monospace";
@@ -546,14 +546,9 @@ export const ScreensaverCanvas: React.FC<ScreensaverCanvasProps> = ({
   return (
     <div
       onClick={onWakeUp}
-      className="fixed inset-0 z-50 bg-[#000000] flex flex-col justify-between cursor-pointer animate-fadeIn select-none"
+      className="fixed inset-0 z-50 bg-[#000000] cursor-pointer animate-fadeIn select-none"
     >
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />
-
-      {/* Discreet Wakeup Prompt Ticker (Bottom) */}
-      <div className="relative z-10 p-3 text-center text-[11px] font-mono text-cyan-400/80 bg-black/60 backdrop-blur-xs border-t border-cyan-950/60">
-        [ DESCANSO DE TELA ATIVO • MOVA O MOUSE OU TOQUE NA TELA PARA RETORNAR AO MATEUS OS ]
-      </div>
     </div>
   );
 };

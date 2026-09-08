@@ -268,6 +268,22 @@ export const Desktop: React.FC<DesktopProps> = ({
     setDraggingFolderId(null);
   };
 
+  // M-BOT Guided Navigation listener
+  useEffect(() => {
+    const handleMBotGuide = (e: CustomEvent) => {
+      if (!e.detail?.target) return;
+      if (e.detail.target === 'about') {
+        setSelectedIcon('about');
+        onOpenApp('about');
+      } else if (e.detail.target === 'projects') {
+        setSelectedIcon('projects');
+        onOpenApp('projects');
+      }
+    };
+    window.addEventListener('mbot-guide-action', handleMBotGuide as EventListener);
+    return () => window.removeEventListener('mbot-guide-action', handleMBotGuide as EventListener);
+  }, [onOpenApp]);
+
   // Wallpaper background styling lookup
   const getWallpaperBackground = () => {
     switch (themeConfig.wallpaper) {

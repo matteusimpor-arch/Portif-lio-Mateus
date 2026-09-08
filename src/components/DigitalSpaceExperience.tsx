@@ -435,6 +435,22 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
     });
   };
 
+  // M-BOT Guided Navigation in Space
+  useEffect(() => {
+    const handleMBotGuide = (e: CustomEvent) => {
+      if (!e.detail?.target) return;
+      if (e.detail.target === 'about') {
+        handleOpenApp('about');
+      } else if (e.detail.target === 'projects') {
+        handleOpenApp('projects');
+      } else if (e.detail.target === 'now') {
+        handleOpenApp('now');
+      }
+    };
+    window.addEventListener('mbot-guide-action', handleMBotGuide as EventListener);
+    return () => window.removeEventListener('mbot-guide-action', handleMBotGuide as EventListener);
+  }, [topZIndex]);
+
   // Open User Folder Window
   const handleOpenFolderWindow = (folder: DesktopFolderItem) => {
     const windowId = `folder-window-${folder.id}`;
