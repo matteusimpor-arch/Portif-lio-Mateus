@@ -143,34 +143,38 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
   };
 
   // Update configuration helper
-  const updateConfig = (newConfig: Partial<MBotConfig>) => {
-    setConfig((prev) => {
-      const updated = { ...prev, ...newConfig };
-      try {
-        if (newConfig.enabled !== undefined) {
-          localStorage.setItem('mBotEnabled', String(updated.enabled));
-          window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: updated.enabled } }));
-        }
-        if (newConfig.cursorInteraction !== undefined) {
-          localStorage.setItem('mBotCursorInteraction', String(updated.cursorInteraction));
-        }
-        if (newConfig.sound !== undefined) {
-          localStorage.setItem('mBotSound', String(updated.sound));
-        }
-      } catch (e) {}
-      return updated;
-    });
-  };
+  const updateConfig = useCallback((newConfig: Partial<MBotConfig>) => {
+    try {
+      if (newConfig.enabled !== undefined) {
+        localStorage.setItem('mBotEnabled', String(newConfig.enabled));
+      }
+      if (newConfig.cursorInteraction !== undefined) {
+        localStorage.setItem('mBotCursorInteraction', String(newConfig.cursorInteraction));
+      }
+      if (newConfig.sound !== undefined) {
+        localStorage.setItem('mBotSound', String(newConfig.sound));
+      }
+    } catch (e) {}
+
+    setConfig((prev) => ({ ...prev, ...newConfig }));
+
+    if (newConfig.enabled !== undefined) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: newConfig.enabled } }));
+      }, 0);
+    }
+  }, []);
 
   // Listen to external toggle events
   useEffect(() => {
-    const handleStatusChanged = (e: CustomEvent) => {
-      if (e.detail && typeof e.detail.enabled === 'boolean') {
-        setConfig((prev) => ({ ...prev, enabled: e.detail.enabled }));
+    const handleStatusChanged = (e: Event) => {
+      const ce = e as CustomEvent<{ enabled?: boolean }>;
+      if (ce.detail && typeof ce.detail.enabled === 'boolean') {
+        setConfig((prev) => (prev.enabled === ce.detail.enabled ? prev : { ...prev, enabled: ce.detail.enabled }));
       }
     };
-    window.addEventListener('mbot-status-changed', handleStatusChanged as EventListener);
-    return () => window.removeEventListener('mbot-status-changed', handleStatusChanged as EventListener);
+    window.addEventListener('mbot-status-changed', handleStatusChanged);
+    return () => window.removeEventListener('mbot-status-changed', handleStatusChanged);
   }, []);
 
   // =========================================================================
@@ -374,8 +378,13 @@ export const MBotCompanion: React.FC<MBotCompanionProps> = ({
     const handleShowFact = () => {
       showNextFact(true);
     };
-    const handleToggle = () => {
-      updateConfig({ enabled: !config.enabled });
+    const handleToggle = (e: Event) => {
+      const ce = e as CustomEvent<{ enabled?: boolean }>;
+      if (ce.detail && typeof ce.detail.enabled === 'boolean') {
+        setConfig((prev) => (prev.enabled === ce.detail.enabled ? prev : { ...prev, enabled: ce.detail.enabled }));
+      } else {
+        updateConfig({ enabled: !config.enabled });
+      }
     };
 
     window.addEventListener('mbot-show-fact', handleShowFact);

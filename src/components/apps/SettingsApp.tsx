@@ -78,8 +78,10 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
       if (updates.sound) soundFx.playMBotChirp();
     }
     // Dispatch events so live companion and taskbar sync immediately
-    window.dispatchEvent(new Event('storage'));
-    window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: updates.enabled } }));
+    setTimeout(() => {
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: updates.enabled } }));
+    }, 0);
   };
 
   const [selectedScreensaver, setSelectedScreensaver] = useState<string>(() => {

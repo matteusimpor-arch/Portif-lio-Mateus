@@ -363,13 +363,12 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
   useEffect(() => {
     const handleMBotStatus = (e: Event) => {
       const ce = e as CustomEvent<{ enabled?: boolean }>;
-      if (ce.detail?.enabled !== undefined) {
-        setIsMBotEnabled(ce.detail.enabled);
-      } else {
-        try {
-          setIsMBotEnabled(localStorage.getItem('mBotEnabled') !== 'false');
-        } catch (err) {}
-      }
+      const next = ce.detail?.enabled !== undefined
+        ? ce.detail.enabled
+        : (() => {
+            try { return localStorage.getItem('mBotEnabled') !== 'false'; } catch { return true; }
+          })();
+      setIsMBotEnabled((prev) => (prev === next ? prev : next));
     };
 
     window.addEventListener('mbot-status-changed', handleMBotStatus);
@@ -386,8 +385,10 @@ export const DigitalSpaceExperience: React.FC<DigitalSpaceExperienceProps> = ({
     try {
       localStorage.setItem('mBotEnabled', String(nextState));
     } catch (e) {}
-    window.dispatchEvent(new CustomEvent('mbot-toggle', { detail: { enabled: nextState } }));
-    window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: nextState } }));
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('mbot-toggle', { detail: { enabled: nextState } }));
+      window.dispatchEvent(new CustomEvent('mbot-status-changed', { detail: { enabled: nextState } }));
+    }, 0);
     try {
       soundFx.playClick();
       if (nextState) soundFx.playMBotChirp();
